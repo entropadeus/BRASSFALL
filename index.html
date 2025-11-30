@@ -12,6 +12,26 @@
             transform: translate(-50%, -50%); pointer-events: none;
             transition: width 0.1s, height 0.1s, opacity 0.2s;
         }
+        #hitmarker {
+            position: absolute; top: 50%; left: 50%; width: 30px; height: 30px;
+            transform: translate(-50%, -50%); pointer-events: none;
+            opacity: 0; transition: opacity 0.05s;
+        }
+        #hitmarker.show {
+            opacity: 1;
+        }
+        .hm-line {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 2px;
+            background: rgba(180, 180, 180, 0.5);
+            transform-origin: center;
+        }
+        .hm-line:first-child {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+        .hm-line:last-child {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
         #hud {
             position: absolute; bottom: 20px; right: 20px; color: #0f0;
             font-size: 24px; pointer-events: none; user-select: none;
@@ -38,6 +58,10 @@
     <p>WASD: Move | SHIFT: Sprint | SPACE: Jump | LMB: Shoot | RMB: Aim | R: Reload</p>
 </div>
 <div id="crosshair"></div>
+<div id="hitmarker">
+    <div class="hm-line"></div>
+    <div class="hm-line"></div>
+</div>
 <div id="hud">30 / 90</div>
 <div id="controls">
     Rendering: Post-Process Pipeline<br>
@@ -499,6 +523,54 @@ function playSound(type) {
         hitG.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         hitN.connect(hitG); hitG.connect(dryGain);
         hitN.start(now);
+
+    } else if (type === 'botHit') {
+        // Fleshy impact sound for bot hits
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.15);
+
+        // Thwack noise layer
+        const thwackBuf = actx.createBuffer(1, actx.sampleRate * 0.08, actx.sampleRate);
+        const thwackOut = thwackBuf.getChannelData(0);
+        for (let i = 0; i < thwackBuf.length; i++) {
+            thwackOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.015));
+        }
+        const thwackN = actx.createBufferSource(); thwackN.buffer = thwackBuf;
+        const thwackFilter = actx.createBiquadFilter();
+        thwackFilter.type = 'bandpass'; thwackFilter.frequency.value = 800; thwackFilter.Q.value = 1;
+        const thwackG = actx.createGain();
+        thwackG.gain.setValueAtTime(0.4, now);
+        thwackN.connect(thwackFilter); thwackFilter.connect(thwackG);
+        thwackG.connect(dryGain);
+        thwackN.start(now);
+
+    } else if (type === 'botDeath') {
+        // Death grunt/thud
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.25);
+        filter.type = 'lowpass';
+        filter.frequency.value = 300;
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.35);
+
+        // Body fall thud
+        const thudOsc = actx.createOscillator();
+        const thudGain = actx.createGain();
+        thudOsc.connect(thudGain); thudGain.connect(dryGain); thudGain.connect(convolver);
+        thudOsc.type = 'sine';
+        thudOsc.frequency.setValueAtTime(80, now + 0.15);
+        thudOsc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+        thudGain.gain.setValueAtTime(0.6, now + 0.15);
+        thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        thudOsc.start(now + 0.15); thudOsc.stop(now + 0.45);
 
     } else if (type === 'empty') {
         osc.type = 'square'; osc.frequency.setValueAtTime(800, now);
@@ -986,6 +1058,769 @@ for (let i = 0; i < 8; i++) {
     }, 1000 + i * 500);
 }
 
+// UNARMED BOTS
+const bots = [];
+
+// Bot materials
+const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.8 });
+
+// Create shirt texture with "TALIBAN" text
+const shirtTexCanvas = document.createElement('canvas');
+shirtTexCanvas.width = 256; shirtTexCanvas.height = 256;
+const shirtTexCtx = shirtTexCanvas.getContext('2d');
+shirtTexCtx.fillStyle = '#2a2a2a';
+shirtTexCtx.fillRect(0, 0, 256, 256);
+shirtTexCtx.fillStyle = '#cc0000';
+shirtTexCtx.font = 'bold 36px Arial';
+shirtTexCtx.textAlign = 'center';
+shirtTexCtx.textBaseline = 'middle';
+shirtTexCtx.fillText('TALIBAN', 128, 128);
+const shirtTex = new THREE.CanvasTexture(shirtTexCanvas);
+
+const shirtMat = new THREE.MeshStandardMaterial({ map: shirtTex, roughness: 0.7 });
+const pantsMat = new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.7 });
+
+function createBotMesh() {
+    const group = new THREE.Group();
+    const scale = 2.0; // Scale factor for larger bots
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 12, 8), skinMat);
+    head.position.y = 1.85 * scale;
+    head.castShadow = true;
+    group.add(head);
+
+    // Torso
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * scale, 0.9 * scale, 0.4 * scale), shirtMat);
+    torso.position.y = 1.1 * scale;
+    torso.castShadow = true;
+    group.add(torso);
+
+    // Arms
+    const armGeo = new THREE.BoxGeometry(0.2 * scale, 0.7 * scale, 0.2 * scale);
+    const leftArm = new THREE.Mesh(armGeo, skinMat);
+    leftArm.position.set(-0.45 * scale, 1.1 * scale, 0);
+    leftArm.castShadow = true;
+    group.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeo, skinMat);
+    rightArm.position.set(0.45 * scale, 1.1 * scale, 0);
+    rightArm.castShadow = true;
+    group.add(rightArm);
+
+    // Legs
+    const legGeo = new THREE.BoxGeometry(0.25 * scale, 0.8 * scale, 0.25 * scale);
+    const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+    leftLeg.position.set(-0.2 * scale, 0.4 * scale, 0);
+    leftLeg.castShadow = true;
+    group.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+    rightLeg.position.set(0.2 * scale, 0.4 * scale, 0);
+    rightLeg.castShadow = true;
+    group.add(rightLeg);
+
+    return group;
+}
+
+class Bot {
+    constructor(x, z) {
+        this.mesh = createBotMesh();
+        this.mesh.position.set(x, -5, z);
+        scene.add(this.mesh);
+
+        // AI state
+        this.health = 3;
+        this.isDead = false;
+        this.deathTime = 0;
+        this.respawnDelay = 5000;
+
+        // Movement
+        this.velocity = new THREE.Vector3();
+        this.targetPos = new THREE.Vector3(x, -5, z);
+        this.wanderTimer = 0;
+        this.wanderInterval = 2 + Math.random() * 3;
+        this.speed = 2 + Math.random() * 2;
+
+        // Animation state
+        this.walkCycle = Math.random() * Math.PI * 2;
+
+        // Ragdoll parts (populated on death)
+        this.ragdollParts = [];
+
+        // Hitbox for raycasting (scaled to match larger bot)
+        this.hitbox = new THREE.Mesh(
+            new THREE.BoxGeometry(1.6, 4.4, 1.0),
+            new THREE.MeshBasicMaterial({ visible: false })
+        );
+        this.hitbox.position.y = 2.2;
+        this.mesh.add(this.hitbox);
+        this.hitbox.userData.isBot = true;
+        this.hitbox.userData.botRef = this;
+        targets.push(this.hitbox);
+    }
+
+    pickNewTarget() {
+        // Wander to a random position within the arena
+        this.targetPos.set(
+            (Math.random() - 0.5) * 120,
+            -5,
+            (Math.random() - 0.5) * 120
+        );
+    }
+
+    hit(hitPoint) {
+        if (this.isDead) return;
+
+        this.health--;
+        playSound('botHit');
+
+        // Flinch reaction
+        this.mesh.rotation.x = -0.2;
+
+        // Blood spray from hit point
+        const bloodPos = hitPoint || this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
+        const bloodDir = new THREE.Vector3();
+        bloodDir.subVectors(this.mesh.position, camera.position).normalize();
+        spawnBloodSpray(bloodPos, bloodDir, this.health <= 0 ? 2.5 : 1);
+
+        if (this.health <= 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        this.isDead = true;
+        this.deathTime = performance.now();
+        playSound('botDeath');
+
+        // Remove hitbox from targets
+        const idx = targets.indexOf(this.hitbox);
+        if (idx > -1) targets.splice(idx, 1);
+
+        // Create ragdoll - detach body parts and give them physics
+        const worldPos = new THREE.Vector3();
+        const worldQuat = new THREE.Quaternion();
+        this.mesh.getWorldPosition(worldPos);
+        this.mesh.getWorldQuaternion(worldQuat);
+
+        // Get direction from camera to bot for death impulse
+        const deathDir = new THREE.Vector3();
+        deathDir.subVectors(this.mesh.position, camera.position).normalize();
+
+        // Moderate gore effects
+        const centerPos = this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
+        spawnGoreChunks(centerPos, deathDir);
+        spawnBloodSpray(centerPos, deathDir, 2);
+
+        // Single blood pool
+        spawnBloodPool(this.mesh.position.clone());
+
+        // Detach each body part (skip hitbox at index 6)
+        for (let i = 0; i < 6; i++) {
+            const part = this.mesh.children[0]; // Always take first since we're removing
+            if (!part) continue;
+
+            // Get world position of part
+            const partWorldPos = new THREE.Vector3();
+            part.getWorldPosition(partWorldPos);
+
+            // Remove from bot mesh and add to scene
+            this.mesh.remove(part);
+            scene.add(part);
+            part.position.copy(partWorldPos);
+
+            // Moderate velocity for ragdoll
+            const vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 6 + deathDir.x * 4,
+                Math.random() * 5 + 2,
+                (Math.random() - 0.5) * 6 + deathDir.z * 4
+            );
+
+            // Moderate spinning
+            const rotVel = new THREE.Vector3(
+                (Math.random() - 0.5) * 12,
+                (Math.random() - 0.5) * 12,
+                (Math.random() - 0.5) * 12
+            );
+
+            this.ragdollParts.push({
+                mesh: part,
+                velocity: vel,
+                rotVelocity: rotVel,
+                grounded: false,
+                bleedTimer: 0,
+                canBleed: true
+            });
+        }
+
+        // Hide the main mesh (hitbox is still there but invisible)
+        this.mesh.visible = false;
+    }
+
+    respawn() {
+        this.isDead = false;
+        this.health = 3;
+
+        // Clean up ragdoll parts
+        for (const part of this.ragdollParts) {
+            scene.remove(part.mesh);
+        }
+        this.ragdollParts = [];
+
+        // Recreate the bot mesh
+        const newMesh = createBotMesh();
+        newMesh.position.set(
+            (Math.random() - 0.5) * 120,
+            -5,
+            (Math.random() - 0.5) * 120
+        );
+        newMesh.rotation.y = Math.random() * Math.PI * 2;
+
+        // Transfer hitbox to new mesh
+        this.mesh.remove(this.hitbox);
+        newMesh.add(this.hitbox);
+
+        // Remove old mesh and use new one
+        scene.remove(this.mesh);
+        this.mesh = newMesh;
+        this.mesh.visible = true;
+        scene.add(this.mesh);
+
+        this.pickNewTarget();
+
+        // Re-add hitbox to targets
+        if (!targets.includes(this.hitbox)) {
+            targets.push(this.hitbox);
+        }
+    }
+
+    update(dt, time) {
+        if (this.isDead) {
+            // Update ragdoll physics
+            const groundY = -4.8;
+            const friction = 0.85;
+            const bounciness = 0.3;
+
+            for (const part of this.ragdollParts) {
+                if (!part.grounded) {
+                    // Apply gravity
+                    part.velocity.y -= 25 * dt;
+
+                    // Update position
+                    part.mesh.position.addScaledVector(part.velocity, dt);
+
+                    // Update rotation
+                    part.mesh.rotation.x += part.rotVelocity.x * dt;
+                    part.mesh.rotation.y += part.rotVelocity.y * dt;
+                    part.mesh.rotation.z += part.rotVelocity.z * dt;
+
+                    // Ground collision
+                    if (part.mesh.position.y < groundY) {
+                        part.mesh.position.y = groundY;
+
+                        // Bounce or settle
+                        if (Math.abs(part.velocity.y) > 1) {
+                            part.velocity.y *= -bounciness;
+                            part.velocity.x *= friction;
+                            part.velocity.z *= friction;
+                            part.rotVelocity.multiplyScalar(0.7);
+                        } else {
+                            part.velocity.set(0, 0, 0);
+                            part.rotVelocity.multiplyScalar(0.9);
+                            if (part.rotVelocity.length() < 0.1) {
+                                part.grounded = true;
+                            }
+                        }
+                    }
+
+                    // Air resistance
+                    part.velocity.multiplyScalar(0.995);
+
+                    // Blood dripping from body parts
+                    if (part.canBleed) {
+                        part.bleedTimer += dt;
+                        if (part.bleedTimer > 0.08) {
+                            part.bleedTimer = 0;
+                            const dropMat = new THREE.SpriteMaterial({
+                                map: bloodSpriteTex,
+                                color: 0x880000,
+                                transparent: true,
+                                opacity: 0.9
+                            });
+                            const drop = new THREE.Sprite(dropMat);
+                            drop.position.copy(part.mesh.position);
+                            drop.scale.setScalar(0.1 + Math.random() * 0.1);
+                            scene.add(drop);
+                            bloodParticles.push({
+                                mesh: drop,
+                                velocity: new THREE.Vector3(
+                                    (Math.random() - 0.5) * 0.5,
+                                    -1,
+                                    (Math.random() - 0.5) * 0.5
+                                ),
+                                life: 0.8,
+                                gravity: 20,
+                                type: 'droplet'
+                            });
+                        }
+                    }
+                } else if (part.canBleed) {
+                    // Grounded parts slowly stop bleeding
+                    part.bleedTimer += dt;
+                    if (part.bleedTimer > 2) {
+                        part.canBleed = false;
+                    }
+                }
+            }
+
+            // Respawn after delay
+            if (performance.now() - this.deathTime > this.respawnDelay) {
+                this.respawn();
+            }
+            return;
+        }
+
+        // Recover from flinch
+        this.mesh.rotation.x *= 0.9;
+
+        // Wandering AI
+        this.wanderTimer += dt;
+        if (this.wanderTimer >= this.wanderInterval) {
+            this.wanderTimer = 0;
+            this.wanderInterval = 2 + Math.random() * 3;
+            this.pickNewTarget();
+        }
+
+        // Move towards target
+        const dx = this.targetPos.x - this.mesh.position.x;
+        const dz = this.targetPos.z - this.mesh.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist > 1) {
+            const moveX = (dx / dist) * this.speed * dt;
+            const moveZ = (dz / dist) * this.speed * dt;
+            this.mesh.position.x += moveX;
+            this.mesh.position.z += moveZ;
+
+            // Face movement direction
+            this.mesh.rotation.y = Math.atan2(dx, dz);
+
+            // Walk animation
+            this.walkCycle += dt * 8;
+            const leftLeg = this.mesh.children[4];
+            const rightLeg = this.mesh.children[5];
+            const leftArm = this.mesh.children[2];
+            const rightArm = this.mesh.children[3];
+
+            if (leftLeg && rightLeg) {
+                leftLeg.rotation.x = Math.sin(this.walkCycle) * 0.4;
+                rightLeg.rotation.x = Math.sin(this.walkCycle + Math.PI) * 0.4;
+            }
+            if (leftArm && rightArm) {
+                leftArm.rotation.x = Math.sin(this.walkCycle + Math.PI) * 0.3;
+                rightArm.rotation.x = Math.sin(this.walkCycle) * 0.3;
+            }
+        } else {
+            // Idle - reset limbs
+            this.walkCycle = 0;
+            for (let i = 2; i <= 5; i++) {
+                if (this.mesh.children[i]) {
+                    this.mesh.children[i].rotation.x *= 0.9;
+                }
+            }
+        }
+
+        // Keep within bounds
+        this.mesh.position.x = Math.max(-180, Math.min(180, this.mesh.position.x));
+        this.mesh.position.z = Math.max(-180, Math.min(180, this.mesh.position.z));
+    }
+}
+
+// Spawn bots
+for (let i = 0; i < 6; i++) {
+    const x = (Math.random() - 0.5) * 100;
+    const z = (Math.random() - 0.5) * 100;
+    bots.push(new Bot(x, z));
+}
+
+// BLOOD & GORE SYSTEM
+const bloodParticles = [];
+const goreChunks = [];
+const bloodDecals = [];
+const bloodPools = [];
+
+// Blood splatter texture (procedural)
+const bloodTexCanvas = document.createElement('canvas');
+bloodTexCanvas.width = 64; bloodTexCanvas.height = 64;
+const bloodCtx = bloodTexCanvas.getContext('2d');
+const bloodGrad = bloodCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+bloodGrad.addColorStop(0, 'rgba(180, 0, 0, 1)');
+bloodGrad.addColorStop(0.3, 'rgba(120, 0, 0, 0.8)');
+bloodGrad.addColorStop(0.7, 'rgba(80, 0, 0, 0.4)');
+bloodGrad.addColorStop(1, 'rgba(40, 0, 0, 0)');
+bloodCtx.fillStyle = bloodGrad;
+bloodCtx.fillRect(0, 0, 64, 64);
+const bloodSpriteTex = new THREE.CanvasTexture(bloodTexCanvas);
+
+// Blood mist texture
+const mistTexCanvas = document.createElement('canvas');
+mistTexCanvas.width = 128; mistTexCanvas.height = 128;
+const mistCtx = mistTexCanvas.getContext('2d');
+const mistGrad = mistCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+mistGrad.addColorStop(0, 'rgba(150, 0, 0, 0.6)');
+mistGrad.addColorStop(0.5, 'rgba(100, 0, 0, 0.3)');
+mistGrad.addColorStop(1, 'rgba(60, 0, 0, 0)');
+mistCtx.fillStyle = mistGrad;
+mistCtx.fillRect(0, 0, 128, 128);
+const bloodMistTex = new THREE.CanvasTexture(mistTexCanvas);
+
+// Blood decal texture (splatter pattern)
+const bloodDecalCanvas = document.createElement('canvas');
+bloodDecalCanvas.width = 256; bloodDecalCanvas.height = 256;
+const decalCtx = bloodDecalCanvas.getContext('2d');
+decalCtx.fillStyle = 'rgba(0,0,0,0)';
+decalCtx.fillRect(0, 0, 256, 256);
+// Main splat
+decalCtx.beginPath();
+decalCtx.arc(128, 128, 60 + Math.random() * 20, 0, Math.PI * 2);
+decalCtx.fillStyle = 'rgba(100, 0, 0, 0.9)';
+decalCtx.fill();
+// Splatter droplets
+for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 80;
+    const x = 128 + Math.cos(angle) * dist;
+    const y = 128 + Math.sin(angle) * dist;
+    const r = 3 + Math.random() * 12;
+    decalCtx.beginPath();
+    decalCtx.arc(x, y, r, 0, Math.PI * 2);
+    decalCtx.fillStyle = `rgba(${80 + Math.random() * 40}, 0, 0, ${0.6 + Math.random() * 0.4})`;
+    decalCtx.fill();
+}
+// Streaks
+for (let i = 0; i < 15; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    decalCtx.beginPath();
+    decalCtx.moveTo(128, 128);
+    const len = 50 + Math.random() * 70;
+    decalCtx.lineTo(128 + Math.cos(angle) * len, 128 + Math.sin(angle) * len);
+    decalCtx.strokeStyle = `rgba(90, 0, 0, ${0.5 + Math.random() * 0.3})`;
+    decalCtx.lineWidth = 2 + Math.random() * 4;
+    decalCtx.stroke();
+}
+const bloodDecalTex = new THREE.CanvasTexture(bloodDecalCanvas);
+
+// Gore materials
+const goreMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.6 });
+const boneMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.4 });
+const organMat = new THREE.MeshStandardMaterial({ color: 0x4a0000, roughness: 0.7 });
+
+// Blood spray on hit
+function spawnBloodSpray(position, direction, intensity = 1) {
+    const count = Math.floor(8 * intensity);
+
+    // Blood droplets
+    for (let i = 0; i < count; i++) {
+        const spriteMat = new THREE.SpriteMaterial({
+            map: bloodSpriteTex,
+            color: new THREE.Color(0.5 + Math.random() * 0.3, 0, 0),
+            transparent: true,
+            opacity: 0.8,
+            depthWrite: false
+        });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.copy(position);
+        sprite.scale.setScalar(0.1 + Math.random() * 0.15);
+
+        const vel = direction.clone().multiplyScalar(3 + Math.random() * 5);
+        vel.add(new THREE.Vector3(
+            (Math.random() - 0.5) * 4,
+            Math.random() * 3,
+            (Math.random() - 0.5) * 4
+        ));
+
+        scene.add(sprite);
+        bloodParticles.push({
+            mesh: sprite,
+            velocity: vel,
+            life: 1.0 + Math.random() * 0.5,
+            gravity: 15,
+            type: 'droplet'
+        });
+    }
+
+    // Light blood mist
+    if (intensity > 1) {
+        const mistMat = new THREE.SpriteMaterial({
+            map: bloodMistTex,
+            color: 0x660000,
+            transparent: true,
+            opacity: 0.4,
+            depthWrite: false,
+            blending: THREE.NormalBlending
+        });
+        const mist = new THREE.Sprite(mistMat);
+        mist.position.copy(position);
+        mist.scale.setScalar(0.4);
+
+        scene.add(mist);
+        bloodParticles.push({
+            mesh: mist,
+            velocity: direction.clone().multiplyScalar(2),
+            life: 0.5,
+            gravity: 0,
+            type: 'mist',
+            initialScale: mist.scale.x
+        });
+    }
+}
+
+// Spawn gore chunks on death
+function spawnGoreChunks(position, direction) {
+    const chunkCount = 5 + Math.floor(Math.random() * 4);
+
+    for (let i = 0; i < chunkCount; i++) {
+        let geo, mat;
+        const type = Math.random();
+
+        if (type < 0.6) {
+            // Small meat chunk
+            geo = new THREE.DodecahedronGeometry(0.08 + Math.random() * 0.08);
+            mat = goreMat.clone();
+        } else {
+            // Bone fragment
+            geo = new THREE.BoxGeometry(0.04, 0.12, 0.04);
+            mat = boneMat.clone();
+        }
+
+        const chunk = new THREE.Mesh(geo, mat);
+        chunk.position.copy(position);
+        chunk.position.add(new THREE.Vector3(
+            (Math.random() - 0.5) * 0.5,
+            Math.random() * 0.5,
+            (Math.random() - 0.5) * 0.5
+        ));
+        chunk.castShadow = true;
+
+        const vel = direction.clone().multiplyScalar(3 + Math.random() * 5);
+        vel.add(new THREE.Vector3(
+            (Math.random() - 0.5) * 6,
+            Math.random() * 5 + 2,
+            (Math.random() - 0.5) * 6
+        ));
+
+        const rotVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 15,
+            (Math.random() - 0.5) * 15,
+            (Math.random() - 0.5) * 15
+        );
+
+        scene.add(chunk);
+        goreChunks.push({
+            mesh: chunk,
+            velocity: vel,
+            rotVelocity: rotVel,
+            life: 6 + Math.random() * 3,
+            grounded: false,
+            canBleed: Math.random() > 0.7,
+            bleedTimer: 0
+        });
+    }
+}
+
+// Spawn blood decal on surface
+function spawnBloodDecal(position, normal, size = 1) {
+    const decalMat = new THREE.MeshBasicMaterial({
+        map: bloodDecalTex,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2
+    });
+
+    const decalSize = (1.5 + Math.random() * 1.5) * size;
+    const decal = new THREE.Mesh(new THREE.PlaneGeometry(decalSize, decalSize), decalMat);
+    decal.position.copy(position);
+    decal.position.y = -4.95; // Just above floor
+    decal.rotation.x = -Math.PI / 2;
+    decal.rotation.z = Math.random() * Math.PI * 2;
+
+    scene.add(decal);
+    bloodDecals.push({
+        mesh: decal,
+        life: 600 + Math.random() * 300
+    });
+}
+
+// Spawn expanding blood pool under body
+function spawnBloodPool(position) {
+    const poolMat = new THREE.MeshBasicMaterial({
+        color: 0x3a0000,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1
+    });
+
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), poolMat);
+    pool.position.copy(position);
+    pool.position.y = -4.98;
+    pool.rotation.x = -Math.PI / 2;
+
+    scene.add(pool);
+    bloodPools.push({
+        mesh: pool,
+        targetSize: 1.2 + Math.random() * 1.0,
+        currentSize: 0.1,
+        growthRate: 0.5 + Math.random() * 0.3,
+        life: 500 + Math.random() * 300
+    });
+}
+
+// Update blood particle systems
+function updateBloodEffects(dt) {
+    // Update blood particles
+    for (let i = bloodParticles.length - 1; i >= 0; i--) {
+        const p = bloodParticles[i];
+        p.life -= dt;
+
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            bloodParticles.splice(i, 1);
+            continue;
+        }
+
+        if (p.type === 'droplet') {
+            p.velocity.y -= p.gravity * dt;
+            p.mesh.position.addScaledVector(p.velocity, dt);
+            p.mesh.material.opacity = Math.min(1, p.life);
+
+            // Hit ground - spawn small splat
+            if (p.mesh.position.y < -4.8) {
+                if (Math.random() > 0.7) {
+                    spawnBloodDecal(p.mesh.position.clone(), new THREE.Vector3(0, 1, 0), 0.3);
+                }
+                scene.remove(p.mesh);
+                bloodParticles.splice(i, 1);
+            }
+        } else if (p.type === 'mist') {
+            p.mesh.position.addScaledVector(p.velocity, dt);
+            p.velocity.multiplyScalar(0.95);
+            p.mesh.scale.setScalar(p.initialScale * (1 + (1 - p.life) * 3));
+            p.mesh.material.opacity = p.life * 0.5;
+        }
+    }
+
+    // Update gore chunks
+    for (let i = goreChunks.length - 1; i >= 0; i--) {
+        const g = goreChunks[i];
+        g.life -= dt;
+
+        if (g.life <= 0) {
+            scene.remove(g.mesh);
+            goreChunks.splice(i, 1);
+            continue;
+        }
+
+        if (!g.grounded) {
+            g.velocity.y -= 20 * dt;
+            g.mesh.position.addScaledVector(g.velocity, dt);
+            g.mesh.rotation.x += g.rotVelocity.x * dt;
+            g.mesh.rotation.y += g.rotVelocity.y * dt;
+            g.mesh.rotation.z += g.rotVelocity.z * dt;
+
+            // Ground collision
+            if (g.mesh.position.y < -4.7) {
+                g.mesh.position.y = -4.7;
+                if (Math.abs(g.velocity.y) > 2) {
+                    g.velocity.y *= -0.3;
+                    g.velocity.x *= 0.7;
+                    g.velocity.z *= 0.7;
+                    g.rotVelocity.multiplyScalar(0.5);
+                    // Splat on impact
+                    spawnBloodDecal(g.mesh.position.clone(), new THREE.Vector3(0, 1, 0), 0.4);
+                } else {
+                    g.grounded = true;
+                    g.velocity.set(0, 0, 0);
+                }
+            }
+        }
+
+        // Bleeding effect from chunks
+        if (g.canBleed && !g.grounded) {
+            g.bleedTimer += dt;
+            if (g.bleedTimer > 0.05) {
+                g.bleedTimer = 0;
+                const dropMat = new THREE.SpriteMaterial({
+                    map: bloodSpriteTex,
+                    color: 0x880000,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const drop = new THREE.Sprite(dropMat);
+                drop.position.copy(g.mesh.position);
+                drop.scale.setScalar(0.08);
+                scene.add(drop);
+                bloodParticles.push({
+                    mesh: drop,
+                    velocity: new THREE.Vector3(0, 0, 0),
+                    life: 0.6,
+                    gravity: 25,
+                    type: 'droplet'
+                });
+            }
+        }
+
+        // Fade out near end of life
+        if (g.life < 2) {
+            g.mesh.material.opacity = g.life / 2;
+            g.mesh.material.transparent = true;
+        }
+    }
+
+    // Update blood pools
+    for (let i = bloodPools.length - 1; i >= 0; i--) {
+        const p = bloodPools[i];
+        p.life -= 1;
+
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            bloodPools.splice(i, 1);
+            continue;
+        }
+
+        // Grow pool
+        if (p.currentSize < p.targetSize) {
+            p.currentSize += p.growthRate * dt;
+            p.mesh.scale.setScalar(p.currentSize);
+        }
+
+        // Fade out
+        if (p.life < 100) {
+            p.mesh.material.opacity = (p.life / 100) * 0.9;
+        }
+    }
+
+    // Update blood decals
+    for (let i = bloodDecals.length - 1; i >= 0; i--) {
+        const d = bloodDecals[i];
+        d.life -= 1;
+
+        if (d.life <= 0) {
+            scene.remove(d.mesh);
+            bloodDecals.splice(i, 1);
+            continue;
+        }
+
+        if (d.life < 100) {
+            d.mesh.material.opacity = (d.life / 100) * 0.85;
+        }
+    }
+}
+
 // ATMOSPHERIC DUST PARTICLES
 const dustParticles = [];
 const dustGeo = new THREE.BufferGeometry();
@@ -1365,6 +2200,16 @@ let currentFOV = 90;
 
 const hud = document.getElementById('hud');
 const crosshair = document.getElementById('crosshair');
+const hitmarker = document.getElementById('hitmarker');
+
+let hitmarkerTimeout = null;
+function showHitmarker() {
+    hitmarker.classList.add('show');
+    if (hitmarkerTimeout) clearTimeout(hitmarkerTimeout);
+    hitmarkerTimeout = setTimeout(() => {
+        hitmarker.classList.remove('show');
+    }, 100);
+}
 
 function updateHUD() {
     hud.innerText = `${isReloading ? 'RLD' : ammo} / ${reserve}`;
@@ -1448,6 +2293,13 @@ function shoot() {
             if (target && target.isUp) {
                 target.knockDown();
                 playSound('targetHit');
+            }
+        } else if (intersects[0].object.userData.isBot) {
+            // Hit a bot
+            const bot = intersects[0].object.userData.botRef;
+            if (bot && !bot.isDead) {
+                bot.hit(intersects[0].point.clone());
+                showHitmarker();
             }
         } else if (intersects[0].face) {
             spawnDecal(intersects[0].point, intersects[0].face.normal);
@@ -1856,6 +2708,14 @@ function animate(time) {
     for (const target of shootingTargets) {
         target.update(dt);
     }
+
+    // Update bots
+    for (const bot of bots) {
+        bot.update(dt, time);
+    }
+
+    // Update blood and gore effects
+    updateBloodEffects(dt);
 
     // Animate dust particles (gentle drift)
     const dustPos = dustGeo.attributes.position.array;
