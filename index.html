@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRASSFALL</title>
+    <title>ZOMBIE SURVIVAL</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Courier New', monospace; }
         #crosshair {
@@ -32,43 +32,102 @@
         .hm-line:last-child {
             transform: translate(-50%, -50%) rotate(-45deg);
         }
-        #hud {
+        #ammo-display {
             position: absolute; bottom: 20px; right: 20px; color: #0f0;
-            font-size: 24px; pointer-events: none; user-select: none;
+            font-size: 28px; pointer-events: none; user-select: none;
             text-shadow: 0 0 5px #0f0;
         }
-        #controls {
-            position: absolute; top: 20px; left: 20px; color: #888;
-            font-size: 14px; pointer-events: none;
-        }
-        #blocker {
+        #blocker, #game-over {
             position: absolute; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.8); color: white;
+            background-color: rgba(0,0,0,0.85); color: white;
             display: flex; justify-content: center; align-items: center;
             flex-direction: column; cursor: pointer; z-index: 10;
+        }
+        #top-hud {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center;
+            pointer-events: none; user-select: none;
+        }
+        #wave-display {
+            font-size: 32px; color: #f00; text-shadow: 0 0 10px #f00;
+            letter-spacing: 4px;
+        }
+        #zombie-count {
+            font-size: 16px; color: #888; margin-top: 5px;
+        }
+        #score-display {
+            font-size: 20px; color: #ff0; text-shadow: 0 0 5px #ff0;
+            margin-top: 10px; letter-spacing: 2px;
+        }
+        #health-container {
+            position: absolute; bottom: 20px; left: 20px;
+            display: flex; align-items: center; gap: 10px;
+            pointer-events: none; user-select: none;
+        }
+        #health-bar {
+            width: 200px; height: 20px;
+            background: #333; border: 2px solid #0f0;
+            overflow: hidden;
+        }
+        #health-fill {
+            width: 100%; height: 100%;
+            background: #0f0; transition: width 0.2s, background 0.3s;
+        }
+        #health-text {
+            font-size: 24px; color: #0f0; text-shadow: 0 0 5px #0f0;
+            min-width: 40px;
+        }
+        #damage-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%);
+            pointer-events: none; opacity: 0; transition: opacity 0.1s;
+        }
+        #restart-btn:hover {
+            background: #500; box-shadow: 0 0 20px #f00;
         }
     </style>
 </head>
 <body>
 
 <div id="blocker">
-    <h1>BRASSFALL</h1>
-    <p>Generating PBR Textures & Audio Buffers...</p>
-    <p>Click to Capture Mouse</p>
-    <p>WASD: Move | SHIFT: Sprint | SPACE: Jump | LMB: Shoot | RMB: Aim | R: Reload</p>
+    <h1>ZOMBIE SURVIVAL</h1>
+    <p style="color: #0f0; font-size: 18px;">Survive the zombie horde!</p>
+    <p>Click to Start</p>
+    <p style="color: #888;">WASD: Move | SHIFT: Sprint | SPACE: Jump | LMB: Shoot | RMB: Aim | R: Reload</p>
 </div>
+
+<div id="game-over" style="display: none;">
+    <h1 style="color: #f00; text-shadow: 0 0 20px #f00;">YOU DIED</h1>
+    <p style="font-size: 24px;">SCORE: <span id="final-score">0</span></p>
+    <p style="font-size: 18px;">Survived to Wave <span id="final-wave">1</span></p>
+    <button id="restart-btn" onclick="restartGame()" style="margin-top: 20px; padding: 15px 40px; font-size: 20px; background: #300; color: #f00; border: 2px solid #f00; cursor: pointer; font-family: inherit;">RESTART</button>
+</div>
+
 <div id="crosshair"></div>
 <div id="hitmarker">
     <div class="hm-line"></div>
     <div class="hm-line"></div>
 </div>
-<div id="hud">30 / 90</div>
-<div id="controls">
-    Rendering: Post-Process Pipeline<br>
-    Effects: Bloom / Vignette / Grain<br>
-    Physics: Spring Animation System<br>
-    Particles: Sparks / Smoke / Debris
+
+<div id="damage-flash"></div>
+
+<!-- Top HUD - Wave and Score -->
+<div id="top-hud">
+    <div id="wave-display">GET READY...</div>
+    <div id="zombie-count">0 ZOMBIES</div>
+    <div id="score-display">00000000</div>
 </div>
+
+<!-- Bottom Left - Health -->
+<div id="health-container">
+    <div id="health-bar">
+        <div id="health-fill"></div>
+    </div>
+    <div id="health-text">100</div>
+</div>
+
+<!-- Bottom Right - Ammo -->
+<div id="ammo-display">30 / 90</div>
 
 <!-- Three.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -110,19 +169,43 @@ class Spring {
     }
 }
 
-// Separate springs for different axes creates complex, organic motion
+// Separate springs for different axes - FLUID & BENDY feel
 const Springs = {
-    swayX: new Spring(150, 10, 1),
-    swayY: new Spring(150, 10, 1),
-    recoilZ: new Spring(300, 20, 1), // Tighter, harder kick (Stiffness 300)
-    recoilX: new Spring(250, 15, 1), // Snappy muzzle climb (Stiffness 250)
-    recoilY: new Spring(200, 15, 1), // Vertical damping
-    bobY: new Spring(100, 8, 1),
-    roll: new Spring(100, 10, 1),    // Movement roll
-    // Screen shake springs
-    shakeX: new Spring(400, 25, 1),
-    shakeY: new Spring(400, 25, 1)
+    // Gun sway - softer, more fluid
+    swayX: new Spring(80, 6, 1.2),      // Slower, floatier
+    swayY: new Spring(80, 6, 1.2),
+    swayLagX: new Spring(40, 4, 1.5),   // Extra lag layer for fluidity
+    swayLagY: new Spring(40, 4, 1.5),
+
+    // Recoil - snappy but with follow-through
+    recoilZ: new Spring(250, 12, 1),    // Softer return
+    recoilX: new Spring(200, 10, 1),    // Muzzle climb with more follow
+    recoilY: new Spring(150, 10, 1),
+
+    // Movement feel
+    bobY: new Spring(60, 5, 1.2),       // Floatier bob
+    bobX: new Spring(50, 4, 1.2),       // Side-to-side bob
+    roll: new Spring(60, 5, 1),         // Softer roll
+    tilt: new Spring(40, 4, 1.2),       // Forward/back tilt
+
+    // Breathing/idle
+    breathe: new Spring(20, 2, 2),      // Very slow, subtle
+
+    // Screen shake
+    shakeX: new Spring(300, 18, 1),
+    shakeY: new Spring(300, 18, 1),
+
+    // Camera smoothing
+    camLagX: new Spring(100, 8, 1),
+    camLagY: new Spring(100, 8, 1)
 };
+
+// Velocity tracking for inertia effects
+let lastCamYaw = 0;
+let lastCamPitch = 0;
+let camVelX = 0;
+let camVelY = 0;
+let moveVelSmooth = 0;
 
 /**
  * CUSTOM POST-PROCESSING SHADERS
@@ -222,7 +305,7 @@ const MotionBlurShader = {
         tDiffuse: { value: null },
         velocityX: { value: 0.0 },
         velocityY: { value: 0.0 },
-        samples: { value: 8 }
+        samples: { value: 4 } // Reduced from 8 for performance
     },
     vertexShader: `
         varying vec2 vUv;
@@ -265,11 +348,200 @@ const MotionBlurShader = {
     `
 };
 
+// ============ CEL SHADING (Borderlands Style) ============
+const CelShadingShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        levels: { value: 4.0 },        // Number of color bands
+        edgeIntensity: { value: 0.3 }, // How much to darken edges
+        saturationBoost: { value: 1.2 } // Boost colors slightly
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float levels;
+        uniform float edgeIntensity;
+        uniform float saturationBoost;
+        varying vec2 vUv;
+
+        vec3 rgb2hsv(vec3 c) {
+            vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+            vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+            vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+            float d = q.x - min(q.w, q.y);
+            float e = 1.0e-10;
+            return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+        }
+
+        vec3 hsv2rgb(vec3 c) {
+            vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+            vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+            return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+        }
+
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+
+            // Convert to HSV for better banding
+            vec3 hsv = rgb2hsv(color.rgb);
+
+            // Quantize value (brightness) into discrete levels
+            float quantized = floor(hsv.z * levels + 0.5) / levels;
+
+            // Boost saturation for that Borderlands pop
+            hsv.y = min(hsv.y * saturationBoost, 1.0);
+            hsv.z = quantized;
+
+            // Convert back to RGB
+            vec3 cel = hsv2rgb(hsv);
+
+            gl_FragColor = vec4(cel, color.a);
+        }
+    `
+};
+
+const OutlineShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        resolution: { value: new THREE.Vector2(1920, 1080) },
+        outlineColor: { value: new THREE.Vector3(0.0, 0.0, 0.0) },
+        thickness: { value: 1.0 },
+        threshold: { value: 0.15 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform vec3 outlineColor;
+        uniform float thickness;
+        uniform float threshold;
+        varying vec2 vUv;
+
+        float luminance(vec3 color) {
+            return dot(color, vec3(0.299, 0.587, 0.114));
+        }
+
+        void main() {
+            vec2 texel = vec2(1.0 / resolution.x, 1.0 / resolution.y) * thickness;
+
+            // Sample surrounding pixels (Sobel operator)
+            float tl = luminance(texture2D(tDiffuse, vUv + vec2(-texel.x, texel.y)).rgb);
+            float t  = luminance(texture2D(tDiffuse, vUv + vec2(0.0, texel.y)).rgb);
+            float tr = luminance(texture2D(tDiffuse, vUv + vec2(texel.x, texel.y)).rgb);
+            float l  = luminance(texture2D(tDiffuse, vUv + vec2(-texel.x, 0.0)).rgb);
+            float r  = luminance(texture2D(tDiffuse, vUv + vec2(texel.x, 0.0)).rgb);
+            float bl = luminance(texture2D(tDiffuse, vUv + vec2(-texel.x, -texel.y)).rgb);
+            float b  = luminance(texture2D(tDiffuse, vUv + vec2(0.0, -texel.y)).rgb);
+            float br = luminance(texture2D(tDiffuse, vUv + vec2(texel.x, -texel.y)).rgb);
+
+            // Sobel edge detection
+            float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;
+            float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;
+            float edge = sqrt(gx*gx + gy*gy);
+
+            vec4 color = texture2D(tDiffuse, vUv);
+
+            // Apply outline where edges are detected
+            if (edge > threshold) {
+                // Blend toward outline color based on edge strength
+                float blend = smoothstep(threshold, threshold + 0.1, edge);
+                color.rgb = mix(color.rgb, outlineColor, blend * 0.9);
+            }
+
+            gl_FragColor = color;
+        }
+    `
+};
+
 // Dynamic post-processing values
-let bloomIntensity = 0.08;
+let bloomIntensity = 0.15; // Warm sunset glow
 let chromaticAmount = 0.0005;
 let motionBlurX = 0.0;
 let motionBlurY = 0.0;
+
+// ============ PERFORMANCE: OBJECT POOLING ============
+class ObjectPool {
+    constructor(createFn, resetFn, initialSize = 50) {
+        this.createFn = createFn;
+        this.resetFn = resetFn;
+        this.pool = [];
+        this.active = [];
+        // Pre-allocate
+        for (let i = 0; i < initialSize; i++) {
+            this.pool.push(createFn());
+        }
+    }
+
+    get() {
+        let obj = this.pool.pop() || this.createFn();
+        this.active.push(obj);
+        return obj;
+    }
+
+    release(obj) {
+        const idx = this.active.indexOf(obj);
+        if (idx > -1) {
+            this.active.splice(idx, 1);
+            this.resetFn(obj);
+            this.pool.push(obj);
+        }
+    }
+
+    releaseAll() {
+        while (this.active.length > 0) {
+            const obj = this.active.pop();
+            this.resetFn(obj);
+            this.pool.push(obj);
+        }
+    }
+}
+
+// ============ INSTANCED PARTICLE SYSTEM ============
+const MAX_BLOOD_PARTICLES = 200;
+const MAX_SPARKS = 100;
+const MAX_DEBRIS = 80;
+
+// Reusable matrix and vectors for instanced updates
+const _instanceMatrix = new THREE.Matrix4();
+const _instancePos = new THREE.Vector3();
+const _instanceQuat = new THREE.Quaternion();
+const _instanceScale = new THREE.Vector3(1, 1, 1);
+const _tempVec3 = new THREE.Vector3();
+
+// Frame throttling for expensive operations
+let frameCount = 0;
+const SHADOW_UPDATE_INTERVAL = 3; // Update shadows every 3 frames
+const HUD_UPDATE_INTERVAL = 2; // Update HUD every 2 frames
+let lastHUDValues = { ammo: -1, reserve: -1, health: -1, score: -1, wave: -1 };
+
+// Cached DOM references
+let cachedDOM = null;
+function getCachedDOM() {
+    if (!cachedDOM) {
+        cachedDOM = {
+            ammoDisplay: document.getElementById('ammo-display'),
+            healthFill: document.getElementById('health-fill'),
+            healthText: document.getElementById('health-text'),
+            waveDisplay: document.getElementById('wave-display'),
+            zombieCount: document.getElementById('zombie-count'),
+            scoreDisplay: document.getElementById('score-display'),
+            damageFlash: document.getElementById('damage-flash')
+        };
+    }
+    return cachedDOM;
+}
 
 /**
  * TEXTURE FACTORY
@@ -524,8 +796,8 @@ function playSound(type) {
         hitN.connect(hitG); hitG.connect(dryGain);
         hitN.start(now);
 
-    } else if (type === 'botHit') {
-        // Fleshy impact sound for bot hits
+    } else if (type === 'zombieHit') {
+        // Fleshy impact sound for zombie hits
         osc.type = 'sine';
         osc.frequency.setValueAtTime(150, now);
         osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
@@ -550,27 +822,91 @@ function playSound(type) {
         thwackG.connect(dryGain);
         thwackN.start(now);
 
-    } else if (type === 'botDeath') {
-        // Death grunt/thud
+    } else if (type === 'zombieDeath') {
+        // Zombie death groan
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.25);
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.4);
         filter.type = 'lowpass';
-        filter.frequency.value = 300;
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        osc.start(now); osc.stop(now + 0.35);
+        filter.frequency.value = 250;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc.start(now); osc.stop(now + 0.5);
 
         // Body fall thud
         const thudOsc = actx.createOscillator();
         const thudGain = actx.createGain();
         thudOsc.connect(thudGain); thudGain.connect(dryGain); thudGain.connect(convolver);
         thudOsc.type = 'sine';
-        thudOsc.frequency.setValueAtTime(80, now + 0.15);
-        thudOsc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
-        thudGain.gain.setValueAtTime(0.6, now + 0.15);
-        thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        thudOsc.start(now + 0.15); thudOsc.stop(now + 0.45);
+        thudOsc.frequency.setValueAtTime(80, now + 0.2);
+        thudOsc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+        thudGain.gain.setValueAtTime(0.6, now + 0.2);
+        thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        thudOsc.start(now + 0.2); thudOsc.stop(now + 0.55);
+
+    } else if (type === 'zombieAttack') {
+        // Zombie growl/bite sound
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.35);
+
+        // Add snarl noise
+        const snarlBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
+        const snarlOut = snarlBuf.getChannelData(0);
+        for (let i = 0; i < snarlBuf.length; i++) {
+            snarlOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.05)) * 0.5;
+        }
+        const snarlN = actx.createBufferSource(); snarlN.buffer = snarlBuf;
+        const snarlFilter = actx.createBiquadFilter();
+        snarlFilter.type = 'bandpass'; snarlFilter.frequency.value = 300; snarlFilter.Q.value = 2;
+        const snarlG = actx.createGain();
+        snarlG.gain.setValueAtTime(0.3, now);
+        snarlN.connect(snarlFilter); snarlFilter.connect(snarlG);
+        snarlG.connect(dryGain);
+        snarlN.start(now);
+
+    } else if (type === 'playerHurt') {
+        // Pain sound - sharp impact
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+        filter.type = 'lowpass';
+        filter.frequency.value = 600;
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now); osc.stop(now + 0.25);
+
+        // Heartbeat thump
+        const heartOsc = actx.createOscillator();
+        const heartGain = actx.createGain();
+        heartOsc.connect(heartGain); heartGain.connect(dryGain);
+        heartOsc.type = 'sine';
+        heartOsc.frequency.value = 40;
+        heartGain.gain.setValueAtTime(0.4, now + 0.1);
+        heartGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        heartOsc.start(now + 0.1); heartOsc.stop(now + 0.3);
+
+    } else if (type === 'waveComplete') {
+        // Victory fanfare - rising tones
+        const freqs = [400, 500, 600, 800];
+        freqs.forEach((freq, i) => {
+            const victoryOsc = actx.createOscillator();
+            const victoryGain = actx.createGain();
+            victoryOsc.connect(victoryGain); victoryGain.connect(dryGain); victoryGain.connect(convolver);
+            victoryOsc.type = 'sine';
+            victoryOsc.frequency.value = freq;
+            victoryGain.gain.setValueAtTime(0.2, now + i * 0.1);
+            victoryGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+            victoryOsc.start(now + i * 0.1); victoryOsc.stop(now + i * 0.1 + 0.35);
+        });
+        // Don't start the main osc for this sound type
+        return;
 
     } else if (type === 'empty') {
         osc.type = 'square'; osc.frequency.setValueAtTime(800, now);
@@ -735,6 +1071,60 @@ function playSound(type) {
         ringGain.gain.setValueAtTime(0.15, now + 0.11);
         ringGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         ringOsc.start(now + 0.11); ringOsc.stop(now + 0.4);
+
+    } else if (type === 'pickup') {
+        // Satisfying pickup chime
+        const freqs = [600, 800, 1000];
+        freqs.forEach((freq, i) => {
+            const chimeOsc = actx.createOscillator();
+            const chimeGain = actx.createGain();
+            chimeOsc.connect(chimeGain); chimeGain.connect(dryGain); chimeGain.connect(convolver);
+            chimeOsc.type = 'sine';
+            chimeOsc.frequency.value = freq;
+            chimeGain.gain.setValueAtTime(0.2, now + i * 0.05);
+            chimeGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.2);
+            chimeOsc.start(now + i * 0.05); chimeOsc.stop(now + i * 0.05 + 0.25);
+        });
+        return;
+
+    } else if (type === 'nuke') {
+        // Massive explosion
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.exponentialRampToValueAtTime(15, now + 0.8);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+        osc.start(now); osc.stop(now + 1.2);
+
+        // Massive noise burst
+        const nukeBuf = actx.createBuffer(1, actx.sampleRate * 0.5, actx.sampleRate);
+        const nukeOut = nukeBuf.getChannelData(0);
+        for (let i = 0; i < nukeBuf.length; i++) {
+            nukeOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.2));
+        }
+        const nukeN = actx.createBufferSource(); nukeN.buffer = nukeBuf;
+        const nukeFilter = actx.createBiquadFilter();
+        nukeFilter.type = 'lowpass'; nukeFilter.frequency.value = 600;
+        const nukeG = actx.createGain();
+        nukeG.gain.setValueAtTime(0.7, now);
+        nukeG.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        nukeN.connect(nukeFilter); nukeFilter.connect(nukeG);
+        nukeG.connect(dryGain); nukeG.connect(convolver);
+        nukeN.start(now);
+
+        // High frequency sizzle
+        const sizzleOsc = actx.createOscillator();
+        const sizzleGain = actx.createGain();
+        sizzleOsc.connect(sizzleGain); sizzleGain.connect(dryGain);
+        sizzleOsc.type = 'sawtooth';
+        sizzleOsc.frequency.setValueAtTime(2000, now);
+        sizzleOsc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+        sizzleGain.gain.setValueAtTime(0.3, now);
+        sizzleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        sizzleOsc.start(now); sizzleOsc.stop(now + 0.4);
     }
 }
 
@@ -761,8 +1151,8 @@ void main() {
     gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
 }`;
 const uniforms = {
-    topColor: { value: new THREE.Color(0x0077ff) }, // Azure Blue
-    bottomColor: { value: new THREE.Color(0xffffff) }, // White Horizon
+    topColor: { value: new THREE.Color(0x1a0a30) },    // Deep purple upper sky
+    bottomColor: { value: new THREE.Color(0xff6030) }, // Fiery orange horizon
     offset: { value: 33 },
     exponent: { value: 0.6 }
 };
@@ -771,18 +1161,78 @@ const skyMat = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms
 const sky = new THREE.Mesh(skyGeo, skyMat);
 scene.add(sky);
 
-// Atmospheric fog with depth
-scene.fog = new THREE.FogExp2(0xddeeff, 0.008);
+// Sunset clouds - scattered wispy shapes
+const cloudGroup = new THREE.Group();
+for (let i = 0; i < 25; i++) {
+    const cloudGeo = new THREE.PlaneGeometry(80 + Math.random() * 60, 15 + Math.random() * 20);
+    const cloudMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color().lerpColors(
+            new THREE.Color(0xff4020),
+            new THREE.Color(0xff8040),
+            Math.random()
+        ),
+        transparent: true,
+        opacity: 0.3 + Math.random() * 0.3,
+        side: THREE.DoubleSide
+    });
+    const cloud = new THREE.Mesh(cloudGeo, cloudMat);
+    const angle = Math.random() * Math.PI * 2;
+    const height = 80 + Math.random() * 100;
+    const dist = 200 + Math.random() * 200;
+    cloud.position.set(
+        Math.cos(angle) * dist,
+        height,
+        Math.sin(angle) * dist
+    );
+    cloud.rotation.x = -Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+    cloud.rotation.z = Math.random() * Math.PI;
+    cloud.lookAt(0, height, 0);
+    cloudGroup.add(cloud);
+}
+scene.add(cloudGroup);
+
+// Setting sun
+const sunGeo = new THREE.SphereGeometry(25, 32, 32);
+const sunMat = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
+const sun = new THREE.Mesh(sunGeo, sunMat);
+sun.position.set(-200, 40, -350);
+scene.add(sun);
+
+// Sun glow - large orange halo
+const sunGlowGeo = new THREE.SphereGeometry(60, 32, 32);
+const sunGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xff6600,
+    transparent: true,
+    opacity: 0.25
+});
+const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
+sunGlow.position.copy(sun.position);
+scene.add(sunGlow);
+
+// Outer sun glow
+const sunGlow2Geo = new THREE.SphereGeometry(100, 32, 32);
+const sunGlow2Mat = new THREE.MeshBasicMaterial({
+    color: 0xff4400,
+    transparent: true,
+    opacity: 0.1
+});
+const sunGlow2 = new THREE.Mesh(sunGlow2Geo, sunGlow2Mat);
+sunGlow2.position.copy(sun.position);
+scene.add(sunGlow2);
+
+// Warm sunset fog
+scene.fog = new THREE.FogExp2(0x442020, 0.008);
 
 const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Reduced for performance
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap; // Faster than PCFSoft
+renderer.shadowMap.autoUpdate = false; // Manual shadow update
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.1; // Warm sunset exposure
 document.body.appendChild(renderer.domElement);
 
 // POST-PROCESSING SETUP
@@ -790,14 +1240,27 @@ const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
-// Bloom for muzzle flash glow
+// Cel Shading (Borderlands style) - apply early for best effect
+const celPass = new THREE.ShaderPass(CelShadingShader);
+celPass.uniforms.levels.value = 5.0;        // Number of color bands
+celPass.uniforms.saturationBoost.value = 1.3; // Boost saturation
+composer.addPass(celPass);
+
+// Bloom for muzzle flash glow (half resolution for performance)
 const bloomPass = new THREE.UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.08,  // strength
-    0.2,   // radius
-    0.92   // threshold
+    new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+    0.15,  // strength - boosted for sunset glow
+    0.4,   // radius (increased to compensate for lower res)
+    0.85   // threshold (slightly lower)
 );
 composer.addPass(bloomPass);
+
+// Outline pass (Borderlands ink lines) - after bloom
+const outlinePass = new THREE.ShaderPass(OutlineShader);
+outlinePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+outlinePass.uniforms.thickness.value = 1.2;
+outlinePass.uniforms.threshold.value = 0.12;
+composer.addPass(outlinePass);
 
 // Motion Blur
 const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
@@ -811,50 +1274,52 @@ composer.addPass(chromaticPass);
 const grainPass = new THREE.ShaderPass(FilmGrainShader);
 composer.addPass(grainPass);
 
-// Create environment map for reflections
+// Create sunset environment map for reflections
 const envMapSize = 256;
 const envMapCanvas = document.createElement('canvas');
 envMapCanvas.width = envMapCanvas.height = envMapSize;
 const envCtx = envMapCanvas.getContext('2d');
 const envGrad = envCtx.createLinearGradient(0, 0, 0, envMapSize);
-envGrad.addColorStop(0, '#0077ff');
-envGrad.addColorStop(0.5, '#aaddff');
-envGrad.addColorStop(1, '#ffffff');
+envGrad.addColorStop(0, '#2a1030');   // Purple top
+envGrad.addColorStop(0.4, '#ff6040'); // Orange mid
+envGrad.addColorStop(1, '#ffaa60');   // Warm bottom
 envCtx.fillStyle = envGrad;
 envCtx.fillRect(0, 0, envMapSize, envMapSize);
 const envMapTex = new THREE.CanvasTexture(envMapCanvas);
 envMapTex.mapping = THREE.EquirectangularReflectionMapping;
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+// Warm ambient for sunset
+const ambientLight = new THREE.AmbientLight(0xff9966, 0.5);
 scene.add(ambientLight);
 
-// Hemisphere light for better ambient
-const hemiLight = new THREE.HemisphereLight(0x88ccff, 0x444422, 0.4);
+// Hemisphere light - orange sky, warm ground
+const hemiLight = new THREE.HemisphereLight(0xff8844, 0x553322, 0.4);
 scene.add(hemiLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffee, 1.8); // Strong Sun
-dirLight.position.set(50, 80, 30);
+// Sunlight - warm golden, coming from sun position
+const dirLight = new THREE.DirectionalLight(0xffcc66, 1.0);
+dirLight.position.set(-200, 40, -350); // Same as sun position
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048; dirLight.shadow.bias = -0.0001;
-// Increase shadow frustum to cover the larger bright map
+dirLight.shadow.mapSize.width = 1024; dirLight.shadow.mapSize.height = 1024; dirLight.shadow.bias = -0.0001;
 dirLight.shadow.camera.left = -100;
 dirLight.shadow.camera.right = 100;
 dirLight.shadow.camera.top = 100;
 dirLight.shadow.camera.bottom = -100;
 scene.add(dirLight);
 
-// Subtle blue fill from sky
-const rimLight = new THREE.DirectionalLight(0x4466ff, 0.3);
-rimLight.position.set(-5, 2, -5);
+// Purple-ish rim light from opposite side for contrast
+const rimLight = new THREE.DirectionalLight(0x6644aa, 0.3);
+rimLight.position.set(5, 2, 5);
 scene.add(rimLight);
 
-const muzzleLight = new THREE.PointLight(0xffaa00, 0, 20);
+// Muzzle flash light
+const muzzleLight = new THREE.PointLight(0xffaa00, 0, 30);
 muzzleLight.castShadow = false;
 scene.add(muzzleLight);
 
-// Secondary fill light that follows camera for gun visibility
-const gunFillLight = new THREE.PointLight(0xffffff, 0.3, 10);
-gunFillLight.position.set(0, 0, 0);
+// Secondary fill light that follows camera for gun visibility (warm tint)
+const gunFillLight = new THREE.PointLight(0xffaa77, 0.4, 15);
+gunFillLight.position.set(0, -0.3, 0.5);
 camera.add(gunFillLight);
 
 // Initialize textures FIRST so they are available for everything
@@ -1058,64 +1523,86 @@ for (let i = 0; i < 8; i++) {
     }, 1000 + i * 500);
 }
 
-// UNARMED BOTS
-const bots = [];
+// ZOMBIES
+const zombies = [];
 
-// Bot materials
-const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.8 });
+// Zombie materials - decayed greenish-grey skin
+const zombieSkinMat = new THREE.MeshStandardMaterial({ color: 0x5a6b4a, roughness: 0.9 });
+const zombieSkinDarkMat = new THREE.MeshStandardMaterial({ color: 0x3d4a35, roughness: 0.9 });
 
-// Create shirt texture with "TALIBAN" text
+// Create tattered shirt texture
 const shirtTexCanvas = document.createElement('canvas');
 shirtTexCanvas.width = 256; shirtTexCanvas.height = 256;
 const shirtTexCtx = shirtTexCanvas.getContext('2d');
-shirtTexCtx.fillStyle = '#2a2a2a';
+// Base dirty brown/grey color
+shirtTexCtx.fillStyle = '#3a3530';
 shirtTexCtx.fillRect(0, 0, 256, 256);
-shirtTexCtx.fillStyle = '#cc0000';
-shirtTexCtx.font = 'bold 36px Arial';
-shirtTexCtx.textAlign = 'center';
-shirtTexCtx.textBaseline = 'middle';
-shirtTexCtx.fillText('TALIBAN', 128, 128);
+// Add blood stains
+shirtTexCtx.fillStyle = '#4a1515';
+for (let i = 0; i < 8; i++) {
+    shirtTexCtx.beginPath();
+    shirtTexCtx.arc(Math.random() * 256, Math.random() * 256, 15 + Math.random() * 30, 0, Math.PI * 2);
+    shirtTexCtx.fill();
+}
+// Add tears/holes (dark spots)
+shirtTexCtx.fillStyle = '#1a1a1a';
+for (let i = 0; i < 5; i++) {
+    shirtTexCtx.beginPath();
+    shirtTexCtx.ellipse(Math.random() * 256, Math.random() * 256, 8 + Math.random() * 15, 4 + Math.random() * 10, Math.random() * Math.PI, 0, Math.PI * 2);
+    shirtTexCtx.fill();
+}
+// Add dirt streaks
+shirtTexCtx.strokeStyle = '#2a2520';
+shirtTexCtx.lineWidth = 3;
+for (let i = 0; i < 10; i++) {
+    shirtTexCtx.beginPath();
+    shirtTexCtx.moveTo(Math.random() * 256, Math.random() * 256);
+    shirtTexCtx.lineTo(Math.random() * 256, Math.random() * 256);
+    shirtTexCtx.stroke();
+}
 const shirtTex = new THREE.CanvasTexture(shirtTexCanvas);
 
-const shirtMat = new THREE.MeshStandardMaterial({ map: shirtTex, roughness: 0.7 });
-const pantsMat = new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.7 });
+const zombieShirtMat = new THREE.MeshStandardMaterial({ map: shirtTex, roughness: 0.8 });
+const zombiePantsMat = new THREE.MeshStandardMaterial({ color: 0x252525, roughness: 0.8 });
 
-function createBotMesh() {
+function createZombieMesh() {
     const group = new THREE.Group();
-    const scale = 2.0; // Scale factor for larger bots
+    const scale = 2.0;
 
-    // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 12, 8), skinMat);
+    // Head - decayed zombie skin
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 12, 8), zombieSkinMat);
     head.position.y = 1.85 * scale;
     head.castShadow = true;
     group.add(head);
 
-    // Torso
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * scale, 0.9 * scale, 0.4 * scale), shirtMat);
+    // Torso - tattered bloody shirt
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * scale, 0.9 * scale, 0.4 * scale), zombieShirtMat);
     torso.position.y = 1.1 * scale;
     torso.castShadow = true;
     group.add(torso);
 
-    // Arms
+    // Arms - zombie skin, arms extended forward
     const armGeo = new THREE.BoxGeometry(0.2 * scale, 0.7 * scale, 0.2 * scale);
-    const leftArm = new THREE.Mesh(armGeo, skinMat);
-    leftArm.position.set(-0.45 * scale, 1.1 * scale, 0);
+    const leftArm = new THREE.Mesh(armGeo, zombieSkinMat);
+    leftArm.position.set(-0.45 * scale, 1.3 * scale, 0.4 * scale);
+    leftArm.rotation.x = -Math.PI / 3; // Arms reaching forward
     leftArm.castShadow = true;
     group.add(leftArm);
 
-    const rightArm = new THREE.Mesh(armGeo, skinMat);
-    rightArm.position.set(0.45 * scale, 1.1 * scale, 0);
+    const rightArm = new THREE.Mesh(armGeo, zombieSkinDarkMat);
+    rightArm.position.set(0.45 * scale, 1.3 * scale, 0.4 * scale);
+    rightArm.rotation.x = -Math.PI / 3;
     rightArm.castShadow = true;
     group.add(rightArm);
 
-    // Legs
+    // Legs - dirty dark pants
     const legGeo = new THREE.BoxGeometry(0.25 * scale, 0.8 * scale, 0.25 * scale);
-    const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+    const leftLeg = new THREE.Mesh(legGeo, zombiePantsMat);
     leftLeg.position.set(-0.2 * scale, 0.4 * scale, 0);
     leftLeg.castShadow = true;
     group.add(leftLeg);
 
-    const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+    const rightLeg = new THREE.Mesh(legGeo, zombiePantsMat);
     rightLeg.position.set(0.2 * scale, 0.4 * scale, 0);
     rightLeg.castShadow = true;
     group.add(rightLeg);
@@ -1123,32 +1610,38 @@ function createBotMesh() {
     return group;
 }
 
-class Bot {
-    constructor(x, z) {
-        this.mesh = createBotMesh();
+class Zombie {
+    constructor(x, z, waveNum = 1) {
+        this.mesh = createZombieMesh();
         this.mesh.position.set(x, -5, z);
         scene.add(this.mesh);
 
-        // AI state
-        this.health = 3;
+        // Scale health and speed with wave
+        const waveMod = 1 + (waveNum - 1) * 0.1;
+        this.health = Math.floor(2 + Math.random() * 2 * waveMod);
+        this.maxHealth = this.health;
+        this.speed = 3 + Math.random() * 2 + waveNum * 0.3; // Faster each wave
+
+        // State
         this.isDead = false;
         this.deathTime = 0;
-        this.respawnDelay = 5000;
+        this.attackCooldown = 0;
+        this.attackRange = 3.5; // Distance to damage player
+        this.attackDamage = 10 + Math.floor(waveNum / 2) * 5; // More damage later waves
 
-        // Movement
-        this.velocity = new THREE.Vector3();
-        this.targetPos = new THREE.Vector3(x, -5, z);
-        this.wanderTimer = 0;
-        this.wanderInterval = 2 + Math.random() * 3;
-        this.speed = 2 + Math.random() * 2;
-
-        // Animation state
+        // FLUID Animation state
         this.walkCycle = Math.random() * Math.PI * 2;
+        this.swayOffset = Math.random() * Math.PI * 2;
+        this.bobOffset = Math.random() * Math.PI * 2;
+        this.limbPhase = Math.random() * Math.PI * 2;
+        this.headBob = 0;
+        this.bodyLean = 0;
+        this.armSwing = 0;
 
         // Ragdoll parts (populated on death)
         this.ragdollParts = [];
 
-        // Hitbox for raycasting (scaled to match larger bot)
+        // Hitbox for raycasting
         this.hitbox = new THREE.Mesh(
             new THREE.BoxGeometry(1.6, 4.4, 1.0),
             new THREE.MeshBasicMaterial({ visible: false })
@@ -1160,29 +1653,25 @@ class Bot {
         targets.push(this.hitbox);
     }
 
-    pickNewTarget() {
-        // Wander to a random position within the arena
-        this.targetPos.set(
-            (Math.random() - 0.5) * 120,
-            -5,
-            (Math.random() - 0.5) * 120
-        );
-    }
-
     hit(hitPoint) {
         if (this.isDead) return;
 
-        this.health--;
-        playSound('botHit');
+        // Apply damage (boosted if power-up active)
+        const damage = damageBoostTimer > 0 ? damageBoostMultiplier : 1;
+        this.health -= damage;
+        playSound('zombieHit');
 
         // Flinch reaction
         this.mesh.rotation.x = -0.2;
 
-        // Blood spray from hit point
+        // VIOLENT blood spray from hit point
         const bloodPos = hitPoint || this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
         const bloodDir = new THREE.Vector3();
         bloodDir.subVectors(this.mesh.position, camera.position).normalize();
-        spawnBloodSpray(bloodPos, bloodDir, this.health <= 0 ? 2.5 : 1);
+        spawnBloodSpray(bloodPos, bloodDir, this.health <= 0 ? 4 : 2); // More blood on every hit
+        if (Math.random() > 0.5) {
+            spawnGoreChunks(bloodPos, bloodDir); // Chance for gore on hits too
+        }
 
         if (this.health <= 0) {
             this.die();
@@ -1192,56 +1681,59 @@ class Bot {
     die() {
         this.isDead = true;
         this.deathTime = performance.now();
-        playSound('botDeath');
+        playSound('zombieDeath');
+
+        // Award score
+        addScore(100);
+        zombiesKilledThisWave++;
+
+        // Drops disabled for now
+        // if (Math.random() < 0.2) {
+        //     const dropTypes = ['ammo', 'ammo', 'ammo', 'health', 'speed', 'damage'];
+        //     const dropType = dropTypes[Math.floor(Math.random() * dropTypes.length)];
+        //     spawnPickup(dropType, this.mesh.position.x, this.mesh.position.z);
+        // }
 
         // Remove hitbox from targets
         const idx = targets.indexOf(this.hitbox);
         if (idx > -1) targets.splice(idx, 1);
 
-        // Create ragdoll - detach body parts and give them physics
-        const worldPos = new THREE.Vector3();
-        const worldQuat = new THREE.Quaternion();
-        this.mesh.getWorldPosition(worldPos);
-        this.mesh.getWorldQuaternion(worldQuat);
-
-        // Get direction from camera to bot for death impulse
+        // Get direction from camera to zombie for death impulse
         const deathDir = new THREE.Vector3();
         deathDir.subVectors(this.mesh.position, camera.position).normalize();
 
-        // Moderate gore effects
+        // VIOLENT Gore effects - extra blood and chunks
         const centerPos = this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
         spawnGoreChunks(centerPos, deathDir);
-        spawnBloodSpray(centerPos, deathDir, 2);
-
-        // Single blood pool
+        spawnGoreChunks(centerPos, deathDir); // Double gore
+        spawnBloodSpray(centerPos, deathDir, 4); // Much more blood
+        spawnBloodSpray(centerPos.clone().add(new THREE.Vector3(0, -0.5, 0)), deathDir, 3);
         spawnBloodPool(this.mesh.position.clone());
+        spawnBloodPool(this.mesh.position.clone().add(new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5)));
 
         // Detach each body part (skip hitbox at index 6)
         for (let i = 0; i < 6; i++) {
-            const part = this.mesh.children[0]; // Always take first since we're removing
+            const part = this.mesh.children[0];
             if (!part) continue;
 
-            // Get world position of part
             const partWorldPos = new THREE.Vector3();
             part.getWorldPosition(partWorldPos);
 
-            // Remove from bot mesh and add to scene
             this.mesh.remove(part);
             scene.add(part);
             part.position.copy(partWorldPos);
 
-            // Moderate velocity for ragdoll
+            // VIOLENT ragdoll - much more force
             const vel = new THREE.Vector3(
-                (Math.random() - 0.5) * 6 + deathDir.x * 4,
-                Math.random() * 5 + 2,
-                (Math.random() - 0.5) * 6 + deathDir.z * 4
+                (Math.random() - 0.5) * 15 + deathDir.x * 12,
+                Math.random() * 10 + 5,
+                (Math.random() - 0.5) * 15 + deathDir.z * 12
             );
 
-            // Moderate spinning
             const rotVel = new THREE.Vector3(
-                (Math.random() - 0.5) * 12,
-                (Math.random() - 0.5) * 12,
-                (Math.random() - 0.5) * 12
+                (Math.random() - 0.5) * 25,
+                (Math.random() - 0.5) * 25,
+                (Math.random() - 0.5) * 25
             );
 
             this.ragdollParts.push({
@@ -1254,45 +1746,19 @@ class Bot {
             });
         }
 
-        // Hide the main mesh (hitbox is still there but invisible)
         this.mesh.visible = false;
     }
 
-    respawn() {
-        this.isDead = false;
-        this.health = 3;
-
-        // Clean up ragdoll parts
+    cleanup() {
+        // Remove from scene completely
         for (const part of this.ragdollParts) {
             scene.remove(part.mesh);
         }
         this.ragdollParts = [];
-
-        // Recreate the bot mesh
-        const newMesh = createBotMesh();
-        newMesh.position.set(
-            (Math.random() - 0.5) * 120,
-            -5,
-            (Math.random() - 0.5) * 120
-        );
-        newMesh.rotation.y = Math.random() * Math.PI * 2;
-
-        // Transfer hitbox to new mesh
-        this.mesh.remove(this.hitbox);
-        newMesh.add(this.hitbox);
-
-        // Remove old mesh and use new one
         scene.remove(this.mesh);
-        this.mesh = newMesh;
-        this.mesh.visible = true;
-        scene.add(this.mesh);
 
-        this.pickNewTarget();
-
-        // Re-add hitbox to targets
-        if (!targets.includes(this.hitbox)) {
-            targets.push(this.hitbox);
-        }
+        const idx = targets.indexOf(this.hitbox);
+        if (idx > -1) targets.splice(idx, 1);
     }
 
     update(dt, time) {
@@ -1304,22 +1770,14 @@ class Bot {
 
             for (const part of this.ragdollParts) {
                 if (!part.grounded) {
-                    // Apply gravity
                     part.velocity.y -= 25 * dt;
-
-                    // Update position
                     part.mesh.position.addScaledVector(part.velocity, dt);
-
-                    // Update rotation
                     part.mesh.rotation.x += part.rotVelocity.x * dt;
                     part.mesh.rotation.y += part.rotVelocity.y * dt;
                     part.mesh.rotation.z += part.rotVelocity.z * dt;
 
-                    // Ground collision
                     if (part.mesh.position.y < groundY) {
                         part.mesh.position.y = groundY;
-
-                        // Bounce or settle
                         if (Math.abs(part.velocity.y) > 1) {
                             part.velocity.y *= -bounciness;
                             part.velocity.x *= friction;
@@ -1333,11 +1791,8 @@ class Bot {
                             }
                         }
                     }
-
-                    // Air resistance
                     part.velocity.multiplyScalar(0.995);
 
-                    // Blood dripping from body parts
                     if (part.canBleed) {
                         part.bleedTimer += dt;
                         if (part.bleedTimer > 0.08) {
@@ -1366,17 +1821,11 @@ class Bot {
                         }
                     }
                 } else if (part.canBleed) {
-                    // Grounded parts slowly stop bleeding
                     part.bleedTimer += dt;
                     if (part.bleedTimer > 2) {
                         part.canBleed = false;
                     }
                 }
-            }
-
-            // Respawn after delay
-            if (performance.now() - this.deathTime > this.respawnDelay) {
-                this.respawn();
             }
             return;
         }
@@ -1384,51 +1833,93 @@ class Bot {
         // Recover from flinch
         this.mesh.rotation.x *= 0.9;
 
-        // Wandering AI
-        this.wanderTimer += dt;
-        if (this.wanderTimer >= this.wanderInterval) {
-            this.wanderTimer = 0;
-            this.wanderInterval = 2 + Math.random() * 3;
-            this.pickNewTarget();
-        }
-
-        // Move towards target
-        const dx = this.targetPos.x - this.mesh.position.x;
-        const dz = this.targetPos.z - this.mesh.position.z;
+        // CHASE THE PLAYER
+        const playerPos = camera.position;
+        const dx = playerPos.x - this.mesh.position.x;
+        const dz = playerPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
-        if (dist > 1) {
+        // Attack cooldown
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= dt;
+        }
+
+        // Attack if close enough
+        if (dist < this.attackRange && this.attackCooldown <= 0) {
+            this.attackCooldown = 1.0; // 1 second between attacks
+            damagePlayer(this.attackDamage);
+            playSound('zombieAttack');
+        }
+
+        // Move towards player
+        if (dist > 1.5) {
             const moveX = (dx / dist) * this.speed * dt;
             const moveZ = (dz / dist) * this.speed * dt;
             this.mesh.position.x += moveX;
             this.mesh.position.z += moveZ;
 
-            // Face movement direction
-            this.mesh.rotation.y = Math.atan2(dx, dz);
+            // Smooth face towards player
+            const targetRot = Math.atan2(dx, dz);
+            const rotDiff = targetRot - this.mesh.rotation.y;
+            // Normalize angle difference
+            const normalizedDiff = Math.atan2(Math.sin(rotDiff), Math.cos(rotDiff));
+            this.mesh.rotation.y += normalizedDiff * 5 * dt; // Smooth turn
 
-            // Walk animation
-            this.walkCycle += dt * 8;
-            const leftLeg = this.mesh.children[4];
-            const rightLeg = this.mesh.children[5];
+            // FLUID shambling walk animation
+            const walkSpeed = this.speed * 1.2;
+            this.walkCycle += dt * walkSpeed;
+            this.limbPhase += dt * walkSpeed * 0.8; // Slightly offset phase
+
+            const head = this.mesh.children[0];
+            const torso = this.mesh.children[1];
             const leftArm = this.mesh.children[2];
             const rightArm = this.mesh.children[3];
+            const leftLeg = this.mesh.children[4];
+            const rightLeg = this.mesh.children[5];
 
+            // Organic body vertical bob
+            this.headBob = THREE.MathUtils.lerp(this.headBob, Math.sin(this.walkCycle * 2) * 0.08, 0.15);
+            this.mesh.position.y = -5 + this.headBob;
+
+            // Body lean into movement
+            this.bodyLean = THREE.MathUtils.lerp(this.bodyLean, 0.15, 0.05);
+            if (torso) {
+                torso.rotation.x = this.bodyLean + Math.sin(this.walkCycle) * 0.05;
+                torso.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset) * 0.08;
+            }
+
+            // Head wobble
+            if (head) {
+                head.rotation.x = Math.sin(this.walkCycle * 2 + 0.5) * 0.1;
+                head.rotation.z = Math.sin(this.walkCycle + this.swayOffset) * 0.12;
+                head.rotation.y = Math.sin(this.walkCycle * 0.3) * 0.15;
+            }
+
+            // Fluid leg animation - bent knee shamble
             if (leftLeg && rightLeg) {
-                leftLeg.rotation.x = Math.sin(this.walkCycle) * 0.4;
-                rightLeg.rotation.x = Math.sin(this.walkCycle + Math.PI) * 0.4;
+                const legSwing = 0.5;
+                leftLeg.rotation.x = Math.sin(this.walkCycle) * legSwing;
+                leftLeg.rotation.z = Math.sin(this.walkCycle * 0.5) * 0.1;
+                rightLeg.rotation.x = Math.sin(this.walkCycle + Math.PI) * legSwing;
+                rightLeg.rotation.z = Math.sin(this.walkCycle * 0.5 + Math.PI) * 0.1;
             }
+
+            // Arms - reaching forward with organic sway
+            this.armSwing = THREE.MathUtils.lerp(this.armSwing, Math.sin(this.limbPhase) * 0.2, 0.1);
             if (leftArm && rightArm) {
-                leftArm.rotation.x = Math.sin(this.walkCycle + Math.PI) * 0.3;
-                rightArm.rotation.x = Math.sin(this.walkCycle) * 0.3;
+                // Base reaching pose with fluid motion
+                leftArm.rotation.x = -Math.PI / 3 + this.armSwing + Math.sin(this.walkCycle * 0.7) * 0.15;
+                leftArm.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset) * 0.2 - 0.1;
+                rightArm.rotation.x = -Math.PI / 3 - this.armSwing + Math.sin(this.walkCycle * 0.7 + Math.PI) * 0.15;
+                rightArm.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset + Math.PI) * 0.2 + 0.1;
             }
+
+            // Fluid body sway (drunk shamble)
+            this.mesh.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset) * 0.1;
+            this.mesh.rotation.x = Math.sin(this.walkCycle + this.bobOffset) * 0.03;
         } else {
-            // Idle - reset limbs
-            this.walkCycle = 0;
-            for (let i = 2; i <= 5; i++) {
-                if (this.mesh.children[i]) {
-                    this.mesh.children[i].rotation.x *= 0.9;
-                }
-            }
+            // Idle sway when close
+            this.mesh.rotation.z = Math.sin(time * 0.002 + this.swayOffset) * 0.05;
         }
 
         // Keep within bounds
@@ -1437,11 +1928,392 @@ class Bot {
     }
 }
 
-// Spawn bots
-for (let i = 0; i < 6; i++) {
-    const x = (Math.random() - 0.5) * 100;
-    const z = (Math.random() - 0.5) * 100;
-    bots.push(new Bot(x, z));
+// WAVE SYSTEM
+let currentWave = 0;
+let zombiesThisWave = 0;
+let zombiesKilledThisWave = 0;
+let zombiesSpawnedThisWave = 0;
+let waveInProgress = false;
+let waveStartTime = 0;
+let betweenWaves = true;
+let nextWaveCountdown = 1; // Start fast
+
+function startWave(waveNum) {
+    currentWave = waveNum;
+    zombiesThisWave = 8 + waveNum * 4; // More zombies: 12, 16, 20, 24...
+    zombiesKilledThisWave = 0;
+    zombiesSpawnedThisWave = 0;
+    waveInProgress = true;
+    betweenWaves = false;
+    waveStartTime = performance.now();
+
+    // Clear any remaining dead zombies
+    for (const zombie of zombies) {
+        zombie.cleanup();
+    }
+    zombies.length = 0;
+
+    updateHUD();
+}
+
+function spawnZombie() {
+    if (zombiesSpawnedThisWave >= zombiesThisWave) return;
+
+    // Spawn from edges, away from player
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 60 + Math.random() * 40;
+    const x = camera.position.x + Math.cos(angle) * distance;
+    const z = camera.position.z + Math.sin(angle) * distance;
+
+    // Clamp to arena bounds
+    const clampedX = Math.max(-170, Math.min(170, x));
+    const clampedZ = Math.max(-170, Math.min(170, z));
+
+    zombies.push(new Zombie(clampedX, clampedZ, currentWave));
+    zombiesSpawnedThisWave++;
+}
+
+function updateWaveSystem(dt) {
+    if (betweenWaves) {
+        nextWaveCountdown -= dt;
+        if (nextWaveCountdown <= 0) {
+            startWave(currentWave + 1);
+        }
+        return;
+    }
+
+    if (!waveInProgress) return;
+
+    // Spawn zombies rapidly
+    const timeSinceWaveStart = (performance.now() - waveStartTime) / 1000;
+    const spawnInterval = Math.max(0.2, 0.8 - currentWave * 0.05); // Much faster spawns
+    const shouldHaveSpawned = Math.floor(timeSinceWaveStart / spawnInterval) + 1;
+
+    while (zombiesSpawnedThisWave < shouldHaveSpawned && zombiesSpawnedThisWave < zombiesThisWave) {
+        spawnZombie();
+    }
+
+    // Check wave completion
+    if (zombiesKilledThisWave >= zombiesThisWave) {
+        waveInProgress = false;
+        betweenWaves = true;
+        nextWaveCountdown = 2; // Quick 2 seconds between waves
+
+        // Bonus points for wave clear
+        addScore(currentWave * 500);
+        playSound('waveComplete');
+
+        // Pickups disabled for now
+    }
+}
+
+// PICKUP SYSTEM
+const pickups = [];
+
+// Power-up state
+let speedBoostTimer = 0;
+let damageBoostTimer = 0;
+const speedBoostMultiplier = 1.8;
+const damageBoostMultiplier = 2;
+
+// Pickup types configuration
+const PICKUP_TYPES = {
+    ammo: { color: 0xffaa00, glowColor: 0xffcc00, height: 0.4, label: 'AMMO' },
+    health: { color: 0x00ff00, glowColor: 0x44ff44, height: 0.5, label: '+HEALTH' },
+    speed: { color: 0x00ffff, glowColor: 0x44ffff, height: 0.5, label: 'SPEED!' },
+    damage: { color: 0xff0000, glowColor: 0xff4444, height: 0.5, label: '2X DAMAGE!' },
+    nuke: { color: 0xff00ff, glowColor: 0xff44ff, height: 0.6, label: 'NUKE!' }
+};
+
+function createPickupMesh(type) {
+    const config = PICKUP_TYPES[type];
+    const group = new THREE.Group();
+
+    if (type === 'ammo') {
+        // Ammo box
+        const box = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.5, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.6 })
+        );
+        box.castShadow = true;
+        group.add(box);
+
+        // Bullets on top
+        for (let i = 0; i < 3; i++) {
+            const bullet = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.05, 0.05, 0.25, 8),
+                new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 })
+            );
+            bullet.position.set(-0.2 + i * 0.2, 0.35, 0);
+            bullet.rotation.x = Math.PI / 2;
+            group.add(bullet);
+        }
+    } else if (type === 'health') {
+        // Medical box with cross
+        const box = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.5, 0.7),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 })
+        );
+        box.castShadow = true;
+        group.add(box);
+
+        // Red cross
+        const crossH = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.1, 0.15),
+            new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 })
+        );
+        crossH.position.set(0, 0.26, 0);
+        group.add(crossH);
+
+        const crossV = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 0.1, 0.4),
+            new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 })
+        );
+        crossV.position.set(0, 0.26, 0);
+        group.add(crossV);
+    } else if (type === 'speed') {
+        // Lightning bolt shape
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0.4);
+        shape.lineTo(0.15, 0.1);
+        shape.lineTo(0.05, 0.1);
+        shape.lineTo(0.15, -0.4);
+        shape.lineTo(-0.05, 0);
+        shape.lineTo(0.05, 0);
+        shape.lineTo(-0.1, 0.4);
+
+        const extrudeSettings = { depth: 0.1, bevelEnabled: false };
+        const boltGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        const bolt = new THREE.Mesh(
+            boltGeo,
+            new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x004444, metalness: 0.5 })
+        );
+        bolt.rotation.y = Math.PI / 2;
+        bolt.position.x = -0.05;
+        group.add(bolt);
+    } else if (type === 'damage') {
+        // Skull shape (simplified)
+        const skull = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 12, 10),
+            new THREE.MeshStandardMaterial({ color: 0xff2200, emissive: 0x440000 })
+        );
+        skull.scale.y = 1.2;
+        group.add(skull);
+
+        // Eye sockets
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeMat);
+        leftEye.position.set(-0.1, 0.05, 0.25);
+        group.add(leftEye);
+
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeMat);
+        rightEye.position.set(0.1, 0.05, 0.25);
+        group.add(rightEye);
+    } else if (type === 'nuke') {
+        // Bomb/nuke shape
+        const body = new THREE.Mesh(
+            new THREE.SphereGeometry(0.35, 16, 12),
+            new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 })
+        );
+        body.scale.y = 1.3;
+        group.add(body);
+
+        // Radiation symbol
+        const symbolMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0x440044 });
+        const center = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16), symbolMat);
+        center.position.z = 0.36;
+        group.add(center);
+
+        // Fins
+        for (let i = 0; i < 4; i++) {
+            const fin = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 0.3, 0.02),
+                new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6 })
+            );
+            fin.position.set(0, -0.35, 0);
+            fin.rotation.y = (i / 4) * Math.PI * 2;
+            fin.position.x = Math.sin(fin.rotation.y) * 0.2;
+            fin.position.z = Math.cos(fin.rotation.y) * 0.2;
+            group.add(fin);
+        }
+    }
+
+    return group;
+}
+
+class Pickup {
+    constructor(type, x, z) {
+        this.type = type;
+        this.config = PICKUP_TYPES[type];
+        this.mesh = createPickupMesh(type);
+        this.mesh.position.set(x, -4.5 + this.config.height, z);
+        scene.add(this.mesh);
+
+        // Glow effect
+        const glowGeo = new THREE.SphereGeometry(0.8, 16, 16);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: this.config.glowColor,
+            transparent: true,
+            opacity: 0.15
+        });
+        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        this.mesh.add(this.glow);
+
+        // Point light for visibility in the dark
+        this.light = new THREE.PointLight(this.config.glowColor, 0.8, 8);
+        this.light.position.set(0, 0.5, 0);
+        this.mesh.add(this.light);
+
+        this.bobOffset = Math.random() * Math.PI * 2;
+        this.lifeTime = 30; // Despawn after 30 seconds
+        this.collected = false;
+    }
+
+    update(dt, time) {
+        if (this.collected) return true;
+
+        // Bob and rotate
+        this.mesh.position.y = -4.5 + this.config.height + Math.sin(time * 0.003 + this.bobOffset) * 0.15;
+        this.mesh.rotation.y += dt * 2;
+
+        // Pulse glow
+        this.glow.material.opacity = 0.1 + Math.sin(time * 0.005) * 0.05;
+        this.light.intensity = 0.6 + Math.sin(time * 0.005) * 0.3;
+
+        // Check pickup collision with player
+        const dx = camera.position.x - this.mesh.position.x;
+        const dz = camera.position.z - this.mesh.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist < 2.5) {
+            this.collect();
+            return true;
+        }
+
+        // Lifetime
+        this.lifeTime -= dt;
+        if (this.lifeTime <= 0) {
+            this.remove();
+            return true;
+        }
+
+        // Flicker when about to despawn
+        if (this.lifeTime < 5) {
+            this.mesh.visible = Math.sin(time * 0.02) > 0;
+        }
+
+        return false;
+    }
+
+    collect() {
+        this.collected = true;
+        playSound('pickup');
+
+        // Show floating text
+        showPickupText(this.config.label, this.config.color);
+
+        // Apply effect based on type
+        switch (this.type) {
+            case 'ammo':
+                reserve = Math.min(reserve + 60, 300);
+                addScore(50);
+                break;
+
+            case 'health':
+                playerHealth = Math.min(playerHealth + 50, maxPlayerHealth);
+                addScore(50);
+                break;
+
+            case 'speed':
+                speedBoostTimer = 10; // 10 seconds
+                addScore(100);
+                break;
+
+            case 'damage':
+                damageBoostTimer = 10; // 10 seconds
+                addScore(100);
+                break;
+
+            case 'nuke':
+                // Kill all zombies!
+                for (const zombie of zombies) {
+                    if (!zombie.isDead) {
+                        zombie.die();
+                    }
+                }
+                addScore(500);
+                playSound('nuke');
+                // Screen flash
+                damageFlashIntensity = 1.0;
+                document.getElementById('damage-flash').style.background =
+                    'radial-gradient(ellipse at center, rgba(255,255,255,0.8) 0%, rgba(255,0,255,0.4) 100%)';
+                setTimeout(() => {
+                    document.getElementById('damage-flash').style.background =
+                        'radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%)';
+                }, 300);
+                break;
+        }
+
+        updateHUD();
+        this.remove();
+    }
+
+    remove() {
+        scene.remove(this.mesh);
+    }
+}
+
+function spawnPickup(type, x, z) {
+    // Clamp to arena
+    x = Math.max(-170, Math.min(170, x));
+    z = Math.max(-170, Math.min(170, z));
+    pickups.push(new Pickup(type, x, z));
+}
+
+function updatePickups(dt, time) {
+    // Update existing pickups
+    for (let i = pickups.length - 1; i >= 0; i--) {
+        if (pickups[i].update(dt, time)) {
+            pickups.splice(i, 1);
+        }
+    }
+
+    // Pickups disabled for now
+    // if (waveInProgress && Math.random() < 0.001) {
+    //     const types = ['ammo', 'ammo', 'health', 'speed', 'damage'];
+    //     const type = types[Math.floor(Math.random() * types.length)];
+    //     const angle = Math.random() * Math.PI * 2;
+    //     const dist = 20 + Math.random() * 40;
+    //     spawnPickup(type, camera.position.x + Math.cos(angle) * dist, camera.position.z + Math.sin(angle) * dist);
+    // }
+}
+
+// Floating pickup text
+let pickupTextTimeout = null;
+function showPickupText(text, color) {
+    let textEl = document.getElementById('pickup-text');
+    if (!textEl) {
+        textEl = document.createElement('div');
+        textEl.id = 'pickup-text';
+        textEl.style.cssText = `
+            position: absolute; top: 40%; left: 50%; transform: translateX(-50%);
+            font-size: 32px; font-weight: bold; pointer-events: none;
+            text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+            transition: opacity 0.3s, top 0.5s;
+        `;
+        document.body.appendChild(textEl);
+    }
+
+    textEl.textContent = text;
+    textEl.style.color = '#' + color.toString(16).padStart(6, '0');
+    textEl.style.opacity = '1';
+    textEl.style.top = '40%';
+
+    if (pickupTextTimeout) clearTimeout(pickupTextTimeout);
+    pickupTextTimeout = setTimeout(() => {
+        textEl.style.opacity = '0';
+        textEl.style.top = '35%';
+    }, 1000);
 }
 
 // BLOOD & GORE SYSTEM
@@ -1516,69 +2388,80 @@ const goreMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.6
 const boneMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.4 });
 const organMat = new THREE.MeshStandardMaterial({ color: 0x4a0000, roughness: 0.7 });
 
-// Blood spray on hit
+// Pre-create blood sprite materials (avoid runtime allocation)
+const bloodSpriteMats = [];
+for (let i = 0; i < 40; i++) {
+    bloodSpriteMats.push(new THREE.SpriteMaterial({
+        map: bloodSpriteTex,
+        color: new THREE.Color(0.5 + Math.random() * 0.3, 0, 0),
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false
+    }));
+}
+let bloodMatIdx = 0;
+
+// Blood sprite pool
+const bloodSpritePool = new ObjectPool(
+    () => { const s = new THREE.Sprite(bloodSpriteMats[0]); s.visible = false; return s; },
+    (s) => { s.visible = false; },
+    MAX_BLOOD_PARTICLES
+);
+
+// Reusable vector for blood spray
+const _bloodVel = new THREE.Vector3();
+
+// Blood spray on hit - VIOLENT
 function spawnBloodSpray(position, direction, intensity = 1) {
-    const count = Math.floor(8 * intensity);
+    const count = Math.floor(10 * intensity); // More blood
 
     // Blood droplets
     for (let i = 0; i < count; i++) {
-        const spriteMat = new THREE.SpriteMaterial({
-            map: bloodSpriteTex,
-            color: new THREE.Color(0.5 + Math.random() * 0.3, 0, 0),
-            transparent: true,
-            opacity: 0.8,
-            depthWrite: false
-        });
-        const sprite = new THREE.Sprite(spriteMat);
+        const sprite = bloodSpritePool.get();
+        sprite.material = bloodSpriteMats[bloodMatIdx++ % bloodSpriteMats.length];
         sprite.position.copy(position);
         sprite.scale.setScalar(0.1 + Math.random() * 0.15);
+        sprite.visible = true;
 
-        const vel = direction.clone().multiplyScalar(3 + Math.random() * 5);
-        vel.add(new THREE.Vector3(
-            (Math.random() - 0.5) * 4,
-            Math.random() * 3,
-            (Math.random() - 0.5) * 4
-        ));
+        // VIOLENT blood spray velocity
+        _bloodVel.copy(direction).multiplyScalar(6 + Math.random() * 10);
+        _bloodVel.x += (Math.random() - 0.5) * 8;
+        _bloodVel.y += Math.random() * 6;
+        _bloodVel.z += (Math.random() - 0.5) * 8;
 
         scene.add(sprite);
         bloodParticles.push({
             mesh: sprite,
-            velocity: vel,
+            velocity: _bloodVel.clone(),
             life: 1.0 + Math.random() * 0.5,
             gravity: 15,
             type: 'droplet'
         });
     }
 
-    // Light blood mist
-    if (intensity > 1) {
-        const mistMat = new THREE.SpriteMaterial({
-            map: bloodMistTex,
-            color: 0x660000,
-            transparent: true,
-            opacity: 0.4,
-            depthWrite: false,
-            blending: THREE.NormalBlending
-        });
-        const mist = new THREE.Sprite(mistMat);
-        mist.position.copy(position);
-        mist.scale.setScalar(0.4);
+    // Light blood mist (only on major hits, reuse material)
+    if (intensity > 1.5) {
+        const sprite = bloodSpritePool.get();
+        sprite.material = bloodSpriteMats[bloodMatIdx++ % bloodSpriteMats.length];
+        sprite.position.copy(position);
+        sprite.scale.setScalar(0.5);
+        sprite.visible = true;
 
-        scene.add(mist);
+        scene.add(sprite);
         bloodParticles.push({
-            mesh: mist,
+            mesh: sprite,
             velocity: direction.clone().multiplyScalar(2),
-            life: 0.5,
+            life: 0.4,
             gravity: 0,
             type: 'mist',
-            initialScale: mist.scale.x
+            initialScale: 0.5
         });
     }
 }
 
-// Spawn gore chunks on death
+// Spawn gore chunks on death - VIOLENT
 function spawnGoreChunks(position, direction) {
-    const chunkCount = 5 + Math.floor(Math.random() * 4);
+    const chunkCount = 6 + Math.floor(Math.random() * 4); // More chunks
 
     for (let i = 0; i < chunkCount; i++) {
         let geo, mat;
@@ -1603,17 +2486,18 @@ function spawnGoreChunks(position, direction) {
         ));
         chunk.castShadow = true;
 
-        const vel = direction.clone().multiplyScalar(3 + Math.random() * 5);
+        // VIOLENT - explosive chunk velocity
+        const vel = direction.clone().multiplyScalar(8 + Math.random() * 10);
         vel.add(new THREE.Vector3(
-            (Math.random() - 0.5) * 6,
-            Math.random() * 5 + 2,
-            (Math.random() - 0.5) * 6
+            (Math.random() - 0.5) * 12,
+            Math.random() * 8 + 4,
+            (Math.random() - 0.5) * 12
         ));
 
         const rotVel = new THREE.Vector3(
-            (Math.random() - 0.5) * 15,
-            (Math.random() - 0.5) * 15,
-            (Math.random() - 0.5) * 15
+            (Math.random() - 0.5) * 30,
+            (Math.random() - 0.5) * 30,
+            (Math.random() - 0.5) * 30
         );
 
         scene.add(chunk);
@@ -1673,14 +2557,17 @@ function spawnBloodPool(position) {
     scene.add(pool);
     bloodPools.push({
         mesh: pool,
-        targetSize: 1.2 + Math.random() * 1.0,
+        targetSize: 2.0 + Math.random() * 1.5, // Bigger pools
         currentSize: 0.1,
-        growthRate: 0.5 + Math.random() * 0.3,
+        growthRate: 1.0 + Math.random() * 0.5, // Faster growth
         life: 500 + Math.random() * 300
     });
 }
 
-// Update blood particle systems
+// Reusable normal vector for decals
+const _upNormal = new THREE.Vector3(0, 1, 0);
+
+// Update blood particle systems (optimized with swap-and-pop)
 function updateBloodEffects(dt) {
     // Update blood particles
     for (let i = bloodParticles.length - 1; i >= 0; i--) {
@@ -1689,7 +2576,9 @@ function updateBloodEffects(dt) {
 
         if (p.life <= 0) {
             scene.remove(p.mesh);
-            bloodParticles.splice(i, 1);
+            bloodSpritePool.release(p.mesh);
+            bloodParticles[i] = bloodParticles[bloodParticles.length - 1];
+            bloodParticles.pop();
             continue;
         }
 
@@ -1698,13 +2587,15 @@ function updateBloodEffects(dt) {
             p.mesh.position.addScaledVector(p.velocity, dt);
             p.mesh.material.opacity = Math.min(1, p.life);
 
-            // Hit ground - spawn small splat
+            // Hit ground
             if (p.mesh.position.y < -4.8) {
-                if (Math.random() > 0.7) {
-                    spawnBloodDecal(p.mesh.position.clone(), new THREE.Vector3(0, 1, 0), 0.3);
+                if (Math.random() > 0.8) { // Reduced decal spawns
+                    spawnBloodDecal(p.mesh.position.clone(), _upNormal, 0.3);
                 }
                 scene.remove(p.mesh);
-                bloodParticles.splice(i, 1);
+                bloodSpritePool.release(p.mesh);
+                bloodParticles[i] = bloodParticles[bloodParticles.length - 1];
+                bloodParticles.pop();
             }
         } else if (p.type === 'mist') {
             p.mesh.position.addScaledVector(p.velocity, dt);
@@ -1721,7 +2612,8 @@ function updateBloodEffects(dt) {
 
         if (g.life <= 0) {
             scene.remove(g.mesh);
-            goreChunks.splice(i, 1);
+            goreChunks[i] = goreChunks[goreChunks.length - 1];
+            goreChunks.pop();
             continue;
         }
 
@@ -1732,7 +2624,6 @@ function updateBloodEffects(dt) {
             g.mesh.rotation.y += g.rotVelocity.y * dt;
             g.mesh.rotation.z += g.rotVelocity.z * dt;
 
-            // Ground collision
             if (g.mesh.position.y < -4.7) {
                 g.mesh.position.y = -4.7;
                 if (Math.abs(g.velocity.y) > 2) {
@@ -1740,8 +2631,9 @@ function updateBloodEffects(dt) {
                     g.velocity.x *= 0.7;
                     g.velocity.z *= 0.7;
                     g.rotVelocity.multiplyScalar(0.5);
-                    // Splat on impact
-                    spawnBloodDecal(g.mesh.position.clone(), new THREE.Vector3(0, 1, 0), 0.4);
+                    if (Math.random() > 0.5) { // Reduced decal spawns
+                        spawnBloodDecal(g.mesh.position.clone(), _upNormal, 0.4);
+                    }
                 } else {
                     g.grounded = true;
                     g.velocity.set(0, 0, 0);
@@ -1749,20 +2641,16 @@ function updateBloodEffects(dt) {
             }
         }
 
-        // Bleeding effect from chunks
+        // Bleeding effect (reduced frequency, uses pooled sprites)
         if (g.canBleed && !g.grounded) {
             g.bleedTimer += dt;
-            if (g.bleedTimer > 0.05) {
+            if (g.bleedTimer > 0.1) { // Reduced from 0.05
                 g.bleedTimer = 0;
-                const dropMat = new THREE.SpriteMaterial({
-                    map: bloodSpriteTex,
-                    color: 0x880000,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const drop = new THREE.Sprite(dropMat);
+                const drop = bloodSpritePool.get();
+                drop.material = bloodSpriteMats[bloodMatIdx++ % bloodSpriteMats.length];
                 drop.position.copy(g.mesh.position);
                 drop.scale.setScalar(0.08);
+                drop.visible = true;
                 scene.add(drop);
                 bloodParticles.push({
                     mesh: drop,
@@ -1774,7 +2662,6 @@ function updateBloodEffects(dt) {
             }
         }
 
-        // Fade out near end of life
         if (g.life < 2) {
             g.mesh.material.opacity = g.life / 2;
             g.mesh.material.transparent = true;
@@ -1788,17 +2675,16 @@ function updateBloodEffects(dt) {
 
         if (p.life <= 0) {
             scene.remove(p.mesh);
-            bloodPools.splice(i, 1);
+            bloodPools[i] = bloodPools[bloodPools.length - 1];
+            bloodPools.pop();
             continue;
         }
 
-        // Grow pool
         if (p.currentSize < p.targetSize) {
             p.currentSize += p.growthRate * dt;
             p.mesh.scale.setScalar(p.currentSize);
         }
 
-        // Fade out
         if (p.life < 100) {
             p.mesh.material.opacity = (p.life / 100) * 0.9;
         }
@@ -1811,7 +2697,8 @@ function updateBloodEffects(dt) {
 
         if (d.life <= 0) {
             scene.remove(d.mesh);
-            bloodDecals.splice(i, 1);
+            bloodDecals[i] = bloodDecals[bloodDecals.length - 1];
+            bloodDecals.pop();
             continue;
         }
 
@@ -1821,10 +2708,10 @@ function updateBloodEffects(dt) {
     }
 }
 
-// ATMOSPHERIC DUST PARTICLES
+// ATMOSPHERIC DUST PARTICLES (reduced for performance)
 const dustParticles = [];
 const dustGeo = new THREE.BufferGeometry();
-const dustCount = 500;
+const dustCount = 200; // Reduced from 500
 const dustPositions = new Float32Array(dustCount * 3);
 for(let i = 0; i < dustCount; i++) {
     dustPositions[i * 3] = (Math.random() - 0.5) * 200;
@@ -1833,10 +2720,10 @@ for(let i = 0; i < dustCount; i++) {
 }
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 const dustMat = new THREE.PointsMaterial({
-    color: 0xffffff,
+    color: 0xffddaa, // Warm golden dust in sunset light
     size: 0.15,
     transparent: true,
-    opacity: 0.3,
+    opacity: 0.4,
     blending: THREE.AdditiveBlending,
     depthWrite: false
 });
@@ -1991,104 +2878,150 @@ scene.add(camera);
  * ENHANCED PARTICLE SYSTEMS
  */
 
-// Improved Smoke
+// Improved Smoke with object pooling
 const smokeParticles = [];
-const smokeTexCanvas = document.createElement('canvas'); smokeTexCanvas.width = 128; smokeTexCanvas.height = 128;
+const smokeTexCanvas = document.createElement('canvas'); smokeTexCanvas.width = 64; smokeTexCanvas.height = 64; // Reduced size
 const stx = smokeTexCanvas.getContext('2d');
-const sGrad = stx.createRadialGradient(64,64,0,64,64,64);
+const sGrad = stx.createRadialGradient(32,32,0,32,32,32);
 sGrad.addColorStop(0, 'rgba(200,200,200,0.6)');
 sGrad.addColorStop(0.4, 'rgba(150,150,150,0.3)');
 sGrad.addColorStop(1, 'rgba(100,100,100,0)');
-stx.fillStyle = sGrad; stx.fillRect(0,0,128,128);
+stx.fillStyle = sGrad; stx.fillRect(0,0,64,64);
 const smokeSpriteTex = new THREE.CanvasTexture(smokeTexCanvas);
-const smokeMat = new THREE.SpriteMaterial({
-    map: smokeSpriteTex, color: 0x888888, transparent: true,
-    blending: THREE.NormalBlending, depthWrite: false
-});
 
-// Hot smoke (orange tint near muzzle)
-const hotSmokeMat = new THREE.SpriteMaterial({
-    map: smokeSpriteTex, color: 0xffaa66, transparent: true,
-    blending: THREE.AdditiveBlending, depthWrite: false
-});
+// Pre-create smoke sprite materials (no cloning needed)
+const smokeMats = [];
+const hotSmokeMats = [];
+for (let i = 0; i < 20; i++) {
+    smokeMats.push(new THREE.SpriteMaterial({
+        map: smokeSpriteTex, color: 0x888888, transparent: true,
+        blending: THREE.NormalBlending, depthWrite: false
+    }));
+    hotSmokeMats.push(new THREE.SpriteMaterial({
+        map: smokeSpriteTex, color: 0xffaa66, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+}
+let smokeMatIdx = 0;
+let hotSmokeMatIdx = 0;
+
+// Object pool for smoke sprites
+const smokePool = new ObjectPool(
+    () => new THREE.Sprite(smokeMats[0]),
+    (s) => { s.visible = false; s.scale.setScalar(0.4); }
+);
+
+// Reusable vectors for smoke spawning
+const _smokeSpawnPos = new THREE.Vector3(0, 0.3, -7.5);
+const _smokeVel = new THREE.Vector3();
+const _smokeQuat = new THREE.Quaternion();
 
 function spawnSmoke() {
-    // Hot smoke near muzzle
-    for(let i=0; i<2; i++) {
-        const s = new THREE.Sprite(hotSmokeMat.clone());
-        s.position.copy(new THREE.Vector3(0, 0.3, -7.5).applyMatrix4(gunGroup.matrixWorld));
+    const basePos = _smokeSpawnPos.clone().applyMatrix4(gunGroup.matrixWorld);
+    gunGroup.getWorldQuaternion(_smokeQuat);
+
+    // Hot smoke near muzzle (reduced count)
+    for(let i=0; i<1; i++) {
+        const s = smokePool.get();
+        s.material = hotSmokeMats[hotSmokeMatIdx++ % hotSmokeMats.length];
+        s.position.copy(basePos);
         s.scale.setScalar(0.3 + Math.random() * 0.3);
-        const vel = new THREE.Vector3(0, 0, -1).applyQuaternion(gunGroup.getWorldQuaternion(new THREE.Quaternion()));
-        vel.add(new THREE.Vector3((Math.random()-0.5)*0.5, Math.random()*0.3, (Math.random()-0.5)*0.5)).multiplyScalar(3 + Math.random()*2);
+        s.visible = true;
+        _smokeVel.set(0, 0, -1).applyQuaternion(_smokeQuat);
+        _smokeVel.x += (Math.random()-0.5)*0.5; _smokeVel.y += Math.random()*0.3; _smokeVel.z += (Math.random()-0.5)*0.5;
+        _smokeVel.multiplyScalar(3 + Math.random()*2);
         scene.add(s);
-        smokeParticles.push({ mesh: s, velocity: vel, age: 0, life: 0.4 + Math.random()*0.3, hot: true });
+        smokeParticles.push({ mesh: s, velocity: _smokeVel.clone(), age: 0, life: 0.4 + Math.random()*0.3, hot: true });
     }
-    // Regular smoke
-    for(let i=0; i<3; i++) {
-        const s = new THREE.Sprite(smokeMat.clone());
-        s.position.copy(new THREE.Vector3(0, 0.3, -7.5).applyMatrix4(gunGroup.matrixWorld));
+    // Regular smoke (reduced count)
+    for(let i=0; i<2; i++) {
+        const s = smokePool.get();
+        s.material = smokeMats[smokeMatIdx++ % smokeMats.length];
+        s.position.copy(basePos);
         s.scale.setScalar(0.4 + Math.random() * 0.4);
-        const vel = new THREE.Vector3(0, 0, -1).applyQuaternion(gunGroup.getWorldQuaternion(new THREE.Quaternion()));
-        vel.add(new THREE.Vector3((Math.random()-0.5)*0.4, Math.random()*0.6, (Math.random()-0.5)*0.4)).multiplyScalar(1.5 + Math.random());
+        s.visible = true;
+        _smokeVel.set(0, 0, -1).applyQuaternion(_smokeQuat);
+        _smokeVel.x += (Math.random()-0.5)*0.4; _smokeVel.y += Math.random()*0.6; _smokeVel.z += (Math.random()-0.5)*0.4;
+        _smokeVel.multiplyScalar(1.5 + Math.random());
         scene.add(s);
-        smokeParticles.push({ mesh: s, velocity: vel, age: 0, life: 1.2 + Math.random()*0.8, hot: false });
+        smokeParticles.push({ mesh: s, velocity: _smokeVel.clone(), age: 0, life: 1.0 + Math.random()*0.5, hot: false });
     }
 }
 
-// SPARK PARTICLES for muzzle and impacts
+// SPARK PARTICLES - pooled for performance
 const sparks = [];
-const sparkGeo = new THREE.SphereGeometry(0.02, 4, 4);
-const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, blending: THREE.AdditiveBlending });
+const sparkGeo = new THREE.SphereGeometry(0.02, 3, 3); // Reduced geometry complexity
+const sparkBaseMat = new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, blending: THREE.AdditiveBlending });
+
+// Pre-create spark materials
+const sparkMats = [];
+for (let i = 0; i < 30; i++) {
+    sparkMats.push(new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, blending: THREE.AdditiveBlending }));
+}
+let sparkMatIdx = 0;
+
+// Object pool for sparks
+const sparkPool = new ObjectPool(
+    () => { const m = new THREE.Mesh(sparkGeo, sparkMats[0]); m.visible = false; return m; },
+    (s) => { s.visible = false; },
+    MAX_SPARKS
+);
+
+const _sparkSpawnPos = new THREE.Vector3(0, 0.3, -7.5);
 
 function spawnMuzzleSparks() {
-    for(let i=0; i<8; i++) {
-        const spark = new THREE.Mesh(sparkGeo, sparkMat.clone());
-        spark.position.copy(new THREE.Vector3(0, 0.3, -7.5).applyMatrix4(gunGroup.matrixWorld));
-        const vel = new THREE.Vector3(
-            (Math.random()-0.5) * 8,
-            Math.random() * 4,
-            -Math.random() * 15
-        ).applyQuaternion(camera.quaternion);
-        spark.userData = { velocity: vel, life: 0.15 + Math.random()*0.2 };
+    const basePos = _sparkSpawnPos.clone().applyMatrix4(gunGroup.matrixWorld);
+    for(let i=0; i<5; i++) { // Reduced from 8
+        const spark = sparkPool.get();
+        spark.material = sparkMats[sparkMatIdx++ % sparkMats.length];
+        spark.position.copy(basePos);
+        spark.visible = true;
+        _tempVec3.set((Math.random()-0.5) * 8, Math.random() * 4, -Math.random() * 15);
+        _tempVec3.applyQuaternion(camera.quaternion);
+        spark.userData = { velocity: _tempVec3.clone(), life: 0.15 + Math.random()*0.2 };
         scene.add(spark);
         sparks.push(spark);
     }
 }
 
 function spawnImpactSparks(point, normal) {
-    for(let i=0; i<12; i++) {
-        const spark = new THREE.Mesh(sparkGeo, sparkMat.clone());
+    for(let i=0; i<8; i++) { // Reduced from 12
+        const spark = sparkPool.get();
+        spark.material = sparkMats[sparkMatIdx++ % sparkMats.length];
         spark.position.copy(point);
-        // Sparks fly along normal with random spread
-        const vel = normal.clone().multiplyScalar(5 + Math.random()*10);
-        vel.add(new THREE.Vector3(
-            (Math.random()-0.5) * 8,
-            Math.random() * 5,
-            (Math.random()-0.5) * 8
-        ));
-        spark.userData = { velocity: vel, life: 0.2 + Math.random()*0.3 };
+        spark.visible = true;
+        _tempVec3.copy(normal).multiplyScalar(5 + Math.random()*10);
+        _tempVec3.x += (Math.random()-0.5) * 8;
+        _tempVec3.y += Math.random() * 5;
+        _tempVec3.z += (Math.random()-0.5) * 8;
+        spark.userData = { velocity: _tempVec3.clone(), life: 0.2 + Math.random()*0.3 };
         scene.add(spark);
         sparks.push(spark);
     }
 }
 
-// DEBRIS PARTICLES for impacts
+// DEBRIS PARTICLES - pooled
 const debris = [];
 const debrisGeo = new THREE.BoxGeometry(0.05, 0.05, 0.05);
 const debrisMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
 
+const debrisPool = new ObjectPool(
+    () => { const d = new THREE.Mesh(debrisGeo, debrisMat); d.visible = false; return d; },
+    (d) => { d.visible = false; },
+    MAX_DEBRIS
+);
+
 function spawnDebris(point, normal) {
-    for(let i=0; i<5; i++) {
-        const d = new THREE.Mesh(debrisGeo, debrisMat);
+    for(let i=0; i<3; i++) { // Reduced from 5
+        const d = debrisPool.get();
         d.position.copy(point);
-        const vel = normal.clone().multiplyScalar(2 + Math.random()*4);
-        vel.add(new THREE.Vector3(
-            (Math.random()-0.5) * 4,
-            Math.random() * 3,
-            (Math.random()-0.5) * 4
-        ));
+        d.visible = true;
+        _tempVec3.copy(normal).multiplyScalar(2 + Math.random()*4);
+        _tempVec3.x += (Math.random()-0.5) * 4;
+        _tempVec3.y += Math.random() * 3;
+        _tempVec3.z += (Math.random()-0.5) * 4;
         d.userData = {
-            velocity: vel,
+            velocity: _tempVec3.clone(),
             rotVel: new THREE.Vector3(Math.random()*10, Math.random()*10, Math.random()*10),
             life: 60 + Math.random()*60
         };
@@ -2174,6 +3107,91 @@ let isAiming = false;
 let lastShotTime = 0;
 const fireRate = 0.1;
 
+// PLAYER HEALTH & GAME STATE
+let playerHealth = 100;
+let maxPlayerHealth = 100;
+let score = 0;
+let isGameOver = false;
+let lastDamageTime = 0;
+let damageFlashIntensity = 0;
+
+function damagePlayer(amount) {
+    if (isGameOver) return;
+
+    playerHealth -= amount;
+    lastDamageTime = performance.now();
+    damageFlashIntensity = 0.5;
+    playSound('playerHurt');
+
+    // Screen shake
+    Springs.shakeX.impulse((Math.random() - 0.5) * 20);
+    Springs.shakeY.impulse((Math.random() - 0.5) * 20);
+
+    if (playerHealth <= 0) {
+        playerHealth = 0;
+        gameOver();
+    }
+    updateHUD();
+}
+
+function addScore(points) {
+    score += points;
+    updateHUD();
+}
+
+function gameOver() {
+    isGameOver = true;
+    waveInProgress = false;
+    document.getElementById('game-over').style.display = 'flex';
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('final-wave').textContent = currentWave;
+    document.exitPointerLock();
+}
+
+function restartGame() {
+    // Reset all game state
+    playerHealth = maxPlayerHealth;
+    score = 0;
+    ammo = 30;
+    reserve = 90;
+    currentWave = 0;
+    zombiesThisWave = 0;
+    zombiesKilledThisWave = 0;
+    zombiesSpawnedThisWave = 0;
+    waveInProgress = false;
+    betweenWaves = true;
+    nextWaveCountdown = 3;
+    isGameOver = false;
+    isReloading = false;
+
+    // Clear all zombies
+    for (const zombie of zombies) {
+        zombie.cleanup();
+    }
+    zombies.length = 0;
+
+    // Clear all pickups
+    for (const pickup of pickups) {
+        pickup.remove();
+    }
+    pickups.length = 0;
+
+    // Reset power-up timers
+    speedBoostTimer = 0;
+    damageBoostTimer = 0;
+
+    // Reset player position
+    camera.position.set(0, 0, 0);
+
+    // Hide game over screen
+    document.getElementById('game-over').style.display = 'none';
+
+    // Re-lock pointer
+    document.body.requestPointerLock();
+
+    updateHUD();
+}
+
 const moveState = { f: false, b: false, l: false, r: false, sprint: false };
 const velocity = new THREE.Vector3();
 const baseSpeed = 15.0;
@@ -2198,7 +3216,6 @@ let cameraYaw = 0;
 let cameraRecoil = 0;
 let currentFOV = 90;
 
-const hud = document.getElementById('hud');
 const crosshair = document.getElementById('crosshair');
 const hitmarker = document.getElementById('hitmarker');
 
@@ -2211,12 +3228,88 @@ function showHitmarker() {
     }, 100);
 }
 
-function updateHUD() {
-    hud.innerText = `${isReloading ? 'RLD' : ammo} / ${reserve}`;
-    hud.style.color = ammo <= 5 ? '#ff3333' : '#0f0';
+// Power-up display element (created once)
+let powerupsEl = null;
+function ensurePowerupsEl() {
+    if (!powerupsEl) {
+        powerupsEl = document.createElement('div');
+        powerupsEl.id = 'powerups-display';
+        powerupsEl.style.cssText = `
+            position: absolute; bottom: 60px; left: 20px;
+            display: flex; gap: 10px; pointer-events: none;
+        `;
+        document.body.appendChild(powerupsEl);
+    }
+    return powerupsEl;
+}
+
+function updateHUD(force = false) {
+    const dom = getCachedDOM();
+    const remaining = zombiesThisWave - zombiesKilledThisWave;
+    const healthPercent = Math.ceil(playerHealth);
+
+    // Only update if values changed (or forced)
+    if (force || lastHUDValues.ammo !== ammo || lastHUDValues.reserve !== reserve) {
+        lastHUDValues.ammo = ammo;
+        lastHUDValues.reserve = reserve;
+        if (dom.ammoDisplay) {
+            dom.ammoDisplay.innerText = `${isReloading ? 'RLD' : ammo} / ∞`; // Infinite reserve
+            dom.ammoDisplay.style.color = ammo <= 5 ? '#ff3333' : '#0f0';
+        }
+    }
+
+    if (force || lastHUDValues.health !== healthPercent) {
+        lastHUDValues.health = healthPercent;
+        if (dom.healthFill) {
+            const pct = (playerHealth / maxPlayerHealth) * 100;
+            dom.healthFill.style.width = pct + '%';
+            dom.healthFill.style.background = pct > 50 ? '#0f0' : pct > 25 ? '#ff0' : '#f00';
+        }
+        if (dom.healthText) {
+            dom.healthText.textContent = healthPercent;
+        }
+    }
+
+    if (force || lastHUDValues.wave !== currentWave || lastHUDValues.remaining !== remaining) {
+        lastHUDValues.wave = currentWave;
+        lastHUDValues.remaining = remaining;
+        if (dom.waveDisplay) {
+            if (betweenWaves && currentWave > 0) {
+                dom.waveDisplay.textContent = `WAVE ${currentWave} COMPLETE`;
+            } else if (betweenWaves) {
+                dom.waveDisplay.textContent = `GET READY...`;
+            } else {
+                dom.waveDisplay.textContent = `WAVE ${currentWave}`;
+            }
+        }
+        if (dom.zombieCount) {
+            dom.zombieCount.textContent = `${remaining} ZOMBIES`;
+        }
+    }
+
+    if (force || lastHUDValues.score !== score) {
+        lastHUDValues.score = score;
+        if (dom.scoreDisplay) {
+            dom.scoreDisplay.textContent = score.toString().padStart(8, '0');
+        }
+    }
+
+    // Power-ups (throttled to whole seconds)
+    const speedSec = Math.ceil(speedBoostTimer);
+    const damageSec = Math.ceil(damageBoostTimer);
+    if (force || lastHUDValues.speedSec !== speedSec || lastHUDValues.damageSec !== damageSec) {
+        lastHUDValues.speedSec = speedSec;
+        lastHUDValues.damageSec = damageSec;
+        const pEl = ensurePowerupsEl();
+        let html = '';
+        if (speedSec > 0) html += `<div style="color: #0ff; text-shadow: 0 0 10px #0ff; font-size: 16px;">⚡ SPEED ${speedSec}s</div>`;
+        if (damageSec > 0) html += `<div style="color: #f00; text-shadow: 0 0 10px #f00; font-size: 16px;">💀 2X DMG ${damageSec}s</div>`;
+        pEl.innerHTML = html;
+    }
 }
 
 function shoot() {
+    if (isGameOver) return;
     if (isReloading || ammo <= 0) {
         if (ammo <= 0 && !isReloading) playSound('empty');
         return;
@@ -2225,7 +3318,7 @@ function shoot() {
     if (now - lastShotTime < fireRate) return;
     
     lastShotTime = now;
-    ammo--;
+    ammo--; // Still decrement for reload mechanic
     updateHUD();
     playSound('shoot');
 
@@ -2266,7 +3359,7 @@ function shoot() {
     spawnMuzzleSparks();
 
     // Dynamic post-processing punch
-    bloomIntensity = 0.2;
+    bloomIntensity = 0.5; // Brighter flash in the dark
     chromaticAmount = 0.002;
 
     // Screen shake
@@ -2325,7 +3418,8 @@ function dropMag() {
  * HIGH-END RELOAD SEQUENCE (Tween.js)
  */
 function reload() {
-    if (isReloading || ammo === 30 || reserve === 0) return;
+    if (isGameOver) return;
+    if (isReloading || ammo === 30) return; // Infinite reserve, always can reload
     if (isAiming) isAiming = false;
     isReloading = true;
     updateHUD();
@@ -2382,9 +3476,7 @@ function reload() {
                                 .easing(TWEEN.Easing.Elastic.Out)
                                 .start();
 
-                            const needed = 30 - ammo;
-                            if (reserve >= needed) { reserve -= needed; ammo = 30; }
-                            else { ammo += reserve; reserve = 0; }
+                            ammo = 30; // Infinite reserve, always full reload
                             isReloading = false;
                             updateHUD();
                         }, 150);
@@ -2443,14 +3535,19 @@ document.addEventListener('mousemove', (e) => {
         cameraPitch -= e.movementY * sens;
         cameraPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraPitch));
 
-        // Procedural Sway Inputs
-        Springs.swayX.target = -e.movementX * 0.002;
-        Springs.swayY.target = -e.movementY * 0.002;
-        Springs.roll.target = -e.movementX * 0.005;
+        // FLUID Procedural Sway Inputs - more responsive
+        const swayAmount = isAiming ? 0.001 : 0.003;
+        const rollAmount = isAiming ? 0.002 : 0.006;
+        Springs.swayX.target = -e.movementX * swayAmount;
+        Springs.swayY.target = -e.movementY * swayAmount;
+        Springs.roll.target = -e.movementX * rollAmount;
 
-        // Motion blur from camera rotation (subtle)
-        motionBlurX = Math.min(0.012, Math.abs(e.movementX) * 0.0004) * Math.sign(e.movementX);
-        motionBlurY = Math.min(0.008, Math.abs(e.movementY) * 0.0004) * Math.sign(e.movementY);
+        // Add tilt on vertical look
+        Springs.tilt.target += e.movementY * 0.0005;
+
+        // Motion blur from camera rotation
+        motionBlurX = Math.min(0.015, Math.abs(e.movementX) * 0.0005) * Math.sign(e.movementX);
+        motionBlurY = Math.min(0.010, Math.abs(e.movementY) * 0.0005) * Math.sign(e.movementY);
     }
 });
 
@@ -2459,6 +3556,12 @@ function animate(time) {
     TWEEN.update(time);
     const dt = Math.min((time - prevTime) / 1000, 0.1); // Cap dt
     prevTime = time;
+    frameCount++;
+
+    // Throttled shadow updates
+    if (frameCount % SHADOW_UPDATE_INTERVAL === 0) {
+        renderer.shadowMap.needsUpdate = true;
+    }
 
     // ADS Logic + Sprint FOV
     const targetPos = isAiming ? aimPos : hipPos;
@@ -2474,36 +3577,61 @@ function animate(time) {
     // Hide crosshair when aiming
     crosshair.style.opacity = isAiming ? 0 : 1;
 
-    // Update Springs
+    // Track camera velocity for inertia
+    camVelX = (cameraYaw - lastCamYaw) / Math.max(dt, 0.001);
+    camVelY = (cameraPitch - lastCamPitch) / Math.max(dt, 0.001);
+    lastCamYaw = cameraYaw;
+    lastCamPitch = cameraPitch;
+
+    // Update all Springs
     const recoilZ = Springs.recoilZ.update(dt);
     const recoilX = Springs.recoilX.update(dt);
     const recoilY = Springs.recoilY.update(dt);
     const swayX = Springs.swayX.update(dt);
     const swayY = Springs.swayY.update(dt);
+    const swayLagX = Springs.swayLagX.update(dt);
+    const swayLagY = Springs.swayLagY.update(dt);
     const bobY = Springs.bobY.update(dt);
+    const bobX = Springs.bobX.update(dt);
     const roll = Springs.roll.update(dt);
+    const tilt = Springs.tilt.update(dt);
+    const breathe = Springs.breathe.update(dt);
     const shakeX = Springs.shakeX.update(dt);
     const shakeY = Springs.shakeY.update(dt);
+    const camLagX = Springs.camLagX.update(dt);
+    const camLagY = Springs.camLagY.update(dt);
 
-    // Apply Springs to Gun
-    // Z: Recoil kick + Bob
-    gunGroup.position.z = recoilZ;
-    
-    // Y: Bob + Recoil Lift (Combined)
-    gunGroup.position.y = bobY + recoilY;
+    // Breathing animation (subtle idle motion)
+    Springs.breathe.target = Math.sin(time * 0.002) * 0.015;
 
-    // Rotation: Recoil Rise + Sway + Roll
-    gunGroup.rotation.x = recoilX + swayY;
-    gunGroup.rotation.y = Math.PI + swayX;
-    gunGroup.rotation.z = roll + swayX * 0.5;
+    // Feed camera velocity into lag springs for weapon inertia
+    Springs.swayLagX.target = swayX * 0.6;
+    Springs.swayLagY.target = swayY * 0.6;
+    Springs.camLagX.target = -camVelX * 0.0003;
+    Springs.camLagY.target = -camVelY * 0.0003;
 
-    // Reset Spring Targets (Damping brings them to 0)
+    // Apply Springs to Gun - FLUID layered motion
+    // Position: recoil + bob + breathing
+    gunGroup.position.z = recoilZ + breathe * 0.5;
+    gunGroup.position.y = bobY + recoilY + breathe;
+    gunGroup.position.x = bobX + swayLagX * 0.3;
+
+    // Rotation: layered sway + recoil + tilt + breathing
+    const totalSwayX = swayX + swayLagX * 0.5 + camLagX;
+    const totalSwayY = swayY + swayLagY * 0.5 + camLagY;
+    gunGroup.rotation.x = recoilX + totalSwayY + tilt + breathe * 0.3;
+    gunGroup.rotation.y = Math.PI + totalSwayX;
+    gunGroup.rotation.z = roll + totalSwayX * 0.4 + breathe * 0.2;
+
+    // Reset Spring Targets
     Springs.swayX.target = 0;
     Springs.swayY.target = 0;
     Springs.roll.target = 0;
+    Springs.tilt.target = 0;
     Springs.recoilZ.target = 0;
     Springs.recoilX.target = 0;
     Springs.recoilY.target = 0;
+    Springs.bobX.target = 0;
 
     // Camera Recoil Recovery + Screen Shake
     cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.1);
@@ -2514,29 +3642,39 @@ function animate(time) {
         'YXZ'
     );
 
-    // Movement
-    if (document.pointerLockElement === document.body) {
-        velocity.x -= velocity.x * 10.0 * dt;
-        velocity.z -= velocity.z * 10.0 * dt;
+    // FLUID Movement (disabled during game over)
+    if (document.pointerLockElement === document.body && !isGameOver) {
+        // Smoother deceleration for fluid feel
+        const friction = isGrounded ? 8.0 : 3.0;
+        velocity.x -= velocity.x * friction * dt;
+        velocity.z -= velocity.z * friction * dt;
+
         const fIn = Number(moveState.f) - Number(moveState.b);
         const rIn = Number(moveState.r) - Number(moveState.l);
 
         // Sprinting logic - only when moving forward and not aiming
         const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
-        const currentSpeed = isAiming ? baseSpeed * 0.5 : (isSprinting ? baseSpeed * sprintMultiplier : baseSpeed);
+        const speedMultiplier = speedBoostTimer > 0 ? speedBoostMultiplier : 1;
+        const currentSpeed = (isAiming ? baseSpeed * 0.5 : (isSprinting ? baseSpeed * sprintMultiplier : baseSpeed)) * speedMultiplier;
 
-        if (moveState.f || moveState.b) velocity.z += fIn * currentSpeed * 10.0 * dt;
-        if (moveState.l || moveState.r) velocity.x += rIn * currentSpeed * 10.0 * dt;
+        // Smoother acceleration
+        const accel = isGrounded ? 12.0 : 4.0;
+        if (moveState.f || moveState.b) velocity.z += fIn * currentSpeed * accel * dt;
+        if (moveState.l || moveState.r) velocity.x += rIn * currentSpeed * accel * dt;
 
         const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
         const rgt = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
         camera.position.addScaledVector(fwd, velocity.z * dt);
         camera.position.addScaledVector(rgt, velocity.x * dt);
 
-        // Jump physics
+        // FLUID Jump physics
         if (!isGrounded) {
             verticalVelocity -= gravity * dt;
             playerHeight += verticalVelocity * dt;
+
+            // Airborne weapon drift
+            Springs.tilt.target = verticalVelocity * 0.01; // Tilt based on vertical velocity
+            Springs.bobY.target = -verticalVelocity * 0.005;
 
             // Landing
             if (playerHeight <= groundLevel) {
@@ -2545,13 +3683,17 @@ function animate(time) {
                 verticalVelocity = 0;
                 isGrounded = true;
 
-                // Smooth landing effect based on fall speed
-                if (landingImpact > 5) {
-                    Springs.landing.impulse(landingImpact * 0.15);
-                    Springs.bobY.impulse(landingImpact * 0.08);
+                // FLUID landing effect based on fall speed
+                if (landingImpact > 3) {
+                    Springs.landing.impulse(landingImpact * 0.2);
+                    Springs.bobY.impulse(-landingImpact * 0.12);
+                    Springs.tilt.impulse(landingImpact * 0.02);
+                    Springs.roll.impulse((Math.random() - 0.5) * landingImpact * 0.02);
+
                     // Screen shake on hard landing
-                    if (landingImpact > 10) {
-                        Springs.shakeY.impulse(-landingImpact * 0.3);
+                    if (landingImpact > 8) {
+                        Springs.shakeY.impulse(-landingImpact * 0.4);
+                        Springs.shakeX.impulse((Math.random() - 0.5) * landingImpact * 0.2);
                     }
                 }
             }
@@ -2564,20 +3706,34 @@ function animate(time) {
         // Set camera Y position (base + jump height - landing dip)
         camera.position.y = playerHeight - landingOffset * 0.1;
 
-        // Procedural Bobbing (Walking/Sprinting)
+        // FLUID Procedural Bobbing (Walking/Sprinting)
         const vLen = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
-        const bobSpeed = isSprinting ? 0.022 : 0.015;
-        const bobIntensity = isSprinting ? 0.08 : 0.05;
+        moveVelSmooth = THREE.MathUtils.lerp(moveVelSmooth, vLen, 0.1); // Smooth velocity
+        const bobSpeed = isSprinting ? 0.018 : 0.012;
+        const bobIntensity = isSprinting ? 0.12 : 0.07;
+        const velRatio = Math.min(moveVelSmooth / baseSpeed, 1.5);
 
-        if(vLen > 0.1 && !isReloading && isGrounded) {
-            Springs.bobY.target = Math.sin(time * bobSpeed) * bobIntensity * (vLen/baseSpeed);
-            Springs.swayX.target += Math.cos(time * bobSpeed * 0.5) * 0.02 * (vLen/baseSpeed);
-            // Extra roll when sprinting
+        if(moveVelSmooth > 0.1 && !isReloading && isGrounded) {
+            // Vertical bob (up/down with each step)
+            Springs.bobY.target = Math.sin(time * bobSpeed) * bobIntensity * velRatio;
+            // Horizontal bob (side-to-side sway)
+            Springs.bobX.target = Math.cos(time * bobSpeed * 0.5) * bobIntensity * 0.4 * velRatio;
+            // Hip sway rotation
+            Springs.swayX.target += Math.cos(time * bobSpeed * 0.5) * 0.025 * velRatio;
+            // Roll with steps
+            Springs.roll.target += Math.sin(time * bobSpeed) * 0.02 * velRatio;
+            // Forward tilt when moving
+            Springs.tilt.target = -velRatio * 0.03;
+
+            // Extra effects when sprinting
             if (isSprinting) {
-                Springs.roll.target += Math.sin(time * bobSpeed) * 0.015;
+                Springs.roll.target += Math.sin(time * bobSpeed) * 0.025;
+                Springs.tilt.target = -0.06; // More forward lean
             }
         } else if (isGrounded) {
             Springs.bobY.target = 0;
+            Springs.bobX.target = 0;
+            Springs.tilt.target = 0;
         }
     }
 
@@ -2599,7 +3755,7 @@ function animate(time) {
     }
 
     // Decay dynamic post-processing
-    bloomIntensity = THREE.MathUtils.lerp(bloomIntensity, 0.08, 0.15);
+    bloomIntensity = THREE.MathUtils.lerp(bloomIntensity, 0.12, 0.15);
     chromaticAmount = THREE.MathUtils.lerp(chromaticAmount, 0.0005, 0.1);
     bloomPass.strength = bloomIntensity;
     chromaticPass.uniforms.amount.value = chromaticAmount;
@@ -2620,32 +3776,46 @@ function animate(time) {
     // Bolt Recovery (Spring-ish)
     if (!isReloading && bolt.position.z < -0.5) bolt.position.z += 0.1;
 
-    // Entity Updates
-    for(let s of shells) {
+    // Entity Updates - using swap-and-pop for O(1) removal
+    // Shells
+    for(let i = shells.length - 1; i >= 0; i--) {
+        const s = shells[i];
         s.position.addScaledVector(s.userData.velocity, dt * 60);
         s.userData.velocity.y -= 0.02; s.rotation.x += 0.2;
         if(s.position.y < -5) { s.position.y = -5; s.userData.velocity.set(0,0,0); }
-        if(--s.userData.life <= 0) { scene.remove(s); shells.splice(shells.indexOf(s), 1); }
+        if(--s.userData.life <= 0) {
+            scene.remove(s);
+            shells[i] = shells[shells.length - 1];
+            shells.pop();
+        }
     }
-    for(let m of mags) {
+    // Mags
+    for(let i = mags.length - 1; i >= 0; i--) {
+        const m = mags[i];
         m.position.addScaledVector(m.userData.vel, dt * 60);
         m.rotation.x += m.userData.rot.x * 0.1;
         m.userData.vel.y -= 0.02;
         if(m.position.y < -5) { m.position.y = -5; m.userData.vel.set(0,0,0); }
-        if(--m.userData.life <= 0) { scene.remove(m); mags.splice(mags.indexOf(m), 1); }
+        if(--m.userData.life <= 0) {
+            scene.remove(m);
+            mags[i] = mags[mags.length - 1];
+            mags.pop();
+        }
     }
+    // Smoke particles with pooling
     for(let i = smokeParticles.length - 1; i >= 0; i--) {
         const s = smokeParticles[i];
         s.age += dt;
         const r = s.age / s.life;
         if(r >= 1) {
             scene.remove(s.mesh);
-            smokeParticles.splice(i, 1);
+            smokePool.release(s.mesh);
+            smokeParticles[i] = smokeParticles[smokeParticles.length - 1];
+            smokeParticles.pop();
             continue;
         }
         s.mesh.position.addScaledVector(s.velocity, dt);
         if(s.hot) {
-            // Hot smoke fades faster and stays smaller
             s.mesh.scale.setScalar(0.3 + r * 1.5);
             s.mesh.material.opacity = 0.6 * (1 - r);
         } else {
@@ -2653,55 +3823,68 @@ function animate(time) {
             s.mesh.material.opacity = 0.5 * (1 - r);
         }
         s.velocity.y += 1.5 * dt;
-        s.velocity.multiplyScalar(0.99); // Air resistance
+        s.velocity.multiplyScalar(0.99);
     }
 
-    // Update sparks
+    // Sparks with pooling
     for(let i = sparks.length - 1; i >= 0; i--) {
         const sp = sparks[i];
         sp.userData.life -= dt;
         if(sp.userData.life <= 0) {
             scene.remove(sp);
-            sparks.splice(i, 1);
+            sparkPool.release(sp);
+            sparks[i] = sparks[sparks.length - 1];
+            sparks.pop();
             continue;
         }
         sp.position.addScaledVector(sp.userData.velocity, dt);
-        sp.userData.velocity.y -= 20 * dt; // Gravity
+        sp.userData.velocity.y -= 20 * dt;
         sp.material.opacity = sp.userData.life * 3;
     }
 
-    // Update debris
+    // Debris with pooling
     for(let i = debris.length - 1; i >= 0; i--) {
         const d = debris[i];
         d.userData.life--;
         if(d.userData.life <= 0) {
             scene.remove(d);
-            debris.splice(i, 1);
+            debrisPool.release(d);
+            debris[i] = debris[debris.length - 1];
+            debris.pop();
             continue;
         }
         d.position.addScaledVector(d.userData.velocity, dt);
-        d.userData.velocity.y -= 15 * dt; // Gravity
+        d.userData.velocity.y -= 15 * dt;
         d.rotation.x += d.userData.rotVel.x * dt;
         d.rotation.y += d.userData.rotVel.y * dt;
         d.rotation.z += d.userData.rotVel.z * dt;
-        // Stop at floor
         if(d.position.y < -4.9) {
             d.position.y = -4.9;
             d.userData.velocity.set(0, 0, 0);
             d.userData.rotVel.multiplyScalar(0.9);
         }
     }
-    for(let i=tracers.length-1; i>=0; i--) {
+    // Tracers
+    for(let i = tracers.length - 1; i >= 0; i--) {
         const t = tracers[i];
         t.life--;
         t.mesh.material.opacity = t.life / 3;
-        if(t.life <= 0) { scene.remove(t.mesh); tracers.splice(i, 1); }
+        if(t.life <= 0) {
+            scene.remove(t.mesh);
+            tracers[i] = tracers[tracers.length - 1];
+            tracers.pop();
+        }
     }
-    for(let i=decals.length-1; i>=0; i--) {
+    // Decals
+    for(let i = decals.length - 1; i >= 0; i--) {
         const d = decals[i];
         d.life--;
         if(d.life < 60) d.mesh.material.opacity = d.life / 60;
-        if(d.life <= 0) { scene.remove(d.mesh); decals.splice(i, 1); }
+        if(d.life <= 0) {
+            scene.remove(d.mesh);
+            decals[i] = decals[decals.length - 1];
+            decals.pop();
+        }
     }
 
     // Update shooting targets
@@ -2709,25 +3892,54 @@ function animate(time) {
         target.update(dt);
     }
 
-    // Update bots
-    for (const bot of bots) {
-        bot.update(dt, time);
+    // Update wave system (only if game is active)
+    if (!isGameOver) {
+        updateWaveSystem(dt);
+        updatePickups(dt, time);
+
+        // Update power-up timers
+        if (speedBoostTimer > 0) {
+            speedBoostTimer -= dt;
+            if (speedBoostTimer <= 0) speedBoostTimer = 0;
+        }
+        if (damageBoostTimer > 0) {
+            damageBoostTimer -= dt;
+            if (damageBoostTimer <= 0) damageBoostTimer = 0;
+        }
+
+        // Throttled HUD update (only updates when values change)
+        if (frameCount % HUD_UPDATE_INTERVAL === 0) {
+            updateHUD();
+        }
+    }
+
+    // Update zombies
+    for (const zombie of zombies) {
+        zombie.update(dt, time);
     }
 
     // Update blood and gore effects
     updateBloodEffects(dt);
 
-    // Animate dust particles (gentle drift)
-    const dustPos = dustGeo.attributes.position.array;
-    for(let i = 0; i < dustCount; i++) {
-        dustPos[i * 3 + 1] += Math.sin(time * 0.0005 + i) * 0.002;
-        // Wrap around camera
-        const dx = dustPos[i * 3] - camera.position.x;
-        const dz = dustPos[i * 3 + 2] - camera.position.z;
-        if(Math.abs(dx) > 100) dustPos[i * 3] = camera.position.x + (Math.random() - 0.5) * 200;
-        if(Math.abs(dz) > 100) dustPos[i * 3 + 2] = camera.position.z + (Math.random() - 0.5) * 200;
+    // Update damage flash
+    if (damageFlashIntensity > 0) {
+        damageFlashIntensity -= dt * 2;
+        if (damageFlashIntensity < 0) damageFlashIntensity = 0;
+        document.getElementById('damage-flash').style.opacity = damageFlashIntensity;
     }
-    dustGeo.attributes.position.needsUpdate = true;
+
+    // Animate dust particles (throttled to every 3 frames)
+    if (frameCount % 3 === 0) {
+        const dustPos = dustGeo.attributes.position.array;
+        for(let i = 0; i < dustCount; i++) {
+            dustPos[i * 3 + 1] += Math.sin(time * 0.0005 + i) * 0.006;
+            const dx = dustPos[i * 3] - camera.position.x;
+            const dz = dustPos[i * 3 + 2] - camera.position.z;
+            if(Math.abs(dx) > 100) dustPos[i * 3] = camera.position.x + (Math.random() - 0.5) * 200;
+            if(Math.abs(dz) > 100) dustPos[i * 3 + 2] = camera.position.z + (Math.random() - 0.5) * 200;
+        }
+        dustGeo.attributes.position.needsUpdate = true;
+    }
 
     // Render with post-processing
     composer.render();
@@ -2738,8 +3950,12 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
-    bloomPass.setSize(window.innerWidth, window.innerHeight);
+    bloomPass.setSize(window.innerWidth / 2, window.innerHeight / 2); // Half resolution for performance
+    outlinePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
 });
+
+// Initialize HUD (force update all values)
+updateHUD(true);
 
 animate(performance.now());
 </script>
