@@ -146,6 +146,7 @@
  * MOTION DESIGN UTILS
  * Spring physics for procedural weight.
  */
+// Enhanced Spring class with better physics simulation
 class Spring {
     constructor(stiffness, damping, mass) {
         this.stiffness = stiffness;
@@ -156,48 +157,109 @@ class Spring {
         this.target = 0;
     }
 
+    // Semi-implicit Euler for more stable, organic motion
     update(dt) {
-        const force = (this.target - this.position) * this.stiffness;
-        const acc = force / this.mass;
-        this.velocity = (this.velocity + acc * dt) * (1 - this.damping * dt); // Simple Euler
+        const displacement = this.position - this.target;
+        const springForce = -this.stiffness * displacement;
+        const dampingForce = -this.damping * this.velocity;
+        const acceleration = (springForce + dampingForce) / this.mass;
+
+        this.velocity += acceleration * dt;
         this.position += this.velocity * dt;
+
         return this.position;
     }
 
     impulse(force) {
         this.velocity += force / this.mass;
     }
+
+    // Smooth impulse over time for more organic feel
+    softImpulse(force, smoothness = 0.5) {
+        this.velocity += (force / this.mass) * smoothness;
+        this.target += (force / this.mass) * (1 - smoothness) * 0.1;
+    }
 }
 
-// Separate springs for different axes - FLUID & BENDY feel
+// Dual-spring system for extra organic lag
+class DualSpring {
+    constructor(primaryStiffness, primaryDamping, secondaryStiffness, secondaryDamping, mass) {
+        this.primary = new Spring(primaryStiffness, primaryDamping, mass);
+        this.secondary = new Spring(secondaryStiffness, secondaryDamping, mass * 1.5);
+    }
+
+    update(dt) {
+        const primaryPos = this.primary.update(dt);
+        this.secondary.target = primaryPos;
+        return this.secondary.update(dt);
+    }
+
+    set target(val) { this.primary.target = val; }
+    get target() { return this.primary.target; }
+
+    impulse(force) {
+        this.primary.impulse(force * 0.7);
+        this.secondary.impulse(force * 0.3);
+    }
+}
+
+// Separate springs for different axes - ULTRA FLUID & ORGANIC feel
 const Springs = {
-    // Gun sway - softer, more fluid
-    swayX: new Spring(80, 6, 1.2),      // Slower, floatier
-    swayY: new Spring(80, 6, 1.2),
-    swayLagX: new Spring(40, 4, 1.5),   // Extra lag layer for fluidity
-    swayLagY: new Spring(40, 4, 1.5),
+    // Gun sway - multi-layered for organic feel
+    swayX: new Spring(65, 5, 1.4),       // Softer, more floaty
+    swayY: new Spring(65, 5, 1.4),
+    swayLagX: new Spring(30, 3.5, 1.8),  // More lag for fluidity
+    swayLagY: new Spring(30, 3.5, 1.8),
+    swayLag2X: new Spring(18, 2.5, 2.2), // Third layer of lag
+    swayLag2Y: new Spring(18, 2.5, 2.2),
 
-    // Recoil - snappy but with follow-through
-    recoilZ: new Spring(250, 12, 1),    // Softer return
-    recoilX: new Spring(200, 10, 1),    // Muzzle climb with more follow
-    recoilY: new Spring(150, 10, 1),
+    // Recoil - snappy initial kick with soft follow-through
+    recoilZ: new Spring(280, 14, 0.9),   // Quick snap back
+    recoilX: new Spring(180, 9, 1.1),    // Muzzle climb - softer
+    recoilY: new Spring(140, 8, 1.2),    // Vertical rise
+    recoilRoll: new Spring(200, 12, 1),  // Rotational recoil
 
-    // Movement feel
-    bobY: new Spring(60, 5, 1.2),       // Floatier bob
-    bobX: new Spring(50, 4, 1.2),       // Side-to-side bob
-    roll: new Spring(60, 5, 1),         // Softer roll
-    tilt: new Spring(40, 4, 1.2),       // Forward/back tilt
+    // Recoil recovery (slower return to neutral)
+    recoilRecoverZ: new Spring(40, 4, 2),
+    recoilRecoverX: new Spring(35, 3.5, 2),
 
-    // Breathing/idle
-    breathe: new Spring(20, 2, 2),      // Very slow, subtle
+    // Movement feel - very organic
+    bobY: new Spring(50, 4, 1.4),        // Floatier vertical bob
+    bobX: new Spring(40, 3.5, 1.5),      // Side-to-side sway
+    bobZ: new Spring(35, 3, 1.6),        // Forward/back bob (new)
+    roll: new Spring(45, 4, 1.3),        // Hip roll
+    tilt: new Spring(30, 3, 1.5),        // Forward lean
 
-    // Screen shake
-    shakeX: new Spring(300, 18, 1),
-    shakeY: new Spring(300, 18, 1),
+    // Momentum/inertia
+    momentumX: new Spring(25, 2.5, 2),   // Weapon trails behind movement
+    momentumZ: new Spring(25, 2.5, 2),
 
-    // Camera smoothing
-    camLagX: new Spring(100, 8, 1),
-    camLagY: new Spring(100, 8, 1)
+    // Breathing/idle - very subtle organic motion
+    breathe: new Spring(15, 1.5, 2.5),   // Slow breathing
+    idleSway: new Spring(8, 1, 3),       // Ultra slow idle drift
+    heartbeat: new Spring(100, 8, 0.5),  // Subtle pulse
+
+    // Screen shake - responsive but not jarring
+    shakeX: new Spring(250, 16, 1),
+    shakeY: new Spring(250, 16, 1),
+    shakeRoll: new Spring(200, 14, 1),   // Rotational shake
+
+    // Camera smoothing - cinematic lag
+    camLagX: new Spring(80, 6, 1.2),
+    camLagY: new Spring(80, 6, 1.2),
+
+    // ADS transition smoothing
+    adsTransition: new Spring(120, 10, 1),
+    adsFov: new Spring(100, 8, 1),
+
+    // Landing impact
+    landing: new Spring(200, 15, 1),
+    landingTilt: new Spring(150, 12, 1),
+
+    // Sprinting effects
+    sprintBob: new Spring(70, 5, 1.2),
+    sprintTilt: new Spring(50, 4, 1.3),
+    sprintRoll: new Spring(60, 4.5, 1.2)
 };
 
 // Velocity tracking for inertia effects
@@ -206,6 +268,22 @@ let lastCamPitch = 0;
 let camVelX = 0;
 let camVelY = 0;
 let moveVelSmooth = 0;
+let moveVelX = 0;
+let moveVelZ = 0;
+
+// Organic noise for idle animations
+function organicNoise(time, frequency, octaves = 3) {
+    let value = 0;
+    let amplitude = 1;
+    let freq = frequency;
+    for (let i = 0; i < octaves; i++) {
+        value += Math.sin(time * freq) * amplitude;
+        value += Math.cos(time * freq * 1.3) * amplitude * 0.5;
+        freq *= 2.1;
+        amplitude *= 0.5;
+    }
+    return value;
+}
 
 /**
  * CUSTOM POST-PROCESSING SHADERS
@@ -305,7 +383,7 @@ const MotionBlurShader = {
         tDiffuse: { value: null },
         velocityX: { value: 0.0 },
         velocityY: { value: 0.0 },
-        samples: { value: 4 } // Reduced from 8 for performance
+        samples: { value: 4 }
     },
     vertexShader: `
         varying vec2 vUv;
@@ -344,6 +422,544 @@ const MotionBlurShader = {
             }
 
             gl_FragColor = color / total;
+        }
+    `
+};
+
+// ============ SSAO (Screen Space Ambient Occlusion) ============
+const SSAOShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        tDepth: { value: null },
+        resolution: { value: new THREE.Vector2(1920, 1080) },
+        cameraNear: { value: 0.1 },
+        cameraFar: { value: 1000.0 },
+        radius: { value: 0.5 },
+        aoStrength: { value: 1.2 },
+        falloff: { value: 0.5 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform vec2 resolution;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        uniform float radius;
+        uniform float aoStrength;
+        uniform float falloff;
+        varying vec2 vUv;
+
+        float readDepth(vec2 coord) {
+            float fragCoordZ = texture2D(tDepth, coord).x;
+            float viewZ = (cameraNear * cameraFar) / ((cameraFar - cameraNear) * fragCoordZ - cameraFar);
+            return viewZ;
+        }
+
+        float random(vec2 co) {
+            return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            float depth = readDepth(vUv);
+
+            if (depth > -1.0) {
+                gl_FragColor = color;
+                return;
+            }
+
+            float ao = 0.0;
+            float sampleRadius = radius / abs(depth);
+
+            const int samples = 16;
+            for (int i = 0; i < samples; i++) {
+                float angle = float(i) * 2.39996322973;
+                float r = sampleRadius * (float(i + 1) / float(samples));
+                vec2 offset = vec2(cos(angle), sin(angle)) * r;
+                offset += (vec2(random(vUv + float(i)), random(vUv - float(i))) - 0.5) * sampleRadius * 0.25;
+
+                float sampleDepth = readDepth(vUv + offset);
+                float rangeCheck = smoothstep(0.0, 1.0, falloff / abs(depth - sampleDepth));
+                ao += (sampleDepth > depth + 0.01 ? 1.0 : 0.0) * rangeCheck;
+            }
+
+            ao = 1.0 - (ao / float(samples)) * aoStrength;
+            ao = clamp(ao, 0.0, 1.0);
+
+            color.rgb *= ao;
+            gl_FragColor = color;
+        }
+    `
+};
+
+// ============ VOLUMETRIC GOD RAYS ============
+const GodRaysShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        lightPositionOnScreen: { value: new THREE.Vector2(0.3, 0.7) },
+        exposure: { value: 0.35 },
+        decay: { value: 0.96 },
+        density: { value: 0.8 },
+        weight: { value: 0.6 },
+        samples: { value: 60 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 lightPositionOnScreen;
+        uniform float exposure;
+        uniform float decay;
+        uniform float density;
+        uniform float weight;
+        uniform float samples;
+        varying vec2 vUv;
+
+        void main() {
+            vec2 texCoord = vUv;
+            vec2 deltaTexCoord = texCoord - lightPositionOnScreen;
+            deltaTexCoord *= 1.0 / samples * density;
+
+            vec4 color = texture2D(tDiffuse, texCoord);
+            float illuminationDecay = 1.0;
+            vec4 accumulatedColor = vec4(0.0);
+
+            for (int i = 0; i < 100; i++) {
+                if (float(i) >= samples) break;
+                texCoord -= deltaTexCoord;
+                vec4 sampleColor = texture2D(tDiffuse, texCoord);
+                float luminance = dot(sampleColor.rgb, vec3(0.299, 0.587, 0.114));
+                sampleColor *= illuminationDecay * weight * luminance;
+                accumulatedColor += sampleColor;
+                illuminationDecay *= decay;
+            }
+
+            accumulatedColor *= exposure;
+            accumulatedColor.rgb = clamp(accumulatedColor.rgb, 0.0, 1.0);
+
+            gl_FragColor = color + accumulatedColor * vec4(1.0, 0.9, 0.7, 1.0);
+        }
+    `
+};
+
+// ============ DEPTH OF FIELD (Bokeh) ============
+const DepthOfFieldShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        tDepth: { value: null },
+        resolution: { value: new THREE.Vector2(1920, 1080) },
+        focusDistance: { value: 10.0 },
+        focusRange: { value: 5.0 },
+        bokehStrength: { value: 2.0 },
+        cameraNear: { value: 0.1 },
+        cameraFar: { value: 1000.0 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform vec2 resolution;
+        uniform float focusDistance;
+        uniform float focusRange;
+        uniform float bokehStrength;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        varying vec2 vUv;
+
+        float getDepth(vec2 coord) {
+            float fragCoordZ = texture2D(tDepth, coord).x;
+            return (2.0 * cameraNear * cameraFar) / (cameraFar + cameraNear - fragCoordZ * (cameraFar - cameraNear));
+        }
+
+        void main() {
+            float depth = getDepth(vUv);
+            float blur = abs(depth - focusDistance) / focusRange;
+            blur = clamp(blur * bokehStrength, 0.0, 1.0);
+
+            vec2 texelSize = 1.0 / resolution;
+            vec4 color = vec4(0.0);
+            float total = 0.0;
+
+            // Hexagonal bokeh pattern
+            const int SAMPLES = 36;
+            for (int i = 0; i < SAMPLES; i++) {
+                float angle = float(i) * 6.28318530718 / float(SAMPLES);
+                float dist = blur * 8.0 * (0.5 + 0.5 * fract(float(i) * 0.618));
+                vec2 offset = vec2(cos(angle), sin(angle)) * texelSize * dist;
+                color += texture2D(tDiffuse, vUv + offset);
+                total += 1.0;
+            }
+
+            gl_FragColor = color / total;
+        }
+    `
+};
+
+// ============ LENS FLARE SHADER ============
+const LensFlareShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        sunPosition: { value: new THREE.Vector2(0.3, 0.7) },
+        sunVisible: { value: 1.0 },
+        flareStrength: { value: 0.4 },
+        ghostStrength: { value: 0.3 },
+        haloStrength: { value: 0.2 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 sunPosition;
+        uniform float sunVisible;
+        uniform float flareStrength;
+        uniform float ghostStrength;
+        uniform float haloStrength;
+        varying vec2 vUv;
+
+        vec3 flareColor(float t) {
+            return mix(vec3(1.0, 0.6, 0.3), vec3(1.0, 0.9, 0.6), t);
+        }
+
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+
+            if (sunVisible < 0.01) {
+                gl_FragColor = color;
+                return;
+            }
+
+            vec2 sunToCenter = vec2(0.5) - sunPosition;
+            vec2 flareVector = sunToCenter;
+
+            // Main sun glow
+            float distToSun = length(vUv - sunPosition);
+            float glow = exp(-distToSun * 4.0) * flareStrength * sunVisible;
+            color.rgb += flareColor(0.0) * glow;
+
+            // Ghost flares (reflections along the flare vector)
+            for (int i = 1; i < 6; i++) {
+                float t = float(i) / 6.0;
+                vec2 ghostPos = sunPosition + flareVector * (0.3 + t * 1.4);
+                float ghostDist = length(vUv - ghostPos);
+                float ghostSize = 0.05 + t * 0.03;
+                float ghost = smoothstep(ghostSize, 0.0, ghostDist) * ghostStrength * sunVisible;
+                ghost *= (1.0 - t * 0.5);
+                color.rgb += flareColor(t) * ghost * 0.5;
+            }
+
+            // Halo ring
+            float haloDist = abs(length(vUv - sunPosition) - 0.25);
+            float halo = smoothstep(0.02, 0.0, haloDist) * haloStrength * sunVisible * 0.3;
+            color.rgb += vec3(1.0, 0.8, 0.5) * halo;
+
+            // Anamorphic streak
+            float streakX = exp(-abs(vUv.y - sunPosition.y) * 30.0) * exp(-abs(vUv.x - sunPosition.x) * 2.0);
+            color.rgb += vec3(1.0, 0.7, 0.4) * streakX * flareStrength * sunVisible * 0.3;
+
+            gl_FragColor = color;
+        }
+    `
+};
+
+// ============ HEAT DISTORTION / HAZE ============
+const HeatDistortionShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        time: { value: 0.0 },
+        distortionStrength: { value: 0.003 },
+        heatLine: { value: 0.2 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float time;
+        uniform float distortionStrength;
+        uniform float heatLine;
+        varying vec2 vUv;
+
+        float noise(vec2 p) {
+            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+
+        float smoothNoise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+
+            float a = noise(i);
+            float b = noise(i + vec2(1.0, 0.0));
+            float c = noise(i + vec2(0.0, 1.0));
+            float d = noise(i + vec2(1.0, 1.0));
+
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        void main() {
+            // Heat distortion strongest near bottom of screen (ground level)
+            float heatMask = smoothstep(heatLine + 0.15, heatLine, vUv.y);
+
+            // Multi-octave noise for realistic heat waves
+            float n1 = smoothNoise(vUv * 20.0 + vec2(time * 0.5, time * 0.3));
+            float n2 = smoothNoise(vUv * 40.0 + vec2(-time * 0.3, time * 0.5));
+            float n3 = smoothNoise(vUv * 80.0 + vec2(time * 0.4, -time * 0.2));
+
+            float distortion = (n1 * 0.5 + n2 * 0.3 + n3 * 0.2) * 2.0 - 1.0;
+
+            vec2 offset = vec2(distortion, distortion * 0.5) * distortionStrength * heatMask;
+
+            vec4 color = texture2D(tDiffuse, vUv + offset);
+
+            gl_FragColor = color;
+        }
+    `
+};
+
+// ============ COLOR GRADING / LUT ============
+const ColorGradingShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        contrast: { value: 1.15 },
+        saturation: { value: 1.2 },
+        brightness: { value: 1.0 },
+        // Shadows, midtones, highlights color adjustments
+        shadowColor: { value: new THREE.Vector3(0.1, 0.05, 0.15) },
+        midtoneColor: { value: new THREE.Vector3(1.0, 0.95, 0.9) },
+        highlightColor: { value: new THREE.Vector3(1.0, 0.9, 0.8) },
+        // Lift, gamma, gain (standard color grading)
+        lift: { value: new THREE.Vector3(0.0, 0.0, 0.02) },
+        gamma: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+        gain: { value: new THREE.Vector3(1.0, 0.98, 0.95) }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float contrast;
+        uniform float saturation;
+        uniform float brightness;
+        uniform vec3 shadowColor;
+        uniform vec3 midtoneColor;
+        uniform vec3 highlightColor;
+        uniform vec3 lift;
+        uniform vec3 gamma;
+        uniform vec3 gain;
+        varying vec2 vUv;
+
+        vec3 adjustSaturation(vec3 color, float sat) {
+            float luma = dot(color, vec3(0.299, 0.587, 0.114));
+            return mix(vec3(luma), color, sat);
+        }
+
+        vec3 adjustContrast(vec3 color, float con) {
+            return (color - 0.5) * con + 0.5;
+        }
+
+        vec3 liftGammaGain(vec3 color, vec3 lift, vec3 gamma, vec3 gain) {
+            vec3 lerpV = clamp(pow(color, 1.0 / gamma), 0.0, 1.0);
+            return gain * lerpV + lift * (1.0 - lerpV);
+        }
+
+        void main() {
+            vec4 texel = texture2D(tDiffuse, vUv);
+            vec3 color = texel.rgb;
+
+            // Brightness
+            color *= brightness;
+
+            // Contrast
+            color = adjustContrast(color, contrast);
+
+            // Saturation
+            color = adjustSaturation(color, saturation);
+
+            // Lift/Gamma/Gain
+            color = liftGammaGain(color, lift, gamma, gain);
+
+            // Color tinting based on luminance
+            float luma = dot(color, vec3(0.299, 0.587, 0.114));
+
+            // Shadow tint (dark areas get cool/purple tint)
+            float shadowMask = 1.0 - smoothstep(0.0, 0.3, luma);
+            color = mix(color, color * shadowColor * 3.0, shadowMask * 0.3);
+
+            // Highlight tint (bright areas get warm tint)
+            float highlightMask = smoothstep(0.6, 1.0, luma);
+            color = mix(color, color * highlightColor, highlightMask * 0.4);
+
+            // Midtone tint
+            float midtoneMask = 1.0 - abs(luma - 0.5) * 2.0;
+            color *= mix(vec3(1.0), midtoneColor, midtoneMask * 0.2);
+
+            gl_FragColor = vec4(clamp(color, 0.0, 1.0), texel.a);
+        }
+    `
+};
+
+// ============ SCREEN SPACE REFLECTIONS (Simplified) ============
+const SSRShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        tDepth: { value: null },
+        resolution: { value: new THREE.Vector2(1920, 1080) },
+        cameraNear: { value: 0.1 },
+        cameraFar: { value: 1000.0 },
+        reflectionStrength: { value: 0.3 },
+        groundLevel: { value: 0.25 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform vec2 resolution;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        uniform float reflectionStrength;
+        uniform float groundLevel;
+        varying vec2 vUv;
+
+        float getDepth(vec2 coord) {
+            float fragCoordZ = texture2D(tDepth, coord).x;
+            return (2.0 * cameraNear * cameraFar) / (cameraFar + cameraNear - fragCoordZ * (cameraFar - cameraNear));
+        }
+
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+
+            // Only apply reflections near ground level (bottom portion of screen)
+            float reflectionMask = smoothstep(groundLevel + 0.1, groundLevel, vUv.y);
+
+            if (reflectionMask > 0.01) {
+                // Mirror UV for reflection
+                vec2 reflectedUv = vec2(vUv.x, groundLevel + (groundLevel - vUv.y));
+
+                if (reflectedUv.y >= 0.0 && reflectedUv.y <= 1.0) {
+                    vec4 reflectedColor = texture2D(tDiffuse, reflectedUv);
+
+                    // Fade reflection based on distance from ground
+                    float fadeFactor = 1.0 - abs(vUv.y - groundLevel) * 4.0;
+                    fadeFactor = clamp(fadeFactor, 0.0, 1.0);
+
+                    // Blend with roughness simulation (blur)
+                    float blur = (groundLevel - vUv.y) * 0.05;
+                    vec4 blurredReflection = vec4(0.0);
+                    float total = 0.0;
+                    for (int i = -2; i <= 2; i++) {
+                        for (int j = -2; j <= 2; j++) {
+                            vec2 offset = vec2(float(i), float(j)) * blur;
+                            blurredReflection += texture2D(tDiffuse, reflectedUv + offset);
+                            total += 1.0;
+                        }
+                    }
+                    reflectedColor = blurredReflection / total;
+
+                    color.rgb = mix(color.rgb, reflectedColor.rgb, reflectionMask * reflectionStrength * fadeFactor);
+                }
+            }
+
+            gl_FragColor = color;
+        }
+    `
+};
+
+// ============ ATMOSPHERIC SCATTERING ============
+const AtmosphericScatteringShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        tDepth: { value: null },
+        cameraNear: { value: 0.1 },
+        cameraFar: { value: 1000.0 },
+        fogColor: { value: new THREE.Vector3(0.4, 0.2, 0.15) },
+        fogDensity: { value: 0.015 },
+        sunDirection: { value: new THREE.Vector3(-0.5, 0.2, -0.8) },
+        sunColor: { value: new THREE.Vector3(1.0, 0.7, 0.4) },
+        scatteringStrength: { value: 0.4 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        uniform vec3 fogColor;
+        uniform float fogDensity;
+        uniform vec3 sunDirection;
+        uniform vec3 sunColor;
+        uniform float scatteringStrength;
+        varying vec2 vUv;
+
+        float getDepth(vec2 coord) {
+            float fragCoordZ = texture2D(tDepth, coord).x;
+            return (2.0 * cameraNear * cameraFar) / (cameraFar + cameraNear - fragCoordZ * (cameraFar - cameraNear));
+        }
+
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            float depth = getDepth(vUv);
+
+            // Exponential fog
+            float fogAmount = 1.0 - exp(-depth * fogDensity);
+            fogAmount = clamp(fogAmount, 0.0, 1.0);
+
+            // Add sun scattering based on view direction approximation
+            vec2 screenCenter = vUv - 0.5;
+            float viewSunDot = dot(normalize(vec3(screenCenter, 1.0)), normalize(sunDirection));
+            viewSunDot = max(viewSunDot, 0.0);
+
+            // Mie scattering (forward scattering from sun)
+            float mie = pow(viewSunDot, 8.0) * scatteringStrength;
+
+            vec3 scatterColor = mix(fogColor, sunColor, mie);
+
+            color.rgb = mix(color.rgb, scatterColor, fogAmount);
+            color.rgb += sunColor * mie * 0.2 * (1.0 - fogAmount);
+
+            gl_FragColor = color;
         }
     `
 };
@@ -1132,32 +1748,169 @@ function playSound(type) {
  * SCENE SETUP
  */
 const scene = new THREE.Scene();
-// Procedural Skybox (Bright Sunny Day)
-const vertexShader = `
+// ENHANCED Procedural Skybox - Epic Sunset with Volumetric Clouds
+const skyVertexShader = `
 varying vec3 vWorldPosition;
+varying vec3 vDirection;
 void main() {
-    vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    vDirection = normalize(position);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
-const fragmentShader = `
+
+const skyFragmentShader = `
 uniform vec3 topColor;
+uniform vec3 midColor;
 uniform vec3 bottomColor;
-uniform float offset;
-uniform float exponent;
+uniform vec3 sunColor;
+uniform vec3 sunDirection;
+uniform float time;
 varying vec3 vWorldPosition;
+varying vec3 vDirection;
+
+// Simplex noise functions for procedural clouds
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+float snoise(vec3 v) {
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+    vec3 i  = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+        i.z + vec4(0.0, i1.z, i2.z, 1.0))
+        + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+        + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ *ns.x + ns.yyyy;
+    vec4 y = y_ *ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0)*2.0 + 1.0;
+    vec4 s1 = floor(b1)*2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+    m = m * m;
+    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+}
+
+float fbm(vec3 p) {
+    float f = 0.0;
+    float amplitude = 0.5;
+    for (int i = 0; i < 5; i++) {
+        f += amplitude * snoise(p);
+        p *= 2.0;
+        amplitude *= 0.5;
+    }
+    return f;
+}
+
 void main() {
-    float h = normalize( vWorldPosition + offset ).y;
-    gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
+    vec3 dir = normalize(vDirection);
+    float h = dir.y;
+
+    // More natural sunset gradient
+    vec3 horizonColor = vec3(0.95, 0.5, 0.2);   // Warm orange at horizon
+    vec3 lowerSkyColor = vec3(0.6, 0.35, 0.25); // Muted pink-orange
+
+    vec3 skyColor;
+    if (h < 0.0) {
+        // Below horizon - dark
+        skyColor = mix(vec3(0.03, 0.02, 0.02), bottomColor * 0.3, smoothstep(-0.2, 0.0, h));
+    } else if (h < 0.15) {
+        // Horizon band
+        skyColor = mix(horizonColor, lowerSkyColor, smoothstep(0.0, 0.15, h));
+    } else if (h < 0.4) {
+        // Lower sky
+        skyColor = mix(lowerSkyColor, midColor, smoothstep(0.15, 0.4, h));
+    } else {
+        // Upper sky fading to darker blue-purple
+        skyColor = mix(midColor, topColor, smoothstep(0.4, 0.85, h));
+    }
+
+    // Sun glow - more natural
+    float sunDot = dot(dir, normalize(sunDirection));
+    float sunGlow = pow(max(sunDot, 0.0), 80.0);
+    float sunHalo = pow(max(sunDot, 0.0), 12.0) * 0.3;
+    float sunDisk = smoothstep(0.997, 0.999, sunDot);
+
+    skyColor += sunColor * sunGlow * 1.5;
+    skyColor += sunColor * sunHalo * 0.4;
+    skyColor += sunColor * sunDisk * 2.0;
+
+    // Subtle procedural clouds
+    if (h > 0.0 && h < 0.5) {
+        vec3 cloudPos = dir * 2.0 + vec3(time * 0.005, 0.0, time * 0.003);
+        float cloud = fbm(cloudPos * 1.5);
+        cloud = smoothstep(0.1, 0.5, cloud);
+
+        // Clouds lit by sunset - muted colors
+        vec3 cloudColor = mix(vec3(0.8, 0.5, 0.35), vec3(0.5, 0.3, 0.25), 1.0 - h * 2.0);
+
+        // Light the clouds from sun direction
+        float cloudLight = max(0.0, dot(dir, normalize(sunDirection)));
+        cloudColor = mix(cloudColor * 0.5, cloudColor * 1.2, cloudLight);
+
+        // Cloud density varies by height - less dense overall
+        float cloudMask = smoothstep(0.0, 0.1, h) * smoothstep(0.5, 0.2, h);
+        cloud *= cloudMask * 0.4; // Much less cloud coverage
+
+        skyColor = mix(skyColor, cloudColor, cloud);
+    }
+
+    // Subtle atmospheric scattering
+    float scatter = 1.0 - abs(h);
+    scatter = pow(scatter, 4.0);
+    skyColor = mix(skyColor, horizonColor * 0.8, scatter * 0.15);
+
+    gl_FragColor = vec4(skyColor, 1.0);
 }`;
-const uniforms = {
-    topColor: { value: new THREE.Color(0x1a0a30) },    // Deep purple upper sky
-    bottomColor: { value: new THREE.Color(0xff6030) }, // Fiery orange horizon
-    offset: { value: 33 },
-    exponent: { value: 0.6 }
+
+const skyUniforms = {
+    topColor: { value: new THREE.Color(0x1a1535) },     // Dark blue-purple night sky
+    midColor: { value: new THREE.Color(0x4a3055) },     // Muted purple
+    bottomColor: { value: new THREE.Color(0xdd6030) },  // Warm orange horizon
+    sunColor: { value: new THREE.Color(0xffcc55) },     // Golden sun
+    sunDirection: { value: new THREE.Vector3(-0.5, 0.12, -0.85).normalize() },
+    time: { value: 0.0 }
 };
-const skyGeo = new THREE.SphereGeometry(500, 32, 15);
-const skyMat = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms, side: THREE.BackSide });
+const skyGeo = new THREE.SphereGeometry(500, 64, 32);
+const skyMat = new THREE.ShaderMaterial({
+    vertexShader: skyVertexShader,
+    fragmentShader: skyFragmentShader,
+    uniforms: skyUniforms,
+    side: THREE.BackSide
+});
 const sky = new THREE.Mesh(skyGeo, skyMat);
 scene.add(sky);
 
@@ -1226,53 +1979,90 @@ scene.fog = new THREE.FogExp2(0x442020, 0.008);
 const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Reduced for performance
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0)); // Higher quality
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap; // Faster than PCFSoft
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft shadows for better quality
 renderer.shadowMap.autoUpdate = false; // Manual shadow update
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1; // Warm sunset exposure
+renderer.toneMappingExposure = 1.0; // Natural exposure
+renderer.physicallyCorrectLights = true; // PBR lighting
 document.body.appendChild(renderer.domElement);
 
-// POST-PROCESSING SETUP
+// POST-PROCESSING SETUP - ENHANCED GRAPHICS PIPELINE
 const composer = new THREE.EffectComposer(renderer);
+
+// Depth texture for depth-based effects
+const depthTexture = new THREE.DepthTexture(window.innerWidth, window.innerHeight);
+depthTexture.type = THREE.UnsignedShortType;
+const depthRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter,
+    format: THREE.RGBAFormat,
+    depthTexture: depthTexture
+});
+
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
-// Cel Shading (Borderlands style) - apply early for best effect
-const celPass = new THREE.ShaderPass(CelShadingShader);
-celPass.uniforms.levels.value = 5.0;        // Number of color bands
-celPass.uniforms.saturationBoost.value = 1.3; // Boost saturation
-composer.addPass(celPass);
+// God Rays - SUBTLE light shafts from sun
+const godRaysPass = new THREE.ShaderPass(GodRaysShader);
+godRaysPass.uniforms.exposure.value = 0.12;
+godRaysPass.uniforms.decay.value = 0.94;
+godRaysPass.uniforms.density.value = 0.4;
+godRaysPass.uniforms.weight.value = 0.3;
+godRaysPass.uniforms.samples.value = 40;
+composer.addPass(godRaysPass);
 
-// Bloom for muzzle flash glow (half resolution for performance)
+// Lens Flare - SUBTLE
+const lensFlarePass = new THREE.ShaderPass(LensFlareShader);
+lensFlarePass.uniforms.flareStrength.value = 0.15;
+lensFlarePass.uniforms.ghostStrength.value = 0.08;
+lensFlarePass.uniforms.haloStrength.value = 0.05;
+composer.addPass(lensFlarePass);
+
+// Heat Distortion - VERY SUBTLE
+const heatPass = new THREE.ShaderPass(HeatDistortionShader);
+heatPass.uniforms.distortionStrength.value = 0.0008;
+heatPass.uniforms.heatLine.value = 0.15;
+composer.addPass(heatPass);
+
+// Bloom for muzzle flash glow
 const bloomPass = new THREE.UnrealBloomPass(
     new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
-    0.15,  // strength - boosted for sunset glow
-    0.4,   // radius (increased to compensate for lower res)
-    0.85   // threshold (slightly lower)
+    0.15,  // strength - subtle
+    0.4,   // radius
+    0.85   // threshold
 );
 composer.addPass(bloomPass);
 
-// Outline pass (Borderlands ink lines) - after bloom
-const outlinePass = new THREE.ShaderPass(OutlineShader);
-outlinePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
-outlinePass.uniforms.thickness.value = 1.2;
-outlinePass.uniforms.threshold.value = 0.12;
-composer.addPass(outlinePass);
+// Color Grading - DISABLED (was causing blue tint)
+// const colorGradingPass = new THREE.ShaderPass(ColorGradingShader);
+// composer.addPass(colorGradingPass);
 
 // Motion Blur
 const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
 composer.addPass(motionBlurPass);
 
-// Chromatic Aberration
+// Chromatic Aberration - SUBTLE
 const chromaticPass = new THREE.ShaderPass(ChromaticAberrationShader);
+chromaticPass.uniforms.amount.value = 0.0003;
 composer.addPass(chromaticPass);
 
-// Film Grain
+// Film Grain - SUBTLE
 const grainPass = new THREE.ShaderPass(FilmGrainShader);
+grainPass.uniforms.intensity.value = 0.025;
 composer.addPass(grainPass);
+
+// Vignette - DISABLED
+// const vignettePass = new THREE.ShaderPass(VignetteShader);
+// vignettePass.uniforms.intensity.value = 0.35;
+// vignettePass.uniforms.smoothness.value = 0.5;
+// composer.addPass(vignettePass);
+
+// Sun screen position for god rays and lens flare (updated in animate loop)
+let sunScreenPos = new THREE.Vector2(0.3, 0.7);
+let sunVisible = 1.0;
 
 // Create sunset environment map for reflections
 const envMapSize = 256;
@@ -1297,18 +2087,24 @@ const hemiLight = new THREE.HemisphereLight(0xff8844, 0x553322, 0.4);
 scene.add(hemiLight);
 
 // Sunlight - warm golden, coming from sun position
-const dirLight = new THREE.DirectionalLight(0xffcc66, 1.0);
+const dirLight = new THREE.DirectionalLight(0xffcc66, 1.5);
 dirLight.position.set(-200, 40, -350); // Same as sun position
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 1024; dirLight.shadow.mapSize.height = 1024; dirLight.shadow.bias = -0.0001;
+dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048; // Higher resolution shadows
+dirLight.shadow.bias = -0.0002;
+dirLight.shadow.normalBias = 0.02;
+dirLight.shadow.radius = 2; // Soft shadow blur
 dirLight.shadow.camera.left = -100;
 dirLight.shadow.camera.right = 100;
 dirLight.shadow.camera.top = 100;
 dirLight.shadow.camera.bottom = -100;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 600;
 scene.add(dirLight);
 
 // Purple-ish rim light from opposite side for contrast
-const rimLight = new THREE.DirectionalLight(0x6644aa, 0.3);
+// Subtle cool rim light for contrast (very low intensity)
+const rimLight = new THREE.DirectionalLight(0x8888aa, 0.15);
 rimLight.position.set(5, 2, 5);
 scene.add(rimLight);
 
@@ -2720,12 +3516,13 @@ for(let i = 0; i < dustCount; i++) {
 }
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 const dustMat = new THREE.PointsMaterial({
-    color: 0xffddaa, // Warm golden dust in sunset light
-    size: 0.15,
+    color: 0xeebb88, // Warm dust
+    size: 0.12,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.3,
     blending: THREE.AdditiveBlending,
-    depthWrite: false
+    depthWrite: false,
+    sizeAttenuation: true
 });
 const dustCloud = new THREE.Points(dustGeo, dustMat);
 scene.add(dustCloud);
@@ -3322,49 +4119,69 @@ function shoot() {
     updateHUD();
     playSound('shoot');
 
-    // IMPULSE PHYSICS (CORRECTED & TIGHTENED)
-    const aimMod = isAiming ? 0.3 : 1.0;
-    
-    // Z: Negative impulse kicks the gun BACKWARDS into the shoulder (Correct)
-    Springs.recoilZ.impulse(-15 * aimMod); 
-    
-    // X: NEGATIVE impulse rotates muzzle UP (Corrected direction)
-    // Reduced magnitude slightly for "ever so slightly" up, but snappy
-    Springs.recoilX.impulse(-4 * aimMod);
-    
-    // Y: Vertical physical rise (Reduced to be subtle)
-    Springs.recoilY.impulse(0.5 * aimMod);
-    
-    Springs.roll.impulse((Math.random()-0.5) * 0.5);
-    cameraRecoil += 0.03 * aimMod;
+    // ORGANIC RECOIL IMPULSE PHYSICS
+    const aimMod = isAiming ? 0.35 : 1.0;
 
-    // Crosshair pop
+    // Randomize recoil slightly for organic feel (no two shots identical)
+    const recoilVariance = 0.85 + Math.random() * 0.3;
+    const horizontalBias = (Math.random() - 0.5) * 0.4; // Slight random horizontal pull
+
+    // Z: Backward kick into shoulder - primary recoil
+    Springs.recoilZ.impulse(-14 * aimMod * recoilVariance);
+
+    // X: Muzzle climb (negative = up) - with variance
+    Springs.recoilX.impulse(-3.5 * aimMod * recoilVariance);
+
+    // Y: Vertical physical rise
+    Springs.recoilY.impulse(0.6 * aimMod * recoilVariance);
+
+    // Roll: Rotational torque - asymmetric for realism
+    Springs.recoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.3) * 0.8 * aimMod);
+    Springs.roll.impulse(horizontalBias * 0.4 * aimMod);
+
+    // Horizontal sway from recoil
+    Springs.swayX.impulse(horizontalBias * 0.15 * aimMod);
+
+    // Camera recoil - gradual climb
+    cameraRecoil += 0.025 * aimMod * recoilVariance;
+
+    // Subtle forward jolt
+    Springs.bobZ.impulse(-0.8 * aimMod);
+
+    // Crosshair pop with smooth animation
     if(!isAiming) {
-        crosshair.style.width = '40px'; crosshair.style.height = '40px';
-        setTimeout(() => { crosshair.style.width = '20px'; crosshair.style.height = '20px'; }, 80);
+        crosshair.style.width = '45px'; crosshair.style.height = '45px';
+        crosshair.style.transition = 'width 0.05s, height 0.05s';
+        setTimeout(() => {
+            crosshair.style.width = '20px'; crosshair.style.height = '20px';
+            crosshair.style.transition = 'width 0.15s ease-out, height 0.15s ease-out';
+        }, 50);
     }
 
-    // ENHANCED FLASH
-    flashCoreMat.opacity = 1.0;
-    flashMidMat.opacity = 0.9;
-    flashOuterMat.opacity = 0.7;
-    flashStreakMat.opacity = 0.8;
+    // ENHANCED FLASH with variance
+    const flashIntensity = 0.9 + Math.random() * 0.2;
+    flashCoreMat.opacity = flashIntensity;
+    flashMidMat.opacity = flashIntensity * 0.9;
+    flashOuterMat.opacity = flashIntensity * 0.7;
+    flashStreakMat.opacity = flashIntensity * 0.8;
     flashGroup.rotation.z = Math.random() * Math.PI;
-    flashGroup.scale.setScalar(0.8 + Math.random() * 0.4);
+    flashGroup.scale.setScalar(0.75 + Math.random() * 0.5);
     muzzleLight.position.copy(new THREE.Vector3(0, 0.3, -7.5).applyMatrix4(gunGroup.matrixWorld));
-    muzzleLight.intensity = 30;
+    muzzleLight.intensity = 25 + Math.random() * 10;
     muzzleLight.color.setHex(0xffaa44);
 
     // Spawn muzzle sparks
     spawnMuzzleSparks();
 
     // Dynamic post-processing punch
-    bloomIntensity = 0.5; // Brighter flash in the dark
-    chromaticAmount = 0.002;
+    bloomIntensity = 0.4 + Math.random() * 0.15;
+    chromaticAmount = 0.0015 + Math.random() * 0.001;
 
-    // Screen shake
-    Springs.shakeX.impulse((Math.random()-0.5) * 3 * aimMod);
-    Springs.shakeY.impulse((Math.random()-0.5) * 2 * aimMod);
+    // Screen shake - organic variance
+    const shakeIntensity = aimMod * recoilVariance;
+    Springs.shakeX.impulse((Math.random() - 0.5) * 2.5 * shakeIntensity);
+    Springs.shakeY.impulse((Math.random() - 0.3) * 2 * shakeIntensity); // Bias upward
+    Springs.shakeRoll.impulse((Math.random() - 0.5) * 1.5 * shakeIntensity);
 
     // Bolt snap
     bolt.position.z = 0.5; 
@@ -3535,19 +4352,38 @@ document.addEventListener('mousemove', (e) => {
         cameraPitch -= e.movementY * sens;
         cameraPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraPitch));
 
-        // FLUID Procedural Sway Inputs - more responsive
-        const swayAmount = isAiming ? 0.001 : 0.003;
-        const rollAmount = isAiming ? 0.002 : 0.006;
+        // ULTRA FLUID Procedural Sway - multi-layered organic response
+        const adsReduction = isAiming ? 0.4 : 1.0;
+
+        // Primary sway - immediate response
+        const swayAmount = 0.0025 * adsReduction;
         Springs.swayX.target = -e.movementX * swayAmount;
         Springs.swayY.target = -e.movementY * swayAmount;
+
+        // Roll with horizontal look - weapon tilts into turns
+        const rollAmount = 0.005 * adsReduction;
         Springs.roll.target = -e.movementX * rollAmount;
 
-        // Add tilt on vertical look
-        Springs.tilt.target += e.movementY * 0.0005;
+        // Tilt on vertical look - weapon dips/rises with view
+        Springs.tilt.target += e.movementY * 0.0004 * adsReduction;
 
-        // Motion blur from camera rotation
-        motionBlurX = Math.min(0.015, Math.abs(e.movementX) * 0.0005) * Math.sign(e.movementX);
-        motionBlurY = Math.min(0.010, Math.abs(e.movementY) * 0.0005) * Math.sign(e.movementY);
+        // Secondary lag layers get impulses for organic trailing
+        const moveSpeed = Math.sqrt(e.movementX * e.movementX + e.movementY * e.movementY);
+        if (moveSpeed > 2) {
+            Springs.swayLagX.impulse(-e.movementX * 0.0008 * adsReduction);
+            Springs.swayLagY.impulse(-e.movementY * 0.0008 * adsReduction);
+            Springs.swayLag2X.impulse(-e.movementX * 0.0004 * adsReduction);
+            Springs.swayLag2Y.impulse(-e.movementY * 0.0004 * adsReduction);
+        }
+
+        // Fast movements add extra roll momentum
+        if (Math.abs(e.movementX) > 8) {
+            Springs.roll.impulse(-e.movementX * 0.0003 * adsReduction);
+        }
+
+        // Motion blur from camera rotation - more subtle
+        motionBlurX = Math.min(0.012, Math.abs(e.movementX) * 0.0004) * Math.sign(e.movementX);
+        motionBlurY = Math.min(0.008, Math.abs(e.movementY) * 0.0004) * Math.sign(e.movementY);
     }
 });
 
@@ -3583,47 +4419,91 @@ function animate(time) {
     lastCamYaw = cameraYaw;
     lastCamPitch = cameraPitch;
 
-    // Update all Springs
+    // Update ALL Springs - Enhanced organic motion
     const recoilZ = Springs.recoilZ.update(dt);
     const recoilX = Springs.recoilX.update(dt);
     const recoilY = Springs.recoilY.update(dt);
+    const recoilRoll = Springs.recoilRoll.update(dt);
+    const recoilRecoverZ = Springs.recoilRecoverZ.update(dt);
+    const recoilRecoverX = Springs.recoilRecoverX.update(dt);
     const swayX = Springs.swayX.update(dt);
     const swayY = Springs.swayY.update(dt);
     const swayLagX = Springs.swayLagX.update(dt);
     const swayLagY = Springs.swayLagY.update(dt);
+    const swayLag2X = Springs.swayLag2X.update(dt);
+    const swayLag2Y = Springs.swayLag2Y.update(dt);
     const bobY = Springs.bobY.update(dt);
     const bobX = Springs.bobX.update(dt);
+    const bobZ = Springs.bobZ.update(dt);
     const roll = Springs.roll.update(dt);
     const tilt = Springs.tilt.update(dt);
     const breathe = Springs.breathe.update(dt);
+    const idleSway = Springs.idleSway.update(dt);
+    const heartbeat = Springs.heartbeat.update(dt);
+    const momentumX = Springs.momentumX.update(dt);
+    const momentumZ = Springs.momentumZ.update(dt);
     const shakeX = Springs.shakeX.update(dt);
     const shakeY = Springs.shakeY.update(dt);
+    const shakeRoll = Springs.shakeRoll.update(dt);
     const camLagX = Springs.camLagX.update(dt);
     const camLagY = Springs.camLagY.update(dt);
+    const adsTransition = Springs.adsTransition.update(dt);
+    const sprintBob = Springs.sprintBob.update(dt);
+    const sprintTilt = Springs.sprintTilt.update(dt);
+    const sprintRoll = Springs.sprintRoll.update(dt);
+    const landingTilt = Springs.landingTilt.update(dt);
 
-    // Breathing animation (subtle idle motion)
-    Springs.breathe.target = Math.sin(time * 0.002) * 0.015;
+    // Organic idle animations using layered noise
+    const idleTime = time * 0.001;
+    const breatheWave = organicNoise(idleTime, 0.8, 2) * 0.012;
+    const idleSwayWave = organicNoise(idleTime + 100, 0.3, 3) * 0.008;
+    const microTremor = organicNoise(idleTime * 3, 2.5, 2) * 0.002;
 
-    // Feed camera velocity into lag springs for weapon inertia
-    Springs.swayLagX.target = swayX * 0.6;
-    Springs.swayLagY.target = swayY * 0.6;
-    Springs.camLagX.target = -camVelX * 0.0003;
-    Springs.camLagY.target = -camVelY * 0.0003;
+    Springs.breathe.target = breatheWave;
+    Springs.idleSway.target = idleSwayWave;
+    Springs.heartbeat.target = Math.sin(idleTime * 1.2) * 0.003; // Subtle pulse
 
-    // Apply Springs to Gun - FLUID layered motion
-    // Position: recoil + bob + breathing
-    gunGroup.position.z = recoilZ + breathe * 0.5;
-    gunGroup.position.y = bobY + recoilY + breathe;
-    gunGroup.position.x = bobX + swayLagX * 0.3;
+    // Feed camera velocity into multi-layer lag springs for organic weapon inertia
+    Springs.swayLagX.target = swayX * 0.7;
+    Springs.swayLagY.target = swayY * 0.7;
+    Springs.swayLag2X.target = swayLagX * 0.6;
+    Springs.swayLag2Y.target = swayLagY * 0.6;
+    Springs.camLagX.target = -camVelX * 0.00025;
+    Springs.camLagY.target = -camVelY * 0.00025;
 
-    // Rotation: layered sway + recoil + tilt + breathing
-    const totalSwayX = swayX + swayLagX * 0.5 + camLagX;
-    const totalSwayY = swayY + swayLagY * 0.5 + camLagY;
-    gunGroup.rotation.x = recoilX + totalSwayY + tilt + breathe * 0.3;
-    gunGroup.rotation.y = Math.PI + totalSwayX;
-    gunGroup.rotation.z = roll + totalSwayX * 0.4 + breathe * 0.2;
+    // Track movement for momentum-based weapon lag
+    moveVelX = THREE.MathUtils.lerp(moveVelX, velocity.x, 0.08);
+    moveVelZ = THREE.MathUtils.lerp(moveVelZ, velocity.z, 0.08);
+    Springs.momentumX.target = -moveVelX * 0.003;
+    Springs.momentumZ.target = -moveVelZ * 0.002;
 
-    // Reset Spring Targets
+    // Recoil recovery feeds into slower springs for organic settle
+    Springs.recoilRecoverZ.target = recoilZ * 0.3;
+    Springs.recoilRecoverX.target = recoilX * 0.3;
+
+    // ADS smoothing
+    Springs.adsTransition.target = isAiming ? 1 : 0;
+    const adsAmount = adsTransition;
+    const adsMultiplier = 1 - adsAmount * 0.6; // Reduce motion when ADS
+
+    // Apply Springs to Gun - ULTRA FLUID layered organic motion
+    // Position: recoil + bob + breathing + momentum + micro tremors
+    const combinedRecoilZ = recoilZ + recoilRecoverZ * 0.5;
+    const combinedRecoilX = recoilX + recoilRecoverX * 0.5;
+
+    gunGroup.position.z = combinedRecoilZ * adsMultiplier + bobZ * adsMultiplier + breathe * 0.4 + momentumZ;
+    gunGroup.position.y = bobY * adsMultiplier + recoilY * adsMultiplier + breathe + heartbeat + microTremor;
+    gunGroup.position.x = bobX * adsMultiplier + swayLag2X * 0.25 + momentumX + idleSway * 0.5;
+
+    // Rotation: multi-layered sway + recoil + tilt + breathing + organic noise
+    const totalSwayX = (swayX + swayLagX * 0.5 + swayLag2X * 0.3 + camLagX) * adsMultiplier;
+    const totalSwayY = (swayY + swayLagY * 0.5 + swayLag2Y * 0.3 + camLagY) * adsMultiplier;
+
+    gunGroup.rotation.x = combinedRecoilX * adsMultiplier + totalSwayY + tilt + breathe * 0.25 + landingTilt * 0.5 + sprintTilt;
+    gunGroup.rotation.y = Math.PI + totalSwayX + idleSway * 0.3;
+    gunGroup.rotation.z = (roll + recoilRoll) * adsMultiplier + totalSwayX * 0.35 + breathe * 0.15 + sprintRoll + microTremor * 2;
+
+    // Reset Spring Targets (decay to neutral)
     Springs.swayX.target = 0;
     Springs.swayY.target = 0;
     Springs.roll.target = 0;
@@ -3631,14 +4511,20 @@ function animate(time) {
     Springs.recoilZ.target = 0;
     Springs.recoilX.target = 0;
     Springs.recoilY.target = 0;
+    Springs.recoilRoll.target = 0;
     Springs.bobX.target = 0;
+    Springs.bobZ.target = 0;
+    Springs.sprintBob.target = 0;
+    Springs.sprintTilt.target = 0;
+    Springs.sprintRoll.target = 0;
+    Springs.landingTilt.target = 0;
 
-    // Camera Recoil Recovery + Screen Shake
-    cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.1);
+    // Camera Recoil Recovery + Screen Shake - more organic
+    cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.08); // Slower recovery
     camera.rotation.set(
-        cameraPitch + cameraRecoil + shakeY * 0.02,
-        cameraYaw + shakeX * 0.02,
-        roll * 0.1,
+        cameraPitch + cameraRecoil + shakeY * 0.018 + breathe * 0.1,
+        cameraYaw + shakeX * 0.018,
+        (roll + shakeRoll) * 0.08,
         'YXZ'
     );
 
@@ -3667,14 +4553,32 @@ function animate(time) {
         camera.position.addScaledVector(fwd, velocity.z * dt);
         camera.position.addScaledVector(rgt, velocity.x * dt);
 
-        // FLUID Jump physics
+        // ULTRA FLUID Jump physics
         if (!isGrounded) {
             verticalVelocity -= gravity * dt;
             playerHeight += verticalVelocity * dt;
 
-            // Airborne weapon drift
-            Springs.tilt.target = verticalVelocity * 0.01; // Tilt based on vertical velocity
-            Springs.bobY.target = -verticalVelocity * 0.005;
+            // Organic airborne weapon drift
+            const airTime = Math.abs(verticalVelocity) / gravity; // Approximate time in air
+
+            // Weapon tilts based on vertical velocity - rising vs falling feels different
+            if (verticalVelocity > 0) {
+                // Rising - weapon tips back slightly
+                Springs.tilt.target = verticalVelocity * 0.008;
+                Springs.bobY.target = -verticalVelocity * 0.004;
+                Springs.bobZ.target = verticalVelocity * 0.003; // Weapon pulls back
+            } else {
+                // Falling - weapon tips forward, bracing for landing
+                Springs.tilt.target = verticalVelocity * 0.012;
+                Springs.bobY.target = -verticalVelocity * 0.006;
+                Springs.bobZ.target = verticalVelocity * 0.002;
+                // Pre-brace roll
+                Springs.roll.target = Math.sin(playerHeight * 2) * 0.02;
+            }
+
+            // Subtle floating sway while airborne
+            Springs.swayX.target += Math.sin(time * 0.003) * 0.005;
+            Springs.idleSway.target = Math.cos(time * 0.002) * 0.01;
 
             // Landing
             if (playerHeight <= groundLevel) {
@@ -3683,17 +4587,32 @@ function animate(time) {
                 verticalVelocity = 0;
                 isGrounded = true;
 
-                // FLUID landing effect based on fall speed
-                if (landingImpact > 3) {
-                    Springs.landing.impulse(landingImpact * 0.2);
-                    Springs.bobY.impulse(-landingImpact * 0.12);
-                    Springs.tilt.impulse(landingImpact * 0.02);
-                    Springs.roll.impulse((Math.random() - 0.5) * landingImpact * 0.02);
+                // ORGANIC landing effect based on fall speed
+                if (landingImpact > 2) {
+                    const impactScale = Math.min(landingImpact / 15, 1); // Normalize
 
-                    // Screen shake on hard landing
-                    if (landingImpact > 8) {
-                        Springs.shakeY.impulse(-landingImpact * 0.4);
-                        Springs.shakeX.impulse((Math.random() - 0.5) * landingImpact * 0.2);
+                    // Main landing dip
+                    Springs.landing.impulse(landingImpact * 0.25);
+
+                    // Weapon drops and recovers
+                    Springs.bobY.impulse(-landingImpact * 0.15);
+                    Springs.bobZ.impulse(landingImpact * 0.08); // Weapon punches forward
+
+                    // Tilt forward on impact
+                    Springs.landingTilt.impulse(landingImpact * 0.025);
+                    Springs.tilt.impulse(landingImpact * 0.015);
+
+                    // Asymmetric roll for organic feel
+                    Springs.roll.impulse((Math.random() - 0.4) * landingImpact * 0.025);
+
+                    // Recoil springs add to the chaos
+                    Springs.recoilY.impulse(-landingImpact * 0.08);
+
+                    // Screen shake on harder landings
+                    if (landingImpact > 6) {
+                        Springs.shakeY.impulse(-landingImpact * 0.5);
+                        Springs.shakeX.impulse((Math.random() - 0.5) * landingImpact * 0.25);
+                        Springs.shakeRoll.impulse((Math.random() - 0.5) * landingImpact * 0.15);
                     }
                 }
             }
@@ -3706,33 +4625,61 @@ function animate(time) {
         // Set camera Y position (base + jump height - landing dip)
         camera.position.y = playerHeight - landingOffset * 0.1;
 
-        // FLUID Procedural Bobbing (Walking/Sprinting)
+        // ULTRA FLUID Procedural Bobbing (Walking/Sprinting)
         const vLen = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
-        moveVelSmooth = THREE.MathUtils.lerp(moveVelSmooth, vLen, 0.1); // Smooth velocity
-        const bobSpeed = isSprinting ? 0.018 : 0.012;
-        const bobIntensity = isSprinting ? 0.12 : 0.07;
+        moveVelSmooth = THREE.MathUtils.lerp(moveVelSmooth, vLen, 0.08); // Smoother velocity tracking
+        const bobSpeed = isSprinting ? 0.016 : 0.011;
+        const bobIntensity = isSprinting ? 0.1 : 0.06;
         const velRatio = Math.min(moveVelSmooth / baseSpeed, 1.5);
 
         if(moveVelSmooth > 0.1 && !isReloading && isGrounded) {
-            // Vertical bob (up/down with each step)
-            Springs.bobY.target = Math.sin(time * bobSpeed) * bobIntensity * velRatio;
-            // Horizontal bob (side-to-side sway)
-            Springs.bobX.target = Math.cos(time * bobSpeed * 0.5) * bobIntensity * 0.4 * velRatio;
-            // Hip sway rotation
-            Springs.swayX.target += Math.cos(time * bobSpeed * 0.5) * 0.025 * velRatio;
-            // Roll with steps
-            Springs.roll.target += Math.sin(time * bobSpeed) * 0.02 * velRatio;
-            // Forward tilt when moving
-            Springs.tilt.target = -velRatio * 0.03;
+            // Phase offset for more natural gait
+            const phase = time * bobSpeed;
+            const phase2 = phase * 0.5;
 
-            // Extra effects when sprinting
+            // Vertical bob - asymmetric for natural feel (footsteps aren't perfectly symmetric)
+            const vertBob = Math.sin(phase) * 0.7 + Math.sin(phase * 2) * 0.3;
+            Springs.bobY.target = vertBob * bobIntensity * velRatio;
+
+            // Horizontal bob (side-to-side sway) - slower frequency
+            const horizBob = Math.cos(phase2) + Math.sin(phase2 * 1.5) * 0.2;
+            Springs.bobX.target = horizBob * bobIntensity * 0.35 * velRatio;
+
+            // Forward/back bob - subtle push with each step
+            Springs.bobZ.target = Math.sin(phase + 0.5) * bobIntensity * 0.2 * velRatio;
+
+            // Hip sway rotation - figure-8 pattern for organic feel
+            const hipSwayX = Math.cos(phase2) * 0.02 + Math.sin(phase * 0.7) * 0.008;
+            Springs.swayX.target += hipSwayX * velRatio;
+
+            // Roll with steps - asymmetric
+            const stepRoll = Math.sin(phase) * 0.018 + Math.cos(phase * 1.3) * 0.006;
+            Springs.roll.target += stepRoll * velRatio;
+
+            // Forward tilt when moving - increases with speed
+            Springs.tilt.target = -velRatio * 0.025;
+
+            // Extra effects when sprinting - more dramatic
             if (isSprinting) {
-                Springs.roll.target += Math.sin(time * bobSpeed) * 0.025;
-                Springs.tilt.target = -0.06; // More forward lean
+                // Exaggerated sprint bob
+                Springs.sprintBob.target = Math.sin(phase * 1.2) * 0.08;
+                Springs.bobY.target += Springs.sprintBob.position;
+
+                // More aggressive roll
+                Springs.sprintRoll.target = Math.sin(phase) * 0.035;
+
+                // Strong forward lean
+                Springs.sprintTilt.target = -0.055;
+                Springs.tilt.target = -0.04;
+
+                // Weapon pulls back slightly when sprinting
+                Springs.bobZ.target -= 0.15;
             }
         } else if (isGrounded) {
+            // Smooth return to idle
             Springs.bobY.target = 0;
             Springs.bobX.target = 0;
+            Springs.bobZ.target = 0;
             Springs.tilt.target = 0;
         }
     }
@@ -3768,6 +4715,39 @@ function animate(time) {
 
     // Update film grain time
     grainPass.uniforms.time.value = time * 0.001;
+
+    // Update heat distortion time
+    heatPass.uniforms.time.value = time * 0.001;
+
+    // Update sky shader time for animated clouds
+    skyUniforms.time.value = time * 0.001;
+
+    // Calculate sun screen position for god rays and lens flare
+    const sunWorldPos = sun.position.clone();
+    const sunScreenPosTemp = sunWorldPos.project(camera);
+    sunScreenPos.set(
+        (sunScreenPosTemp.x + 1) / 2,
+        (sunScreenPosTemp.y + 1) / 2
+    );
+
+    // Check if sun is visible (in front of camera and on screen)
+    const sunDir = sunWorldPos.clone().sub(camera.position).normalize();
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    const sunDot = sunDir.dot(camDir);
+
+    // Sun visibility based on angle and screen bounds
+    sunVisible = sunDot > 0 &&
+                 sunScreenPos.x > -0.3 && sunScreenPos.x < 1.3 &&
+                 sunScreenPos.y > -0.3 && sunScreenPos.y < 1.3 ?
+                 Math.pow(sunDot, 2) : 0;
+
+    // Update god rays uniforms
+    godRaysPass.uniforms.lightPositionOnScreen.value.copy(sunScreenPos);
+
+    // Update lens flare uniforms
+    lensFlarePass.uniforms.sunPosition.value.copy(sunScreenPos);
+    lensFlarePass.uniforms.sunVisible.value = sunVisible;
 
     // Reset screen shake targets
     Springs.shakeX.target = 0;

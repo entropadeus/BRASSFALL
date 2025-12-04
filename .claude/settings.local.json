@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: BRASSFALL - Browser-based AK-47 shooting simulation\n\nFeatures:\n- Procedural textures and audio (no external assets)\n- Spring physics animation system\n- Post-processing: bloom, chromatic aberration, motion blur, film grain\n- Shooting targets that pop up behind obstacles\n- Enhanced muzzle flash with sparks and debris\n- Jumping and sprinting with FOV effects\n- Full reload animation with metallic sounds\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git config:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
