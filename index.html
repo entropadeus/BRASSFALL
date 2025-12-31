@@ -1125,9 +1125,9 @@ class ObjectPool {
 }
 
 // ============ INSTANCED PARTICLE SYSTEM ============
-const MAX_BLOOD_PARTICLES = 200;
-const MAX_SPARKS = 100;
-const MAX_DEBRIS = 80;
+const MAX_BLOOD_PARTICLES = 120; // Reduced for performance
+const MAX_SPARKS = 60; // Reduced for performance
+const MAX_DEBRIS = 40; // Reduced for performance
 
 // Reusable matrix and vectors for instanced updates
 const _instanceMatrix = new THREE.Matrix4();
@@ -1976,16 +1976,19 @@ scene.add(sunGlow2);
 // Warm sunset fog
 scene.fog = new THREE.FogExp2(0x442020, 0.008);
 
-const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500); // Reduced FOV and far plane for performance
+const renderer = new THREE.WebGLRenderer({
+    antialias: false, // Disable antialiasing for performance
+    powerPreference: "high-performance",
+    precision: "mediump" // Lower precision for mobile
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0)); // Higher quality
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Reduced pixel ratio for performance
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft shadows for better quality
+renderer.shadowMap.type = THREE.BasicShadowMap; // Basic shadows for performance
 renderer.shadowMap.autoUpdate = false; // Manual shadow update
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0; // Natural exposure
+renderer.toneMapping = THREE.NoToneMapping; // Disable tone mapping for performance
 renderer.physicallyCorrectLights = true; // PBR lighting
 document.body.appendChild(renderer.domElement);
 
@@ -2005,34 +2008,24 @@ const depthRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
-// God Rays - SUBTLE light shafts from sun
-const godRaysPass = new THREE.ShaderPass(GodRaysShader);
-godRaysPass.uniforms.exposure.value = 0.12;
-godRaysPass.uniforms.decay.value = 0.94;
-godRaysPass.uniforms.density.value = 0.4;
-godRaysPass.uniforms.weight.value = 0.3;
-godRaysPass.uniforms.samples.value = 40;
-composer.addPass(godRaysPass);
+// God Rays - DISABLED for performance (too expensive)
+// const godRaysPass = new THREE.ShaderPass(GodRaysShader);
+// composer.addPass(godRaysPass);
 
-// Lens Flare - SUBTLE
-const lensFlarePass = new THREE.ShaderPass(LensFlareShader);
-lensFlarePass.uniforms.flareStrength.value = 0.15;
-lensFlarePass.uniforms.ghostStrength.value = 0.08;
-lensFlarePass.uniforms.haloStrength.value = 0.05;
-composer.addPass(lensFlarePass);
+// Lens Flare - DISABLED for performance
+// const lensFlarePass = new THREE.ShaderPass(LensFlareShader);
+// composer.addPass(lensFlarePass);
 
-// Heat Distortion - VERY SUBTLE
-const heatPass = new THREE.ShaderPass(HeatDistortionShader);
-heatPass.uniforms.distortionStrength.value = 0.0008;
-heatPass.uniforms.heatLine.value = 0.15;
-composer.addPass(heatPass);
+// Heat Distortion - DISABLED for performance (very subtle anyway)
+// const heatPass = new THREE.ShaderPass(HeatDistortionShader);
+// composer.addPass(heatPass);
 
-// Bloom for muzzle flash glow
+// Bloom for muzzle flash glow - optimized for performance
 const bloomPass = new THREE.UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
-    0.15,  // strength - subtle
-    0.4,   // radius
-    0.85   // threshold
+    new THREE.Vector2(window.innerWidth / 4, window.innerHeight / 4), // Quarter resolution for speed
+    0.12,  // strength - reduced
+    0.3,   // radius - tighter
+    0.9    // threshold - higher
 );
 composer.addPass(bloomPass);
 
@@ -2044,15 +2037,13 @@ composer.addPass(bloomPass);
 const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
 composer.addPass(motionBlurPass);
 
-// Chromatic Aberration - SUBTLE
-const chromaticPass = new THREE.ShaderPass(ChromaticAberrationShader);
-chromaticPass.uniforms.amount.value = 0.0003;
-composer.addPass(chromaticPass);
+// Chromatic Aberration - DISABLED for performance
+// const chromaticPass = new THREE.ShaderPass(ChromaticAberrationShader);
+// composer.addPass(chromaticPass);
 
-// Film Grain - SUBTLE
-const grainPass = new THREE.ShaderPass(FilmGrainShader);
-grainPass.uniforms.intensity.value = 0.025;
-composer.addPass(grainPass);
+// Film Grain - DISABLED for performance (barely noticeable)
+// const grainPass = new THREE.ShaderPass(FilmGrainShader);
+// composer.addPass(grainPass);
 
 // Vignette - DISABLED
 // const vignettePass = new THREE.ShaderPass(VignetteShader);
@@ -2134,7 +2125,11 @@ const floorMat = new THREE.MeshStandardMaterial({
     bumpMap: concreteTex,
     bumpScale: 0.05
 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), floorMat);
+// Map size reduced to 80x80
+const MAP_SIZE = 80;
+const MAP_HALF = MAP_SIZE / 2;
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE), floorMat);
 floor.rotation.x = -Math.PI / 2; floor.position.y = -5; floor.receiveShadow = true;
 scene.add(floor);
 
@@ -2146,14 +2141,73 @@ const wallMat = new THREE.MeshStandardMaterial({
     bumpMap: concreteTex, 
     bumpScale: 0.1 
 });
-const wallGeo = new THREE.PlaneGeometry(400, 50);
-const wall1 = new THREE.Mesh(wallGeo, wallMat); wall1.position.set(0, 20, -200); wall1.receiveShadow = true; scene.add(wall1);
-const wall2 = new THREE.Mesh(wallGeo, wallMat); wall2.position.set(0, 20, 200); wall2.rotation.y = Math.PI; wall2.receiveShadow = true; scene.add(wall2);
-const wall3 = new THREE.Mesh(wallGeo, wallMat); wall3.position.set(-200, 20, 0); wall3.rotation.y = Math.PI/2; wall3.receiveShadow = true; scene.add(wall3);
-const wall4 = new THREE.Mesh(wallGeo, wallMat); wall4.position.set(200, 20, 0); wall4.rotation.y = -Math.PI/2; wall4.receiveShadow = true; scene.add(wall4);
+const wallGeo = new THREE.PlaneGeometry(MAP_SIZE, 50);
+const wall1 = new THREE.Mesh(wallGeo, wallMat); wall1.position.set(0, 20, -MAP_HALF); wall1.receiveShadow = true; scene.add(wall1);
+const wall2 = new THREE.Mesh(wallGeo, wallMat); wall2.position.set(0, 20, MAP_HALF); wall2.rotation.y = Math.PI; wall2.receiveShadow = true; scene.add(wall2);
+const wall3 = new THREE.Mesh(wallGeo, wallMat); wall3.position.set(-MAP_HALF, 20, 0); wall3.rotation.y = Math.PI/2; wall3.receiveShadow = true; scene.add(wall3);
+const wall4 = new THREE.Mesh(wallGeo, wallMat); wall4.position.set(MAP_HALF, 20, 0); wall4.rotation.y = -Math.PI/2; wall4.receiveShadow = true; scene.add(wall4);
 
 const targets = [];
 targets.push(floor, wall1, wall2, wall3, wall4);
+
+// ============ COLLISION SYSTEM ============
+// Get bounding box for an object (handles world transforms)
+function getBoundingBox(obj) {
+    const box = new THREE.Box3();
+    box.setFromObject(obj);
+    return box;
+}
+
+// Check if a circular entity at (x, z) with radius collides with walls or obstacles
+function checkCollision(x, z, radius, excludeObj = null) {
+    // Check walls (map boundaries)
+    if (Math.abs(x) + radius > MAP_HALF || Math.abs(z) + radius > MAP_HALF) {
+        return true;
+    }
+    
+    // Check obstacles
+    for (const obstacle of obstacles) {
+        if (obstacle === excludeObj) continue;
+        
+        const box = getBoundingBox(obstacle);
+        const centerX = (box.min.x + box.max.x) / 2;
+        const centerZ = (box.min.z + box.max.z) / 2;
+        const sizeX = box.max.x - box.min.x;
+        const sizeZ = box.max.z - box.min.z;
+        const obstacleRadius = Math.max(sizeX, sizeZ) / 2;
+        
+        const dx = x - centerX;
+        const dz = z - centerZ;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        
+        if (dist < radius + obstacleRadius) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Resolve collision by sliding along walls/obstacles
+function resolveCollision(oldX, oldZ, newX, newZ, radius, excludeObj = null) {
+    // Try new position
+    if (!checkCollision(newX, newZ, radius, excludeObj)) {
+        return { x: newX, z: newZ, collided: false };
+    }
+    
+    // Try sliding along X axis only
+    if (!checkCollision(newX, oldZ, radius, excludeObj)) {
+        return { x: newX, z: oldZ, collided: true };
+    }
+    
+    // Try sliding along Z axis only
+    if (!checkCollision(oldX, newZ, radius, excludeObj)) {
+        return { x: oldX, z: newZ, collided: true };
+    }
+    
+    // Can't move, stay at old position
+    return { x: oldX, z: oldZ, collided: true };
+}
 
 // Better Obstacles
 const barrierMat = new THREE.MeshStandardMaterial({ map: concreteTex, roughness: 0.8, color: 0xaaaaaa });
@@ -2178,8 +2232,8 @@ for(let i=0; i<30; i++) {
         mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 3, 16), drumMat);
         mesh.position.y = -3.5;
     }
-    mesh.position.x = (Math.random() - 0.5) * 150;
-    mesh.position.z = (Math.random() - 0.5) * 150;
+    mesh.position.x = (Math.random() - 0.5) * (MAP_SIZE - 10); // Keep obstacles away from walls
+    mesh.position.z = (Math.random() - 0.5) * (MAP_SIZE - 10);
     mesh.rotation.y = Math.random() * Math.PI;
     mesh.castShadow = true; mesh.receiveShadow = true;
     scene.add(mesh);
@@ -2406,6 +2460,113 @@ function createZombieMesh() {
     return group;
 }
 
+// ============ HIVE MIND - SHARED ZOMBIE INTELLIGENCE ============
+const HiveMind = {
+    // Shared state (updated once per frame, all zombies reference)
+    playerPos: { x: 0, z: 0 },
+    playerVelocity: { x: 0, z: 0 },
+    threatDirection: { x: 0, z: 0 },  // Where player is shooting/aiming
+    threatIntensity: 0,                 // How much threat (0-1)
+    
+    // Flanking system - 8 positions around player
+    flankSlots: [],
+    flankRadius: 8.0,                    // Distance from player for flanking
+    numFlankSlots: 8,
+    
+    // Performance tracking
+    frameCounter: 0,
+    
+    // Update shared intelligence (called once per frame)
+    update(dt) {
+        this.frameCounter++;
+        
+        // Track player position and velocity
+        const oldX = this.playerPos.x;
+        const oldZ = this.playerPos.z;
+        this.playerPos.x = camera.position.x;
+        this.playerPos.z = camera.position.z;
+        
+        // Calculate player velocity (smoothed)
+        const velX = (this.playerPos.x - oldX) / dt;
+        const velZ = (this.playerPos.z - oldZ) / dt;
+        this.playerVelocity.x = THREE.MathUtils.lerp(this.playerVelocity.x, velX, 0.3);
+        this.playerVelocity.z = THREE.MathUtils.lerp(this.playerVelocity.z, velZ, 0.3);
+        
+        // Calculate threat direction (where player is aiming)
+        const cameraDir = new THREE.Vector3();
+        camera.getWorldDirection(cameraDir);
+        this.threatDirection.x = cameraDir.x;
+        this.threatDirection.z = cameraDir.z;
+        
+        // Update threat intensity (higher when player is shooting/aiming)
+        if (isFiring) {
+            this.threatIntensity = Math.min(1.0, this.threatIntensity + dt * 5);
+        } else {
+            this.threatIntensity = Math.max(0, this.threatIntensity - dt * 2);
+        }
+        
+        // Precompute flank positions around player (once per frame)
+        const angleStep = (Math.PI * 2) / this.numFlankSlots;
+        this.flankSlots = [];
+        for (let i = 0; i < this.numFlankSlots; i++) {
+            const angle = i * angleStep;
+            this.flankSlots.push({
+                x: this.playerPos.x + Math.cos(angle) * this.flankRadius,
+                z: this.playerPos.z + Math.sin(angle) * this.flankRadius,
+                angle: angle,
+                occupied: false,
+                occupiedBy: null
+            });
+        }
+    },
+    
+    // Find best available flank slot for a zombie
+    claimFlankSlot(zombie) {
+        // Find closest unoccupied slot
+        let bestSlot = null;
+        let bestDist = Infinity;
+        
+        for (const slot of this.flankSlots) {
+            if (slot.occupied && slot.occupiedBy !== zombie) continue;
+            
+            const dx = slot.x - zombie.mesh.position.x;
+            const dz = slot.z - zombie.mesh.position.z;
+            const dist = dx * dx + dz * dz; // Squared distance
+            
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestSlot = slot;
+            }
+        }
+        
+        if (bestSlot) {
+            // Release old slot if zombie had one
+            for (const slot of this.flankSlots) {
+                if (slot.occupiedBy === zombie) {
+                    slot.occupied = false;
+                    slot.occupiedBy = null;
+                }
+            }
+            
+            bestSlot.occupied = true;
+            bestSlot.occupiedBy = zombie;
+            return bestSlot;
+        }
+        
+        return null;
+    },
+    
+    // Release a flank slot when zombie dies or changes behavior
+    releaseFlankSlot(zombie) {
+        for (const slot of this.flankSlots) {
+            if (slot.occupiedBy === zombie) {
+                slot.occupied = false;
+                slot.occupiedBy = null;
+            }
+        }
+    }
+};
+
 class Zombie {
     constructor(x, z, waveNum = 1) {
         this.mesh = createZombieMesh();
@@ -2416,7 +2577,8 @@ class Zombie {
         const waveMod = 1 + (waveNum - 1) * 0.1;
         this.health = Math.floor(2 + Math.random() * 2 * waveMod);
         this.maxHealth = this.health;
-        this.speed = 3 + Math.random() * 2 + waveNum * 0.3; // Faster each wave
+        this.baseSpeed = 3 + Math.random() * 2; // Normal speed (removed wave scaling)
+        this.speed = this.baseSpeed;
 
         // State
         this.isDead = false;
@@ -2424,6 +2586,17 @@ class Zombie {
         this.attackCooldown = 0;
         this.attackRange = 3.5; // Distance to damage player
         this.attackDamage = 10 + Math.floor(waveNum / 2) * 5; // More damage later waves
+        
+        // AI STATE - Swarm Intelligence
+        this.aiRole = this.assignRole(); // 'rusher', 'flanker', 'lurker'
+        this.flankSlot = null;
+        this.flankAngle = 0;
+        this.separationForce = { x: 0, z: 0 };
+        this.stuckTimer = 0;
+        this.lastPositions = []; // For stuck detection (circular buffer)
+        this.threatAwareness = 0; // Knows when being aimed at (0-1)
+        this.updateCounter = 0; // For staggered updates
+        this.aiWave = waveNum; // Store wave for adaptive behavior
 
         // FLUID Animation state
         this.walkCycle = Math.random() * Math.PI * 2;
@@ -2447,6 +2620,163 @@ class Zombie {
         this.hitbox.userData.isBot = true;
         this.hitbox.userData.botRef = this;
         targets.push(this.hitbox);
+    }
+    
+    // Assign tactical role based on spawn order and position
+    assignRole() {
+        const rand = Math.random();
+        if (rand < 0.4) return 'rusher';   // 40% direct charge
+        if (rand < 0.75) return 'flanker'; // 35% flanking
+        return 'lurker';                     // 25% slower approach
+    }
+    
+    // Calculate separation force from nearby zombies (prevents clumping)
+    calculateSeparation(zombiesArray, dt) {
+        this.separationForce.x = 0;
+        this.separationForce.z = 0;
+        
+        const separationRadius = 3.0; // Distance to maintain from other zombies
+        const separationRadiusSq = separationRadius * separationRadius;
+        let neighborCount = 0;
+        
+        // Only check 3 closest zombies for performance (reduced from 5)
+        const nearbyZombies = zombiesArray
+            .filter(z => z !== this && !z.isDead)
+            .map(z => {
+                const dx = z.mesh.position.x - this.mesh.position.x;
+                const dz = z.mesh.position.z - this.mesh.position.z;
+                return { zombie: z, distSq: dx * dx + dz * dz, dx, dz };
+            })
+            .sort((a, b) => a.distSq - b.distSq)
+            .slice(0, 3);
+        
+        for (const neighbor of nearbyZombies) {
+            if (neighbor.distSq < separationRadiusSq && neighbor.distSq > 0.01) {
+                const dist = Math.sqrt(neighbor.distSq);
+                const strength = (separationRadius - dist) / separationRadius;
+                
+                // Push away from neighbor
+                this.separationForce.x -= (neighbor.dx / dist) * strength * 2.0;
+                this.separationForce.z -= (neighbor.dz / dist) * strength * 2.0;
+                neighborCount++;
+            }
+        }
+        
+        // Normalize if multiple neighbors
+        if (neighborCount > 0) {
+            const mag = Math.sqrt(this.separationForce.x * this.separationForce.x + this.separationForce.z * this.separationForce.z);
+            if (mag > 0.01) {
+                this.separationForce.x /= mag;
+                this.separationForce.z /= mag;
+            }
+        }
+    }
+    
+    // Calculate steering forces based on AI role and wave difficulty
+    calculateSteering(playerPos, dt) {
+        const dx = playerPos.x - this.mesh.position.x;
+        const dz = playerPos.z - this.mesh.position.z;
+        const distSq = dx * dx + dz * dz;
+        const dist = Math.sqrt(distSq);
+        
+        // Adaptive behavior based on wave
+        const waveLevel = Math.min(this.aiWave, 7);
+        const hasSeparation = waveLevel >= 3;
+        const hasFlanking = waveLevel >= 5;
+        const hasFullTactics = waveLevel >= 7;
+        
+        let targetX = playerPos.x;
+        let targetZ = playerPos.z;
+        let seekWeight = 1.0;
+        
+        // Role-based behavior
+        if (this.aiRole === 'rusher') {
+            // Direct charge - higher speed multiplier
+            this.speed = this.baseSpeed * (hasFullTactics ? 1.3 : 1.1);
+            seekWeight = 1.2; // Stronger seek
+        } else if (this.aiRole === 'flanker' && hasFlanking) {
+            // Flanking behavior
+            if (!this.flankSlot) {
+                this.flankSlot = HiveMind.claimFlankSlot(this);
+            }
+            
+            if (this.flankSlot) {
+                // Move toward flank position, but still seek player if close
+                const flankWeight = dist > 10 ? 0.8 : 0.3;
+                targetX = THREE.MathUtils.lerp(playerPos.x, this.flankSlot.x, flankWeight);
+                targetZ = THREE.MathUtils.lerp(playerPos.z, this.flankSlot.z, flankWeight);
+                this.speed = this.baseSpeed * 0.9; // Slightly slower for flanking
+            }
+        } else if (this.aiRole === 'lurker') {
+            // Slower, cautious approach
+            this.speed = this.baseSpeed * 0.7;
+            seekWeight = 0.6;
+            
+            // Lurkers avoid threat direction
+            if (HiveMind.threatIntensity > 0.5) {
+                const threatDot = (dx * HiveMind.threatDirection.x + dz * HiveMind.threatDirection.z) / dist;
+                if (threatDot > 0.5) {
+                    // Being aimed at - move perpendicular
+                    const perpX = -HiveMind.threatDirection.z;
+                    const perpZ = HiveMind.threatDirection.x;
+                    targetX = this.mesh.position.x + perpX * 5;
+                    targetZ = this.mesh.position.z + perpZ * 5;
+                }
+            }
+        }
+        
+        // Calculate seek vector
+        const seekX = (targetX - this.mesh.position.x) / Math.max(dist, 0.1);
+        const seekZ = (targetZ - this.mesh.position.z) / Math.max(dist, 0.1);
+        
+        // Combine forces
+        let finalX = seekX * seekWeight;
+        let finalZ = seekZ * seekWeight;
+        
+        // Add separation (if enabled for this wave)
+        if (hasSeparation) {
+            finalX += this.separationForce.x * 0.4;
+            finalZ += this.separationForce.z * 0.4;
+        }
+        
+        // Normalize final vector
+        const finalMag = Math.sqrt(finalX * finalX + finalZ * finalZ);
+        if (finalMag > 0.01) {
+            finalX /= finalMag;
+            finalZ /= finalMag;
+        }
+        
+        return { x: finalX, z: finalZ };
+    }
+    
+    // Detect if zombie is stuck
+    checkStuck() {
+        this.lastPositions.push({ x: this.mesh.position.x, z: this.mesh.position.z });
+        if (this.lastPositions.length > 10) {
+            this.lastPositions.shift();
+        }
+        
+        if (this.lastPositions.length >= 5) {
+            const first = this.lastPositions[0];
+            const last = this.lastPositions[this.lastPositions.length - 1];
+            const dx = last.x - first.x;
+            const dz = last.z - first.z;
+            const moved = Math.sqrt(dx * dx + dz * dz);
+            
+            if (moved < 0.5) {
+                this.stuckTimer += 0.016; // Assume ~60fps
+                if (this.stuckTimer > 1.0) {
+                    // Stuck - try random movement
+                    this.stuckTimer = 0;
+                    this.lastPositions = [];
+                    return true;
+                }
+            } else {
+                this.stuckTimer = 0;
+            }
+        }
+        
+        return false;
     }
 
     hit(hitPoint) {
@@ -2477,6 +2807,10 @@ class Zombie {
     die() {
         this.isDead = true;
         this.deathTime = performance.now();
+        
+        // Release flank slot when zombie dies
+        HiveMind.releaseFlankSlot(this);
+        
         playSound('zombieDeath');
 
         // Award score
@@ -2566,12 +2900,33 @@ class Zombie {
 
             for (const part of this.ragdollParts) {
                 if (!part.grounded) {
+                    // Apply gravity
                     part.velocity.y -= 25 * dt;
-                    part.mesh.position.addScaledVector(part.velocity, dt);
+                    
+                    // Store old position for collision resolution
+                    const oldX = part.mesh.position.x;
+                    const oldZ = part.mesh.position.z;
+                    
+                    // Calculate new position
+                    const newX = oldX + part.velocity.x * dt;
+                    const newZ = oldZ + part.velocity.z * dt;
+                    
+                    // Apply collision detection for ragdoll parts (smaller radius ~0.3)
+                    // Exclude the part's own mesh to prevent self-collision
+                    const partRadius = 0.3;
+                    const resolved = resolveCollision(oldX, oldZ, newX, newZ, partRadius, part.mesh);
+                    part.mesh.position.x = resolved.x;
+                    part.mesh.position.z = resolved.z;
+                    
+                    // Apply vertical movement
+                    part.mesh.position.y += part.velocity.y * dt;
+                    
+                    // Rotation
                     part.mesh.rotation.x += part.rotVelocity.x * dt;
                     part.mesh.rotation.y += part.rotVelocity.y * dt;
                     part.mesh.rotation.z += part.rotVelocity.z * dt;
 
+                    // Ground collision
                     if (part.mesh.position.y < groundY) {
                         part.mesh.position.y = groundY;
                         if (Math.abs(part.velocity.y) > 1) {
@@ -2587,7 +2942,16 @@ class Zombie {
                             }
                         }
                     }
+                    
+                    // Apply friction
                     part.velocity.multiplyScalar(0.995);
+                    
+                    // If collision occurred, reduce velocity
+                    if (resolved.collided) {
+                        part.velocity.x *= 0.5;
+                        part.velocity.z *= 0.5;
+                        part.rotVelocity.multiplyScalar(0.8);
+                    }
 
                     if (part.canBleed) {
                         part.bleedTimer += dt;
@@ -2629,11 +2993,12 @@ class Zombie {
         // Recover from flinch
         this.mesh.rotation.x *= 0.9;
 
-        // CHASE THE PLAYER
-        const playerPos = camera.position;
+        // INTELLIGENT CHASE WITH SWARM BEHAVIOR
+        const playerPos = { x: HiveMind.playerPos.x, z: HiveMind.playerPos.z };
         const dx = playerPos.x - this.mesh.position.x;
         const dz = playerPos.z - this.mesh.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
+        const distSq = dx * dx + dz * dz;
+        const dist = Math.sqrt(distSq);
 
         // Attack cooldown
         if (this.attackCooldown > 0) {
@@ -2647,19 +3012,81 @@ class Zombie {
             playSound('zombieAttack');
         }
 
-        // Move towards player
-        if (dist > 1.5) {
-            const moveX = (dx / dist) * this.speed * dt;
-            const moveZ = (dz / dist) * this.speed * dt;
-            this.mesh.position.x += moveX;
-            this.mesh.position.z += moveZ;
+        // Update threat awareness (know when being aimed at)
+        if (dist < 15) {
+            const cameraDir = new THREE.Vector3();
+            camera.getWorldDirection(cameraDir);
+            const toZombie = new THREE.Vector3(dx, 0, dz).normalize();
+            const dot = cameraDir.dot(toZombie);
+            this.threatAwareness = THREE.MathUtils.lerp(this.threatAwareness, dot > 0.7 ? 1.0 : 0.0, dt * 3);
+        } else {
+            this.threatAwareness = THREE.MathUtils.lerp(this.threatAwareness, 0, dt * 2);
+        }
 
-            // Smooth face towards player
-            const targetRot = Math.atan2(dx, dz);
-            const rotDiff = targetRot - this.mesh.rotation.y;
-            // Normalize angle difference
-            const normalizedDiff = Math.atan2(Math.sin(rotDiff), Math.cos(rotDiff));
-            this.mesh.rotation.y += normalizedDiff * 5 * dt; // Smooth turn
+        // Move with intelligent steering
+        if (dist > 1.5) {
+            this.updateCounter++;
+            
+            // Staggered updates for performance (separation every 6 frames)
+            if (this.updateCounter % 6 === 0) {
+                this.calculateSeparation(zombies, dt); // zombies is global array
+            }
+            
+            // Check if stuck
+            const isStuck = this.checkStuck();
+            
+            // Calculate steering forces
+            const steering = this.calculateSteering(playerPos, dt);
+            
+            // Apply movement
+            let moveX = steering.x * this.speed * dt;
+            let moveZ = steering.z * this.speed * dt;
+            
+            // If stuck, add random movement
+            if (isStuck) {
+                const randomAngle = Math.random() * Math.PI * 2;
+                moveX += Math.cos(randomAngle) * this.speed * dt * 0.5;
+                moveZ += Math.sin(randomAngle) * this.speed * dt * 0.5;
+            }
+            
+            // Store old position for collision resolution
+            const oldX = this.mesh.position.x;
+            const oldZ = this.mesh.position.z;
+            
+            // Calculate new position
+            const newX = oldX + moveX;
+            const newZ = oldZ + moveZ;
+            
+            // Apply collision detection and resolution (zombie radius ~0.6)
+            const zombieRadius = 0.6;
+            const resolved = resolveCollision(oldX, oldZ, newX, newZ, zombieRadius, this.mesh);
+            this.mesh.position.x = resolved.x;
+            this.mesh.position.z = resolved.z;
+            
+            // If collision occurred, release flank slot (might be blocked)
+            if (resolved.collided && this.flankSlot) {
+                HiveMind.releaseFlankSlot(this);
+                this.flankSlot = null;
+            }
+
+            // Smooth face towards movement direction (not just player)
+            const moveDirX = this.mesh.position.x - oldX;
+            const moveDirZ = this.mesh.position.z - oldZ;
+            const moveDist = Math.sqrt(moveDirX * moveDirX + moveDirZ * moveDirZ);
+            
+            if (moveDist > 0.01) {
+                const targetRot = Math.atan2(moveDirX, moveDirZ);
+                const rotDiff = targetRot - this.mesh.rotation.y;
+                const normalizedDiff = Math.atan2(Math.sin(rotDiff), Math.cos(rotDiff));
+                const turnSpeed = this.aiWave >= 7 ? 8 : 5; // Faster turning in later waves
+                this.mesh.rotation.y += normalizedDiff * turnSpeed * dt;
+            } else {
+                // Fallback to facing player if not moving
+                const targetRot = Math.atan2(dx, dz);
+                const rotDiff = targetRot - this.mesh.rotation.y;
+                const normalizedDiff = Math.atan2(Math.sin(rotDiff), Math.cos(rotDiff));
+                this.mesh.rotation.y += normalizedDiff * 5 * dt;
+            }
 
             // FLUID shambling walk animation
             const walkSpeed = this.speed * 1.2;
@@ -2718,9 +3145,16 @@ class Zombie {
             this.mesh.rotation.z = Math.sin(time * 0.002 + this.swayOffset) * 0.05;
         }
 
-        // Keep within bounds
-        this.mesh.position.x = Math.max(-180, Math.min(180, this.mesh.position.x));
-        this.mesh.position.z = Math.max(-180, Math.min(180, this.mesh.position.z));
+        // Keep within bounds (collision system handles this, but keep as backup)
+        this.mesh.position.x = Math.max(-MAP_HALF + 1, Math.min(MAP_HALF - 1, this.mesh.position.x));
+        this.mesh.position.z = Math.max(-MAP_HALF + 1, Math.min(MAP_HALF - 1, this.mesh.position.z));
+    }
+
+    // Minimal update for non-active zombies (performance optimization)
+    updateMinimal(dt) {
+        // Only update position and basic bounds checking
+        this.mesh.position.x = Math.max(-MAP_HALF + 1, Math.min(MAP_HALF - 1, this.mesh.position.x));
+        this.mesh.position.z = Math.max(-MAP_HALF + 1, Math.min(MAP_HALF - 1, this.mesh.position.z));
     }
 }
 
@@ -2755,15 +3189,15 @@ function startWave(waveNum) {
 function spawnZombie() {
     if (zombiesSpawnedThisWave >= zombiesThisWave) return;
 
-    // Spawn from edges, away from player
+    // Spawn from edges, away from player (adjusted for smaller map)
     const angle = Math.random() * Math.PI * 2;
-    const distance = 60 + Math.random() * 40;
+    const distance = 25 + Math.random() * 15;
     const x = camera.position.x + Math.cos(angle) * distance;
     const z = camera.position.z + Math.sin(angle) * distance;
 
-    // Clamp to arena bounds
-    const clampedX = Math.max(-170, Math.min(170, x));
-    const clampedZ = Math.max(-170, Math.min(170, z));
+    // Clamp to arena bounds (smaller map)
+    const clampedX = Math.max(-MAP_HALF + 5, Math.min(MAP_HALF - 5, x));
+    const clampedZ = Math.max(-MAP_HALF + 5, Math.min(MAP_HALF - 5, z));
 
     zombies.push(new Zombie(clampedX, clampedZ, currentWave));
     zombiesSpawnedThisWave++;
@@ -3330,7 +3764,7 @@ function spawnBloodDecal(position, normal, size = 1) {
     scene.add(decal);
     bloodDecals.push({
         mesh: decal,
-        life: 600 + Math.random() * 300
+        life: 10.0 + Math.random() * 5.0 // Fixed: 10-15 seconds instead of 600-900 frames
     });
 }
 
@@ -3356,7 +3790,7 @@ function spawnBloodPool(position) {
         targetSize: 2.0 + Math.random() * 1.5, // Bigger pools
         currentSize: 0.1,
         growthRate: 1.0 + Math.random() * 0.5, // Faster growth
-        life: 500 + Math.random() * 300
+        life: 8.0 + Math.random() * 5.0 // Fixed: 8-13 seconds instead of 500-800 frames
     });
 }
 
@@ -3437,26 +3871,8 @@ function updateBloodEffects(dt) {
             }
         }
 
-        // Bleeding effect (reduced frequency, uses pooled sprites)
-        if (g.canBleed && !g.grounded) {
-            g.bleedTimer += dt;
-            if (g.bleedTimer > 0.1) { // Reduced from 0.05
-                g.bleedTimer = 0;
-                const drop = bloodSpritePool.get();
-                drop.material = bloodSpriteMats[bloodMatIdx++ % bloodSpriteMats.length];
-                drop.position.copy(g.mesh.position);
-                drop.scale.setScalar(0.08);
-                drop.visible = true;
-                scene.add(drop);
-                bloodParticles.push({
-                    mesh: drop,
-                    velocity: new THREE.Vector3(0, 0, 0),
-                    life: 0.6,
-                    gravity: 25,
-                    type: 'droplet'
-                });
-            }
-        }
+        // Bleeding effect (disabled for performance)
+        // if (g.canBleed && !g.grounded) { ... }
 
         if (g.life < 2) {
             g.mesh.material.opacity = g.life / 2;
@@ -3467,7 +3883,7 @@ function updateBloodEffects(dt) {
     // Update blood pools
     for (let i = bloodPools.length - 1; i >= 0; i--) {
         const p = bloodPools[i];
-        p.life -= 1;
+        p.life -= dt; // Fixed: time-based instead of frame-based
 
         if (p.life <= 0) {
             scene.remove(p.mesh);
@@ -3481,15 +3897,15 @@ function updateBloodEffects(dt) {
             p.mesh.scale.setScalar(p.currentSize);
         }
 
-        if (p.life < 100) {
-            p.mesh.material.opacity = (p.life / 100) * 0.9;
+        if (p.life < 1.5) {
+            p.mesh.material.opacity = (p.life / 1.5) * 0.9; // Fixed: fade over last 1.5 seconds
         }
     }
 
     // Update blood decals
     for (let i = bloodDecals.length - 1; i >= 0; i--) {
         const d = bloodDecals[i];
-        d.life -= 1;
+        d.life -= dt; // Fixed: time-based instead of frame-based
 
         if (d.life <= 0) {
             scene.remove(d.mesh);
@@ -3498,8 +3914,8 @@ function updateBloodEffects(dt) {
             continue;
         }
 
-        if (d.life < 100) {
-            d.mesh.material.opacity = (d.life / 100) * 0.85;
+        if (d.life < 1.5) {
+            d.mesh.material.opacity = (d.life / 1.5) * 0.85; // Fixed: fade over last 1.5 seconds
         }
     }
 }
@@ -3507,7 +3923,7 @@ function updateBloodEffects(dt) {
 // ATMOSPHERIC DUST PARTICLES (reduced for performance)
 const dustParticles = [];
 const dustGeo = new THREE.BufferGeometry();
-const dustCount = 200; // Reduced from 500
+const dustCount = 100; // Further reduced for performance
 const dustPositions = new Float32Array(dustCount * 3);
 for(let i = 0; i < dustCount; i++) {
     dustPositions[i * 3] = (Math.random() - 0.5) * 200;
@@ -3517,9 +3933,9 @@ for(let i = 0; i < dustCount; i++) {
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 const dustMat = new THREE.PointsMaterial({
     color: 0xeebb88, // Warm dust
-    size: 0.12,
+    size: 0.08, // Smaller particles
     transparent: true,
-    opacity: 0.3,
+    opacity: 0.2, // Less opaque
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     sizeAttenuation: true
@@ -3782,7 +4198,7 @@ function spawnMuzzleSparks() {
 }
 
 function spawnImpactSparks(point, normal) {
-    for(let i=0; i<8; i++) { // Reduced from 12
+    for(let i=0; i<3; i++) { // Further reduced for performance
         const spark = sparkPool.get();
         spark.material = sparkMats[sparkMatIdx++ % sparkMats.length];
         spark.position.copy(point);
@@ -3809,7 +4225,7 @@ const debrisPool = new ObjectPool(
 );
 
 function spawnDebris(point, normal) {
-    for(let i=0; i<3; i++) { // Reduced from 5
+    for(let i=0; i<1; i++) { // Further reduced for performance
         const d = debrisPool.get();
         d.position.copy(point);
         d.visible = true;
@@ -3820,7 +4236,7 @@ function spawnDebris(point, normal) {
         d.userData = {
             velocity: _tempVec3.clone(),
             rotVel: new THREE.Vector3(Math.random()*10, Math.random()*10, Math.random()*10),
-            life: 60 + Math.random()*60
+            life: 1.0 + Math.random() * 1.0 // Fixed: 1-2 seconds instead of 60-120 frames
         };
         scene.add(d);
         debris.push(d);
@@ -3849,7 +4265,7 @@ function ejectShell() {
     shell.position.copy(new THREE.Vector3(0.5, 0.4, 0).applyMatrix4(gunGroup.matrixWorld));
     shell.quaternion.copy(gunGroup.quaternion); shell.rotation.z = Math.PI/2;
     const velocity = new THREE.Vector3(0.1 + Math.random()*0.1, 0.2 + Math.random()*0.1, 0).applyQuaternion(camera.quaternion);
-    shell.userData = { velocity: velocity, life: 150 };
+    shell.userData = { velocity: velocity, life: 2.5 }; // Fixed: 2.5 seconds instead of 150 frames
     scene.add(shell); shells.push(shell);
 }
 
@@ -3865,7 +4281,7 @@ function spawnTracer(start, end) {
     });
     const line = new THREE.Line(geo, mat);
     scene.add(line);
-    tracers.push({ mesh: line, life: 4 });
+    tracers.push({ mesh: line, life: 0.1 }); // Fixed: 0.1 seconds instead of 4 frames
 
     // Glow tracer (wider, softer)
     const glowMat = new THREE.LineBasicMaterial({
@@ -3876,7 +4292,7 @@ function spawnTracer(start, end) {
     });
     const glowLine = new THREE.Line(geo.clone(), glowMat);
     scene.add(glowLine);
-    tracers.push({ mesh: glowLine, life: 3 });
+    tracers.push({ mesh: glowLine, life: 0.08 }); // Fixed: 0.08 seconds instead of 3 frames
 }
 
 function spawnDecal(point, normal) {
@@ -3886,7 +4302,7 @@ function spawnDecal(point, normal) {
     decal.lookAt(point.clone().add(normal));
     decal.rotation.z = Math.random() * Math.PI * 2;
     scene.add(decal);
-    decals.push({ mesh: decal, life: 600 });
+    decals.push({ mesh: decal, life: 10.0 }); // Fixed: 10 seconds instead of 600 frames
 
     // Spawn impact effects
     spawnImpactSparks(point, normal);
@@ -3991,7 +4407,8 @@ function restartGame() {
 
 const moveState = { f: false, b: false, l: false, r: false, sprint: false };
 const velocity = new THREE.Vector3();
-const baseSpeed = 15.0;
+// Player speed is 1.15x average zombie speed (zombie avg = 4, so player = 4.6)
+const baseSpeed = 4.6;
 const sprintMultiplier = 1.8;
 let prevTime = performance.now();
 
@@ -4394,8 +4811,8 @@ function animate(time) {
     prevTime = time;
     frameCount++;
 
-    // Throttled shadow updates
-    if (frameCount % SHADOW_UPDATE_INTERVAL === 0) {
+    // Throttled shadow updates (increased interval for performance)
+    if (frameCount % (SHADOW_UPDATE_INTERVAL * 2) === 0) {
         renderer.shadowMap.needsUpdate = true;
     }
 
@@ -4550,8 +4967,22 @@ function animate(time) {
 
         const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
         const rgt = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
-        camera.position.addScaledVector(fwd, velocity.z * dt);
-        camera.position.addScaledVector(rgt, velocity.x * dt);
+        
+        // Store old position for collision resolution
+        const oldX = camera.position.x;
+        const oldZ = camera.position.z;
+        
+        // Calculate new position
+        const newX = oldX + rgt.x * velocity.x * dt;
+        const newZ = oldZ + rgt.z * velocity.x * dt;
+        const finalX = newX + fwd.x * velocity.z * dt;
+        const finalZ = newZ + fwd.z * velocity.z * dt;
+        
+        // Apply collision detection and resolution (player radius ~0.5)
+        const playerRadius = 0.5;
+        const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius);
+        camera.position.x = resolved.x;
+        camera.position.z = resolved.z;
 
         // ULTRA FLUID Jump physics
         if (!isGrounded) {
@@ -4703,9 +5134,8 @@ function animate(time) {
 
     // Decay dynamic post-processing
     bloomIntensity = THREE.MathUtils.lerp(bloomIntensity, 0.12, 0.15);
-    chromaticAmount = THREE.MathUtils.lerp(chromaticAmount, 0.0005, 0.1);
     bloomPass.strength = bloomIntensity;
-    chromaticPass.uniforms.amount.value = chromaticAmount;
+    // Chromatic aberration disabled
 
     // Update motion blur based on camera rotation velocity
     motionBlurX = THREE.MathUtils.lerp(motionBlurX, 0, 0.2);
@@ -4713,11 +5143,7 @@ function animate(time) {
     motionBlurPass.uniforms.velocityX.value = motionBlurX;
     motionBlurPass.uniforms.velocityY.value = motionBlurY;
 
-    // Update film grain time
-    grainPass.uniforms.time.value = time * 0.001;
-
-    // Update heat distortion time
-    heatPass.uniforms.time.value = time * 0.001;
+    // Post-processing effects disabled for performance
 
     // Update sky shader time for animated clouds
     skyUniforms.time.value = time * 0.001;
@@ -4742,12 +5168,7 @@ function animate(time) {
                  sunScreenPos.y > -0.3 && sunScreenPos.y < 1.3 ?
                  Math.pow(sunDot, 2) : 0;
 
-    // Update god rays uniforms
-    godRaysPass.uniforms.lightPositionOnScreen.value.copy(sunScreenPos);
-
-    // Update lens flare uniforms
-    lensFlarePass.uniforms.sunPosition.value.copy(sunScreenPos);
-    lensFlarePass.uniforms.sunVisible.value = sunVisible;
+    // God rays, lens flare, heat distortion disabled for performance
 
     // Reset screen shake targets
     Springs.shakeX.target = 0;
@@ -4760,8 +5181,9 @@ function animate(time) {
     // Shells
     for(let i = shells.length - 1; i >= 0; i--) {
         const s = shells[i];
-        s.position.addScaledVector(s.userData.velocity, dt * 60);
-        s.userData.velocity.y -= 0.02; s.rotation.x += 0.2;
+        s.position.addScaledVector(s.userData.velocity, dt); // Fixed: removed * 60 multiplier
+        s.userData.velocity.y -= 20 * dt; // Fixed: proper gravity (was 0.02 per frame, now 20 units/sec^2)
+        s.rotation.x += 2 * dt; // Fixed: proper rotation speed
         if(s.position.y < -5) { s.position.y = -5; s.userData.velocity.set(0,0,0); }
         if(--s.userData.life <= 0) {
             scene.remove(s);
@@ -4772,9 +5194,9 @@ function animate(time) {
     // Mags
     for(let i = mags.length - 1; i >= 0; i--) {
         const m = mags[i];
-        m.position.addScaledVector(m.userData.vel, dt * 60);
-        m.rotation.x += m.userData.rot.x * 0.1;
-        m.userData.vel.y -= 0.02;
+        m.position.addScaledVector(m.userData.vel, dt); // Fixed: removed * 60 multiplier
+        m.rotation.x += m.userData.rot.x * dt; // Fixed: proper rotation speed
+        m.userData.vel.y -= 20 * dt; // Fixed: proper gravity (was 0.02 per frame, now 20 units/sec^2)
         if(m.position.y < -5) { m.position.y = -5; m.userData.vel.set(0,0,0); }
         if(--m.userData.life <= 0) {
             scene.remove(m);
@@ -4825,7 +5247,7 @@ function animate(time) {
     // Debris with pooling
     for(let i = debris.length - 1; i >= 0; i--) {
         const d = debris[i];
-        d.userData.life--;
+        d.userData.life -= dt; // Fixed: time-based instead of frame-based
         if(d.userData.life <= 0) {
             scene.remove(d);
             debrisPool.release(d);
@@ -4847,8 +5269,8 @@ function animate(time) {
     // Tracers
     for(let i = tracers.length - 1; i >= 0; i--) {
         const t = tracers[i];
-        t.life--;
-        t.mesh.material.opacity = t.life / 3;
+        t.life -= dt; // Fixed: time-based instead of frame-based
+        t.mesh.material.opacity = Math.max(0, t.life / 0.1); // Fixed: opacity based on time (0.1 seconds)
         if(t.life <= 0) {
             scene.remove(t.mesh);
             tracers[i] = tracers[tracers.length - 1];
@@ -4858,8 +5280,8 @@ function animate(time) {
     // Decals
     for(let i = decals.length - 1; i >= 0; i--) {
         const d = decals[i];
-        d.life--;
-        if(d.life < 60) d.mesh.material.opacity = d.life / 60;
+        d.life -= dt; // Fixed: time-based instead of frame-based
+        if(d.life < 1.0) d.mesh.material.opacity = d.life / 1.0; // Fixed: fade over last 1 second
         if(d.life <= 0) {
             scene.remove(d.mesh);
             decals[i] = decals[decals.length - 1];
@@ -4877,7 +5299,7 @@ function animate(time) {
         updateWaveSystem(dt);
         updatePickups(dt, time);
 
-        // Update power-up timers
+        // Update power-up timers (only when active)
         if (speedBoostTimer > 0) {
             speedBoostTimer -= dt;
             if (speedBoostTimer <= 0) speedBoostTimer = 0;
@@ -4887,15 +5309,27 @@ function animate(time) {
             if (damageBoostTimer <= 0) damageBoostTimer = 0;
         }
 
-        // Throttled HUD update (only updates when values change)
-        if (frameCount % HUD_UPDATE_INTERVAL === 0) {
+        // Throttled HUD update (increased interval for performance)
+        if (frameCount % (HUD_UPDATE_INTERVAL * 2) === 0) {
             updateHUD();
         }
     }
 
-    // Update zombies
-    for (const zombie of zombies) {
-        zombie.update(dt, time);
+    // Update HiveMind (shared intelligence) - once per frame
+    if (zombies.length > 0) {
+        HiveMind.update(dt);
+    }
+    
+    // Update zombies with swarm intelligence (staggered for performance)
+    for (let i = 0; i < zombies.length; i++) {
+        const zombie = zombies[i];
+        // Stagger zombie updates to spread load across frames
+        if (i % 3 === frameCount % 3) {
+            zombie.update(dt, time);
+        } else {
+            // Minimal update for non-active zombies
+            zombie.updateMinimal(dt);
+        }
     }
 
     // Update blood and gore effects
@@ -4908,15 +5342,15 @@ function animate(time) {
         document.getElementById('damage-flash').style.opacity = damageFlashIntensity;
     }
 
-    // Animate dust particles (throttled to every 3 frames)
-    if (frameCount % 3 === 0) {
+    // Animate dust particles (throttled to every 12 frames for better performance)
+    if (frameCount % 12 === 0) {
         const dustPos = dustGeo.attributes.position.array;
-        for(let i = 0; i < dustCount; i++) {
-            dustPos[i * 3 + 1] += Math.sin(time * 0.0005 + i) * 0.006;
+        for(let i = 0; i < dustCount; i += 4) { // Process every 4th particle
+            dustPos[i * 3 + 1] += Math.sin(time * 0.0002 + i) * 0.003; // Even slower movement
             const dx = dustPos[i * 3] - camera.position.x;
             const dz = dustPos[i * 3 + 2] - camera.position.z;
-            if(Math.abs(dx) > 100) dustPos[i * 3] = camera.position.x + (Math.random() - 0.5) * 200;
-            if(Math.abs(dz) > 100) dustPos[i * 3 + 2] = camera.position.z + (Math.random() - 0.5) * 200;
+            if(Math.abs(dx) > 140) dustPos[i * 3] = camera.position.x + (Math.random() - 0.5) * 280;
+            if(Math.abs(dz) > 140) dustPos[i * 3 + 2] = camera.position.z + (Math.random() - 0.5) * 280;
         }
         dustGeo.attributes.position.needsUpdate = true;
     }
