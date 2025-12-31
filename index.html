@@ -20,6 +20,11 @@
         #hitmarker.show {
             opacity: 1;
         }
+        #hitmarker.headshot .hm-line {
+            background: rgba(255, 0, 0, 1);
+            width: 28px; height: 3px;
+            box-shadow: 0 0 10px #f00, 0 0 20px #f00;
+        }
         .hm-line {
             position: absolute; top: 50%; left: 50%;
             width: 20px; height: 2px;
@@ -32,10 +37,57 @@
         .hm-line:last-child {
             transform: translate(-50%, -50%) rotate(-45deg);
         }
+        /* ============ MICRO-ANIMATION POLISHES ============ */
+        @keyframes pulse-glow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+        @keyframes score-pop {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.15); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+        @keyframes ammo-shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            60% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+        }
+        @keyframes wave-entrance {
+            0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+            50% { transform: translateX(-50%) scale(1.1); }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+        @keyframes health-critical {
+            0%, 100% { box-shadow: 0 0 5px #f00; }
+            50% { box-shadow: 0 0 15px #f00, 0 0 25px #f00; }
+        }
+        @keyframes kill-flash {
+            0% { color: #fff; text-shadow: 0 0 10px #fff; }
+            100% { color: #888; text-shadow: none; }
+        }
+        @keyframes reload-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         #ammo-display {
             position: absolute; bottom: 20px; right: 20px; color: #0f0;
             font-size: 28px; pointer-events: none; user-select: none;
             text-shadow: 0 0 5px #0f0;
+            transition: all 0.15s ease-out;
+        }
+        #ammo-display.low-ammo {
+            color: #f80; text-shadow: 0 0 8px #f80;
+            animation: ammo-shake 0.3s ease-in-out;
+        }
+        #ammo-display.empty {
+            color: #f00; text-shadow: 0 0 10px #f00;
+            animation: pulse-glow 0.5s ease-in-out infinite;
+        }
+        #ammo-display.reloading {
+            animation: reload-pulse 0.4s ease-in-out infinite;
         }
         #blocker, #game-over {
             position: absolute; width: 100%; height: 100%;
@@ -51,13 +103,25 @@
         #wave-display {
             font-size: 32px; color: #f00; text-shadow: 0 0 10px #f00;
             letter-spacing: 4px;
+            transition: all 0.3s ease-out;
+        }
+        #wave-display.new-wave {
+            animation: wave-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         #zombie-count {
             font-size: 16px; color: #888; margin-top: 5px;
+            transition: color 0.2s;
+        }
+        #zombie-count.kill-flash {
+            animation: kill-flash 0.3s ease-out;
         }
         #score-display {
             font-size: 20px; color: #ff0; text-shadow: 0 0 5px #ff0;
             margin-top: 10px; letter-spacing: 2px;
+            transition: all 0.15s ease-out;
+        }
+        #score-display.score-bump {
+            animation: score-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         #health-container {
             position: absolute; bottom: 20px; left: 20px;
@@ -68,22 +132,89 @@
             width: 200px; height: 20px;
             background: #333; border: 2px solid #0f0;
             overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        #health-bar.critical {
+            border-color: #f00;
+            animation: health-critical 0.8s ease-in-out infinite;
         }
         #health-fill {
             width: 100%; height: 100%;
-            background: #0f0; transition: width 0.2s, background 0.3s;
+            background: linear-gradient(90deg, #0f0, #0a0);
+            transition: width 0.25s ease-out, background 0.3s;
+        }
+        #health-fill.damaged {
+            background: linear-gradient(90deg, #f80, #a50);
+        }
+        #health-fill.critical {
+            background: linear-gradient(90deg, #f00, #800);
         }
         #health-text {
             font-size: 24px; color: #0f0; text-shadow: 0 0 5px #0f0;
             min-width: 40px;
+            transition: all 0.2s;
+        }
+        #health-text.critical {
+            color: #f00; text-shadow: 0 0 8px #f00;
         }
         #damage-flash {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%);
             pointer-events: none; opacity: 0; transition: opacity 0.1s;
         }
+        /* === DAMAGE DIRECTION INDICATOR === */
+        #damage-direction {
+            position: absolute; top: 50%; left: 50%; width: 300px; height: 300px;
+            transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 50;
+        }
+        .damage-arrow {
+            position: absolute; width: 80px; height: 40px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,0,0,0.8) 50%, transparent 100%);
+            opacity: 0; transition: opacity 0.1s;
+            filter: blur(2px);
+        }
+        .damage-arrow.top { top: 0; left: 50%; transform: translateX(-50%) rotate(-90deg); }
+        .damage-arrow.bottom { bottom: 0; left: 50%; transform: translateX(-50%) rotate(90deg); }
+        .damage-arrow.left { left: 0; top: 50%; transform: translateY(-50%) rotate(180deg); }
+        .damage-arrow.right { right: 0; top: 50%; transform: translateY(-50%); }
+        .damage-arrow.top-left { top: 15%; left: 15%; transform: rotate(-135deg); }
+        .damage-arrow.top-right { top: 15%; right: 15%; transform: rotate(-45deg); }
+        .damage-arrow.bottom-left { bottom: 15%; left: 15%; transform: rotate(135deg); }
+        .damage-arrow.bottom-right { bottom: 15%; right: 15%; transform: rotate(45deg); }
+        /* === LOW HEALTH VIGNETTE === */
+        #low-health-vignette {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; opacity: 0; z-index: 45;
+            box-shadow: inset 0 0 150px rgba(255, 0, 0, 0.6);
+            transition: opacity 0.3s;
+        }
+        #low-health-vignette.pulse {
+            animation: lowHealthPulse 1s ease-in-out infinite;
+        }
+        @keyframes lowHealthPulse {
+            0%, 100% { box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.4); }
+            50% { box-shadow: inset 0 0 180px rgba(255, 0, 0, 0.7); }
+        }
+        /* === DYNAMIC CROSSHAIR === */
+        #crosshair {
+            transition: width 0.08s ease-out, height 0.08s ease-out, opacity 0.2s, border-color 0.15s;
+        }
+        #crosshair.firing {
+            border-color: rgba(255, 200, 0, 0.9);
+        }
+        #crosshair.moving {
+            border-color: rgba(0, 200, 255, 0.7);
+        }
+        #restart-btn {
+            transition: all 0.2s ease-out;
+        }
         #restart-btn:hover {
             background: #500; box-shadow: 0 0 20px #f00;
+            transform: scale(1.05);
+        }
+        #restart-btn:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -110,6 +241,21 @@
 </div>
 
 <div id="damage-flash"></div>
+
+<!-- Damage Direction Indicator -->
+<div id="damage-direction">
+    <div class="damage-arrow top"></div>
+    <div class="damage-arrow bottom"></div>
+    <div class="damage-arrow left"></div>
+    <div class="damage-arrow right"></div>
+    <div class="damage-arrow top-left"></div>
+    <div class="damage-arrow top-right"></div>
+    <div class="damage-arrow bottom-left"></div>
+    <div class="damage-arrow bottom-right"></div>
+</div>
+
+<!-- Low Health Vignette -->
+<div id="low-health-vignette"></div>
 
 <!-- Top HUD - Wave and Score -->
 <div id="top-hud">
@@ -138,6 +284,7 @@
 <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
 <!-- TWEEN.js for complex curves -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
@@ -259,7 +406,31 @@ const Springs = {
     // Sprinting effects
     sprintBob: new Spring(70, 5, 1.2),
     sprintTilt: new Spring(50, 4, 1.3),
-    sprintRoll: new Spring(60, 4.5, 1.2)
+    sprintRoll: new Spring(60, 4.5, 1.2),
+
+    // === NEW: Attention to Detail Springs ===
+    // Strafe lean - weapon and camera tilt when strafing
+    strafeTilt: new Spring(80, 6, 1.2),
+    strafeRoll: new Spring(60, 5, 1.3),
+
+    // Velocity-based weapon drag (trails behind fast movements)
+    velocityDragX: new Spring(40, 4, 1.5),
+    velocityDragY: new Spring(40, 4, 1.5),
+
+    // Turn inertia - weapon lags when spinning camera fast
+    turnLagX: new Spring(50, 4.5, 1.4),
+    turnLagY: new Spring(50, 4.5, 1.4),
+
+    // Weapon inspection sway
+    inspectRotX: new Spring(25, 3, 2),
+    inspectRotY: new Spring(25, 3, 2),
+    inspectRotZ: new Spring(20, 2.5, 2),
+
+    // Bolt carrier
+    boltZ: new Spring(400, 18, 0.8),
+
+    // Dynamic crosshair
+    crosshairSpread: new Spring(120, 10, 1)
 };
 
 // Velocity tracking for inertia effects
@@ -270,6 +441,19 @@ let camVelY = 0;
 let moveVelSmooth = 0;
 let moveVelX = 0;
 let moveVelZ = 0;
+
+// === NEW: Attention to Detail State ===
+let lastStrafeInput = 0;
+let idleTime = 0;                    // Time since last movement/action
+let isInspecting = false;            // Weapon inspection mode
+let inspectPhase = 0;                // Phase of inspection animation
+let lastFireTime = 0;                // For muzzle smoke timing
+let consecutiveShots = 0;            // For heat buildup
+let crosshairBaseSize = 20;          // Base crosshair size
+let crosshairCurrentSize = 20;       // Current crosshair size
+let lastDamageDir = null;            // Direction of last damage taken
+let damageIndicatorAlpha = 0;        // Fade for damage indicator
+let lowHealthPulse = 0;              // Pulse phase for low health effects
 
 // Organic noise for idle animations
 function organicNoise(time, frequency, octaves = 3) {
@@ -1332,62 +1516,103 @@ function playSound(type) {
     const now = actx.currentTime;
 
     if (type === 'shoot') {
-        // Enhanced gunshot - layered sounds
+        // BEEFY AK-47 SOUND - Maximum oomph
 
-        // Layer 1: Low thump (body)
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(80, now);
-        osc.frequency.exponentialRampToValueAtTime(20, now + 0.15);
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, now);
-        filter.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        gain.gain.setValueAtTime(0.8, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-        osc.start(now); osc.stop(now + 0.2);
+        // Layer 1: DEEP bass thump (chest punch)
+        const bassOsc = actx.createOscillator();
+        const bassGain = actx.createGain();
+        const bassFilter = actx.createBiquadFilter();
+        bassOsc.connect(bassFilter);
+        bassFilter.connect(bassGain);
+        bassGain.connect(dryGain);
+        bassOsc.type = 'sine';
+        bassOsc.frequency.setValueAtTime(60, now);
+        bassOsc.frequency.exponentialRampToValueAtTime(25, now + 0.12);
+        bassFilter.type = 'lowpass';
+        bassFilter.frequency.value = 150;
+        bassGain.gain.setValueAtTime(1.2, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        bassOsc.start(now); bassOsc.stop(now + 0.2);
 
-        // Layer 2: High crack
-        const osc2 = actx.createOscillator();
-        const gain2 = actx.createGain();
-        const filter2 = actx.createBiquadFilter();
-        osc2.connect(filter2); filter2.connect(gain2);
-        gain2.connect(dryGain); gain2.connect(convolver);
-        osc2.type = 'square';
-        osc2.frequency.setValueAtTime(200, now);
-        osc2.frequency.exponentialRampToValueAtTime(50, now + 0.08);
-        filter2.type = 'highpass';
-        filter2.frequency.setValueAtTime(500, now);
-        gain2.gain.setValueAtTime(0.5, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-        osc2.start(now); osc2.stop(now + 0.1);
+        // Layer 2: Mid punch (body of the shot)
+        const midOsc = actx.createOscillator();
+        const midGain = actx.createGain();
+        midOsc.connect(midGain);
+        midGain.connect(dryGain);
+        midGain.connect(convolver);
+        midOsc.type = 'sawtooth';
+        midOsc.frequency.setValueAtTime(120, now);
+        midOsc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+        midGain.gain.setValueAtTime(0.7, now);
+        midGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        midOsc.start(now); midOsc.stop(now + 0.15);
 
-        // Layer 3: Noise burst (explosion)
-        const nBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
-        const out = nBuf.getChannelData(0);
-        for (let i = 0; i < nBuf.length; i++) {
-            const env = Math.exp(-i / (actx.sampleRate * 0.03));
-            out[i] = (Math.random() * 2 - 1) * env;
+        // Layer 3: Sharp transient crack (the snap)
+        const crackBuf = actx.createBuffer(1, actx.sampleRate * 0.05, actx.sampleRate);
+        const crackData = crackBuf.getChannelData(0);
+        for (let i = 0; i < crackBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            crackData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 80) * 1.5;
         }
-        const n = actx.createBufferSource(); n.buffer = nBuf;
-        const nFilter = actx.createBiquadFilter();
-        nFilter.type = 'bandpass';
-        nFilter.frequency.setValueAtTime(2000, now);
-        nFilter.Q.value = 1;
-        const nG = actx.createGain();
-        nG.gain.setValueAtTime(1.0, now);
-        nG.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-        n.connect(nFilter); nFilter.connect(nG);
-        nG.connect(dryGain); nG.connect(convolver);
-        n.start(now);
+        const crackSrc = actx.createBufferSource();
+        crackSrc.buffer = crackBuf;
+        const crackFilter = actx.createBiquadFilter();
+        crackFilter.type = 'highpass';
+        crackFilter.frequency.value = 2000;
+        const crackGain = actx.createGain();
+        crackGain.gain.value = 0.9;
+        crackSrc.connect(crackFilter);
+        crackFilter.connect(crackGain);
+        crackGain.connect(dryGain);
+        crackSrc.start(now);
 
-        // Layer 4: Mechanical click
-        const osc3 = actx.createOscillator();
-        const gain3 = actx.createGain();
-        osc3.connect(gain3); gain3.connect(dryGain);
-        osc3.type = 'square';
-        osc3.frequency.setValueAtTime(1200, now + 0.02);
-        gain3.gain.setValueAtTime(0.15, now + 0.02);
-        gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
-        osc3.start(now + 0.02); osc3.stop(now + 0.05);
+        // Layer 4: Explosion noise (the boom)
+        const boomBuf = actx.createBuffer(1, actx.sampleRate * 0.2, actx.sampleRate);
+        const boomData = boomBuf.getChannelData(0);
+        for (let i = 0; i < boomBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            boomData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 15) * 0.8;
+        }
+        const boomSrc = actx.createBufferSource();
+        boomSrc.buffer = boomBuf;
+        const boomFilter = actx.createBiquadFilter();
+        boomFilter.type = 'bandpass';
+        boomFilter.frequency.value = 800;
+        boomFilter.Q.value = 0.5;
+        const boomGain = actx.createGain();
+        boomGain.gain.setValueAtTime(1.0, now);
+        boomGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        boomSrc.connect(boomFilter);
+        boomFilter.connect(boomGain);
+        boomGain.connect(dryGain);
+        boomGain.connect(convolver);
+        boomSrc.start(now);
+
+        // Layer 5: Mechanical clack (bolt action)
+        const clackOsc = actx.createOscillator();
+        const clackGain = actx.createGain();
+        clackOsc.connect(clackGain);
+        clackGain.connect(dryGain);
+        clackOsc.type = 'square';
+        clackOsc.frequency.setValueAtTime(1500, now + 0.015);
+        clackOsc.frequency.exponentialRampToValueAtTime(800, now + 0.03);
+        clackGain.gain.setValueAtTime(0.2, now + 0.015);
+        clackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+        clackOsc.start(now + 0.015); clackOsc.stop(now + 0.05);
+
+        // Layer 6: Sub-bass rumble (feel it in your chest)
+        const subOsc = actx.createOscillator();
+        const subGain = actx.createGain();
+        subOsc.connect(subGain);
+        subGain.connect(dryGain);
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(35, now);
+        subOsc.frequency.exponentialRampToValueAtTime(20, now + 0.1);
+        subGain.gain.setValueAtTime(0.8, now);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        subOsc.start(now); subOsc.stop(now + 0.15);
+
+        return;
 
     } else if (type === 'targetHit') {
         // Metallic ping/clang for hitting target
@@ -1487,6 +1712,51 @@ function playSound(type) {
         snarlG.connect(dryGain);
         snarlN.start(now);
 
+    } else if (type === 'headshot') {
+        // SATISFYING head explosion sound - wet pop + crunch
+        // Initial pop
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.15);
+
+        // Wet splatter noise
+        const splatBuf = actx.createBuffer(1, actx.sampleRate * 0.2, actx.sampleRate);
+        const splatOut = splatBuf.getChannelData(0);
+        for (let i = 0; i < splatBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            splatOut[i] = (Math.random() * 2 - 1) * Math.exp(-t * 15) * 0.8;
+        }
+        const splatN = actx.createBufferSource(); splatN.buffer = splatBuf;
+        const splatFilter = actx.createBiquadFilter();
+        splatFilter.type = 'lowpass'; splatFilter.frequency.value = 1500;
+        const splatG = actx.createGain();
+        splatG.gain.setValueAtTime(0.7, now);
+        splatN.connect(splatFilter); splatFilter.connect(splatG);
+        splatG.connect(dryGain); splatG.connect(convolver);
+        splatN.start(now);
+
+        // Bone crunch
+        const crunchBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
+        const crunchOut = crunchBuf.getChannelData(0);
+        for (let i = 0; i < crunchBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            // Crispy crackling sound
+            crunchOut[i] = (Math.random() > 0.5 ? 1 : -1) * Math.random() * Math.exp(-t * 20) * 0.5;
+        }
+        const crunchN = actx.createBufferSource(); crunchN.buffer = crunchBuf;
+        const crunchFilter = actx.createBiquadFilter();
+        crunchFilter.type = 'highpass'; crunchFilter.frequency.value = 2000;
+        const crunchG = actx.createGain();
+        crunchG.gain.setValueAtTime(0.4, now + 0.02);
+        crunchN.connect(crunchFilter); crunchFilter.connect(crunchG);
+        crunchG.connect(dryGain);
+        crunchN.start(now + 0.02);
+
     } else if (type === 'playerHurt') {
         // Pain sound - sharp impact
         osc.type = 'square';
@@ -1524,169 +1794,346 @@ function playSound(type) {
         // Don't start the main osc for this sound type
         return;
 
+    } else if (type === 'doorOpen') {
+        // Heavy metal door sliding open - industrial/horror vibe
+
+        // Layer 1: Deep mechanical grind (servo motor)
+        const grindOsc = actx.createOscillator();
+        const grindGain = actx.createGain();
+        const grindFilter = actx.createBiquadFilter();
+        grindOsc.connect(grindFilter);
+        grindFilter.connect(grindGain);
+        grindGain.connect(dryGain);
+        grindOsc.type = 'sawtooth';
+        grindOsc.frequency.setValueAtTime(50, now);
+        grindOsc.frequency.linearRampToValueAtTime(80, now + 0.3);
+        grindFilter.type = 'lowpass';
+        grindFilter.frequency.value = 200;
+        grindGain.gain.setValueAtTime(0.4, now);
+        grindGain.gain.linearRampToValueAtTime(0.3, now + 0.15);
+        grindGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        grindOsc.start(now); grindOsc.stop(now + 0.4);
+
+        // Layer 2: Metal scraping (high frequency noise)
+        const scrapeBuffer = actx.createBuffer(1, actx.sampleRate * 0.3, actx.sampleRate);
+        const scrapeData = scrapeBuffer.getChannelData(0);
+        for (let i = 0; i < scrapeData.length; i++) {
+            scrapeData[i] = (Math.random() * 2 - 1) * (1 - i / scrapeData.length) * 0.5;
+        }
+        const scrapeSource = actx.createBufferSource();
+        scrapeSource.buffer = scrapeBuffer;
+        const scrapeFilter = actx.createBiquadFilter();
+        scrapeFilter.type = 'bandpass';
+        scrapeFilter.frequency.value = 3000;
+        scrapeFilter.Q.value = 3;
+        const scrapeGain = actx.createGain();
+        scrapeSource.connect(scrapeFilter);
+        scrapeFilter.connect(scrapeGain);
+        scrapeGain.connect(dryGain);
+        scrapeGain.gain.setValueAtTime(0.15, now);
+        scrapeGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        scrapeSource.start(now);
+
+        // Layer 3: Heavy thunk at the end (door hitting stop)
+        const thunkOsc = actx.createOscillator();
+        const thunkGain = actx.createGain();
+        thunkOsc.connect(thunkGain);
+        thunkGain.connect(dryGain);
+        thunkGain.connect(convolver);
+        thunkOsc.type = 'sine';
+        thunkOsc.frequency.setValueAtTime(80, now + 0.25);
+        thunkOsc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+        thunkGain.gain.setValueAtTime(0, now);
+        thunkGain.gain.setValueAtTime(0.5, now + 0.25);
+        thunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        thunkOsc.start(now + 0.25); thunkOsc.stop(now + 0.45);
+
+        // Layer 4: Hiss/pneumatic (air escaping)
+        const hissBuffer = actx.createBuffer(1, actx.sampleRate * 0.2, actx.sampleRate);
+        const hissData = hissBuffer.getChannelData(0);
+        for (let i = 0; i < hissData.length; i++) {
+            hissData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / hissData.length, 2);
+        }
+        const hissSource = actx.createBufferSource();
+        hissSource.buffer = hissBuffer;
+        const hissFilter = actx.createBiquadFilter();
+        hissFilter.type = 'highpass';
+        hissFilter.frequency.value = 4000;
+        const hissGain = actx.createGain();
+        hissSource.connect(hissFilter);
+        hissFilter.connect(hissGain);
+        hissGain.connect(dryGain);
+        hissGain.gain.setValueAtTime(0.1, now);
+        hissGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        hissSource.start(now);
+
+        return;
+
     } else if (type === 'empty') {
         osc.type = 'square'; osc.frequency.setValueAtTime(800, now);
         gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now); osc.stop(now + 0.05);
     } else if (type === 'mag_out') {
-        // Magazine release click
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(2500, now);
-        osc.frequency.exponentialRampToValueAtTime(800, now + 0.02);
-        filter.type = 'highpass';
-        filter.frequency.value = 1000;
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
-        osc.start(now); osc.stop(now + 0.04);
+        // BEEFY MAG RELEASE - Heavy mechanical clunk
 
-        // Metal slide sound
+        // Layer 1: Deep thunk (weight of mag releasing)
+        const thunkOsc = actx.createOscillator();
+        const thunkGain = actx.createGain();
+        thunkOsc.connect(thunkGain);
+        thunkGain.connect(dryGain);
+        thunkOsc.type = 'sine';
+        thunkOsc.frequency.setValueAtTime(100, now);
+        thunkOsc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+        thunkGain.gain.setValueAtTime(0.7, now);
+        thunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        thunkOsc.start(now); thunkOsc.stop(now + 0.12);
+
+        // Layer 2: Sharp release click
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(3500, now);
+        osc.frequency.exponentialRampToValueAtTime(1000, now + 0.015);
+        filter.type = 'highpass';
+        filter.frequency.value = 1500;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.025);
+        osc.start(now); osc.stop(now + 0.03);
+
+        // Layer 3: Metal slide/scrape
         const slideOsc = actx.createOscillator();
         const slideGain = actx.createGain();
         const slideFilter = actx.createBiquadFilter();
         slideOsc.connect(slideFilter); slideFilter.connect(slideGain);
         slideGain.connect(dryGain); slideGain.connect(convolver);
         slideOsc.type = 'sawtooth';
-        slideOsc.frequency.setValueAtTime(400, now + 0.02);
-        slideOsc.frequency.linearRampToValueAtTime(150, now + 0.12);
+        slideOsc.frequency.setValueAtTime(500, now + 0.01);
+        slideOsc.frequency.linearRampToValueAtTime(150, now + 0.15);
         slideFilter.type = 'bandpass';
-        slideFilter.frequency.value = 800;
-        slideFilter.Q.value = 2;
-        slideGain.gain.setValueAtTime(0.25, now + 0.02);
-        slideGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-        slideOsc.start(now + 0.02); slideOsc.stop(now + 0.15);
+        slideFilter.frequency.value = 1000;
+        slideFilter.Q.value = 3;
+        slideGain.gain.setValueAtTime(0.4, now + 0.01);
+        slideGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        slideOsc.start(now + 0.01); slideOsc.stop(now + 0.18);
 
-        // Metallic rattle noise
-        const rattleBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
+        // Layer 4: Metallic rattle (mag sliding out)
+        const rattleBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
         const rattleOut = rattleBuf.getChannelData(0);
         for (let i = 0; i < rattleBuf.length; i++) {
-            rattleOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.03)) * Math.sin(i * 0.3);
+            const t = i / actx.sampleRate;
+            rattleOut[i] = (Math.random() * 2 - 1) * Math.exp(-t * 12) * Math.sin(i * 0.4) * 0.8;
         }
         const rattleN = actx.createBufferSource(); rattleN.buffer = rattleBuf;
         const rattleFilter = actx.createBiquadFilter();
-        rattleFilter.type = 'highpass';
-        rattleFilter.frequency.value = 2000;
+        rattleFilter.type = 'bandpass';
+        rattleFilter.frequency.value = 2500;
+        rattleFilter.Q.value = 1;
         const rattleG = actx.createGain();
-        rattleG.gain.setValueAtTime(0.2, now + 0.03);
+        rattleG.gain.setValueAtTime(0.35, now + 0.02);
         rattleN.connect(rattleFilter); rattleFilter.connect(rattleG);
-        rattleG.connect(dryGain);
-        rattleN.start(now + 0.03);
+        rattleG.connect(dryGain); rattleG.connect(convolver);
+        rattleN.start(now + 0.02);
 
-    } else if (type === 'mag_in') {
-        // Heavy metallic clunk - magazine seating
-
-        // Initial impact
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(180, now);
-        osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
-        filter.type = 'lowpass';
-        filter.frequency.value = 400;
-        gain.gain.setValueAtTime(0.6, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.start(now); osc.stop(now + 0.12);
-
-        // Sharp click
-        const clickOsc = actx.createOscillator();
-        const clickGain = actx.createGain();
-        clickOsc.connect(clickGain); clickGain.connect(dryGain);
-        clickOsc.type = 'square';
-        clickOsc.frequency.setValueAtTime(3000, now);
-        clickOsc.frequency.exponentialRampToValueAtTime(1500, now + 0.015);
-        clickGain.gain.setValueAtTime(0.4, now);
-        clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.02);
-        clickOsc.start(now); clickOsc.stop(now + 0.03);
-
-        // Metal resonance
+        // Layer 5: Low resonance (gun body vibration)
         const resOsc = actx.createOscillator();
         const resGain = actx.createGain();
-        const resFilter = actx.createBiquadFilter();
-        resOsc.connect(resFilter); resFilter.connect(resGain);
-        resGain.connect(dryGain); resGain.connect(convolver);
+        resOsc.connect(resGain);
+        resGain.connect(dryGain);
         resOsc.type = 'triangle';
-        resOsc.frequency.setValueAtTime(450, now);
-        resOsc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
-        resFilter.type = 'bandpass';
-        resFilter.frequency.value = 600;
-        resFilter.Q.value = 8;
-        resGain.gain.setValueAtTime(0.2, now + 0.01);
-        resGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-        resOsc.start(now + 0.01); resOsc.stop(now + 0.18);
+        resOsc.frequency.value = 80;
+        resGain.gain.setValueAtTime(0.3, now);
+        resGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        resOsc.start(now); resOsc.stop(now + 0.15);
+        return;
 
-        // Latch snap
-        const snapBuf = actx.createBuffer(1, actx.sampleRate * 0.03, actx.sampleRate);
-        const snapOut = snapBuf.getChannelData(0);
-        for (let i = 0; i < snapBuf.length; i++) snapOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.005));
-        const snapN = actx.createBufferSource(); snapN.buffer = snapBuf;
-        const snapFilter = actx.createBiquadFilter();
-        snapFilter.type = 'highpass'; snapFilter.frequency.value = 3000;
-        const snapG = actx.createGain();
-        snapG.gain.setValueAtTime(0.35, now);
-        snapN.connect(snapFilter); snapFilter.connect(snapG); snapG.connect(dryGain);
-        snapN.start(now);
+    } else if (type === 'mag_in') {
+        // BEEFY MAG INSERT - Satisfying heavy slam
 
-    } else if (type === 'rack') {
-        // Bolt/charging handle - metallic slide and slam
-
-        // Slide back - scraping metal
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.linearRampToValueAtTime(600, now + 0.08);
-        filter.type = 'bandpass';
-        filter.frequency.value = 1200;
-        filter.Q.value = 3;
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.start(now); osc.stop(now + 0.12);
-
-        // Metal scrape noise
-        const scrapeBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
-        const scrapeOut = scrapeBuf.getChannelData(0);
-        for (let i = 0; i < scrapeBuf.length; i++) {
-            const env = Math.exp(-i / (actx.sampleRate * 0.04));
-            scrapeOut[i] = (Math.random() * 2 - 1) * env * (0.5 + 0.5 * Math.sin(i * 0.05));
-        }
-        const scrapeN = actx.createBufferSource(); scrapeN.buffer = scrapeBuf;
-        const scrapeFilter = actx.createBiquadFilter();
-        scrapeFilter.type = 'bandpass'; scrapeFilter.frequency.value = 2500; scrapeFilter.Q.value = 2;
-        const scrapeG = actx.createGain();
-        scrapeG.gain.setValueAtTime(0.25, now);
-        scrapeN.connect(scrapeFilter); scrapeFilter.connect(scrapeG);
-        scrapeG.connect(dryGain); scrapeG.connect(convolver);
-        scrapeN.start(now);
-
-        // Bolt slam forward
-        const slamOsc = actx.createOscillator();
-        const slamGain = actx.createGain();
-        slamOsc.connect(slamGain); slamGain.connect(dryGain); slamGain.connect(convolver);
-        slamOsc.type = 'square';
-        slamOsc.frequency.setValueAtTime(120, now + 0.1);
-        slamOsc.frequency.exponentialRampToValueAtTime(40, now + 0.18);
-        slamGain.gain.setValueAtTime(0.5, now + 0.1);
-        slamGain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-        slamOsc.start(now + 0.1); slamOsc.stop(now + 0.2);
-
-        // Sharp impact click
+        // Layer 1: Deep impact thump (mag slamming home)
         const impactOsc = actx.createOscillator();
         const impactGain = actx.createGain();
-        impactOsc.connect(impactGain); impactGain.connect(dryGain);
-        impactOsc.type = 'square';
-        impactOsc.frequency.setValueAtTime(4000, now + 0.1);
-        impactOsc.frequency.exponentialRampToValueAtTime(1000, now + 0.12);
-        impactGain.gain.setValueAtTime(0.35, now + 0.1);
-        impactGain.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
-        impactOsc.start(now + 0.1); impactOsc.stop(now + 0.15);
+        const impactFilter = actx.createBiquadFilter();
+        impactOsc.connect(impactFilter);
+        impactFilter.connect(impactGain);
+        impactGain.connect(dryGain);
+        impactOsc.type = 'sine';
+        impactOsc.frequency.setValueAtTime(80, now);
+        impactOsc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+        impactFilter.type = 'lowpass';
+        impactFilter.frequency.value = 200;
+        impactGain.gain.setValueAtTime(1.0, now);
+        impactGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        impactOsc.start(now); impactOsc.stop(now + 0.15);
 
-        // Metal ring after slam
+        // Layer 2: Sharp latch click
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(4000, now);
+        osc.frequency.exponentialRampToValueAtTime(1500, now + 0.01);
+        filter.type = 'highpass';
+        filter.frequency.value = 2000;
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.02);
+        osc.start(now); osc.stop(now + 0.025);
+
+        // Layer 3: Metal-on-metal clunk
+        const clunkOsc = actx.createOscillator();
+        const clunkGain = actx.createGain();
+        clunkOsc.connect(clunkGain);
+        clunkGain.connect(dryGain);
+        clunkGain.connect(convolver);
+        clunkOsc.type = 'sawtooth';
+        clunkOsc.frequency.setValueAtTime(200, now);
+        clunkOsc.frequency.exponentialRampToValueAtTime(80, now + 0.06);
+        clunkGain.gain.setValueAtTime(0.6, now);
+        clunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        clunkOsc.start(now); clunkOsc.stop(now + 0.1);
+
+        // Layer 4: Metallic ring/resonance
         const ringOsc = actx.createOscillator();
         const ringGain = actx.createGain();
         const ringFilter = actx.createBiquadFilter();
         ringOsc.connect(ringFilter); ringFilter.connect(ringGain);
         ringGain.connect(dryGain); ringGain.connect(convolver);
         ringOsc.type = 'sine';
-        ringOsc.frequency.setValueAtTime(800, now + 0.11);
-        ringFilter.type = 'bandpass'; ringFilter.frequency.value = 800; ringFilter.Q.value = 15;
-        ringGain.gain.setValueAtTime(0.15, now + 0.11);
-        ringGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-        ringOsc.start(now + 0.11); ringOsc.stop(now + 0.4);
+        ringOsc.frequency.setValueAtTime(600, now);
+        ringOsc.frequency.exponentialRampToValueAtTime(400, now + 0.2);
+        ringFilter.type = 'bandpass';
+        ringFilter.frequency.value = 500;
+        ringFilter.Q.value = 12;
+        ringGain.gain.setValueAtTime(0.25, now + 0.01);
+        ringGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        ringOsc.start(now); ringOsc.stop(now + 0.3);
+
+        // Layer 5: Snap transient
+        const snapBuf = actx.createBuffer(1, actx.sampleRate * 0.02, actx.sampleRate);
+        const snapOut = snapBuf.getChannelData(0);
+        for (let i = 0; i < snapBuf.length; i++) {
+            snapOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.003)) * 1.2;
+        }
+        const snapN = actx.createBufferSource(); snapN.buffer = snapBuf;
+        const snapFilter = actx.createBiquadFilter();
+        snapFilter.type = 'highpass'; snapFilter.frequency.value = 3500;
+        const snapG = actx.createGain();
+        snapG.gain.setValueAtTime(0.5, now);
+        snapN.connect(snapFilter); snapFilter.connect(snapG); snapG.connect(dryGain);
+        snapN.start(now);
+
+        // Layer 6: Sub-bass punch
+        const subOsc = actx.createOscillator();
+        const subGain = actx.createGain();
+        subOsc.connect(subGain);
+        subGain.connect(dryGain);
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(50, now);
+        subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.08);
+        subGain.gain.setValueAtTime(0.6, now);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        subOsc.start(now); subOsc.stop(now + 0.12);
+        return;
+
+    } else if (type === 'rack') {
+        // BEEFY BOLT RACK - Aggressive charging handle slam
+
+        // Layer 1: Pull back - heavy metal scrape
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(500, now + 0.1);
+        filter.type = 'bandpass';
+        filter.frequency.value = 1500;
+        filter.Q.value = 2;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.14);
+
+        // Layer 2: Aggressive scrape noise
+        const scrapeBuf = actx.createBuffer(1, actx.sampleRate * 0.12, actx.sampleRate);
+        const scrapeOut = scrapeBuf.getChannelData(0);
+        for (let i = 0; i < scrapeBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            const env = Math.exp(-t * 10);
+            scrapeOut[i] = (Math.random() * 2 - 1) * env * (0.6 + 0.4 * Math.sin(i * 0.08));
+        }
+        const scrapeN = actx.createBufferSource(); scrapeN.buffer = scrapeBuf;
+        const scrapeFilter = actx.createBiquadFilter();
+        scrapeFilter.type = 'bandpass'; scrapeFilter.frequency.value = 3000; scrapeFilter.Q.value = 1.5;
+        const scrapeG = actx.createGain();
+        scrapeG.gain.setValueAtTime(0.45, now);
+        scrapeN.connect(scrapeFilter); scrapeFilter.connect(scrapeG);
+        scrapeG.connect(dryGain); scrapeG.connect(convolver);
+        scrapeN.start(now);
+
+        // Layer 3: HEAVY bolt slam forward
+        const slamOsc = actx.createOscillator();
+        const slamGain = actx.createGain();
+        slamOsc.connect(slamGain); slamGain.connect(dryGain); slamGain.connect(convolver);
+        slamOsc.type = 'sine';
+        slamOsc.frequency.setValueAtTime(100, now + 0.12);
+        slamOsc.frequency.exponentialRampToValueAtTime(35, now + 0.22);
+        slamGain.gain.setValueAtTime(0.9, now + 0.12);
+        slamGain.gain.exponentialRampToValueAtTime(0.01, now + 0.24);
+        slamOsc.start(now + 0.12); slamOsc.stop(now + 0.28);
+
+        // Layer 4: Sharp metal impact
+        const impOsc = actx.createOscillator();
+        const impGain = actx.createGain();
+        impOsc.connect(impGain); impGain.connect(dryGain);
+        impOsc.type = 'square';
+        impOsc.frequency.setValueAtTime(5000, now + 0.12);
+        impOsc.frequency.exponentialRampToValueAtTime(1200, now + 0.14);
+        impGain.gain.setValueAtTime(0.5, now + 0.12);
+        impGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        impOsc.start(now + 0.12); impOsc.stop(now + 0.17);
+
+        // Layer 5: Metal clunk body
+        const clunkOsc = actx.createOscillator();
+        const clunkGain = actx.createGain();
+        clunkOsc.connect(clunkGain); clunkGain.connect(dryGain);
+        clunkOsc.type = 'sawtooth';
+        clunkOsc.frequency.setValueAtTime(150, now + 0.12);
+        clunkOsc.frequency.exponentialRampToValueAtTime(60, now + 0.18);
+        clunkGain.gain.setValueAtTime(0.5, now + 0.12);
+        clunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        clunkOsc.start(now + 0.12); clunkOsc.stop(now + 0.22);
+
+        // Layer 6: Resonant metal ring
+        const ringOsc = actx.createOscillator();
+        const ringGain = actx.createGain();
+        const ringFilter = actx.createBiquadFilter();
+        ringOsc.connect(ringFilter); ringFilter.connect(ringGain);
+        ringGain.connect(dryGain); ringGain.connect(convolver);
+        ringOsc.type = 'sine';
+        ringOsc.frequency.setValueAtTime(900, now + 0.13);
+        ringFilter.type = 'bandpass'; ringFilter.frequency.value = 900; ringFilter.Q.value = 20;
+        ringGain.gain.setValueAtTime(0.2, now + 0.13);
+        ringGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        ringOsc.start(now + 0.13); ringOsc.stop(now + 0.5);
+
+        // Layer 7: Sub-bass slam punch
+        const subOsc = actx.createOscillator();
+        const subGain = actx.createGain();
+        subOsc.connect(subGain);
+        subGain.connect(dryGain);
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(45, now + 0.12);
+        subOsc.frequency.exponentialRampToValueAtTime(20, now + 0.2);
+        subGain.gain.setValueAtTime(0.7, now + 0.12);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+        subOsc.start(now + 0.12); subOsc.stop(now + 0.25);
+
+        // Layer 8: Spring tension release noise
+        const springBuf = actx.createBuffer(1, actx.sampleRate * 0.08, actx.sampleRate);
+        const springOut = springBuf.getChannelData(0);
+        for (let i = 0; i < springBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            springOut[i] = Math.sin(i * 0.15) * Math.exp(-t * 30) * 0.4;
+        }
+        const springN = actx.createBufferSource(); springN.buffer = springBuf;
+        const springFilter = actx.createBiquadFilter();
+        springFilter.type = 'highpass'; springFilter.frequency.value = 1500;
+        const springG = actx.createGain();
+        springG.gain.value = 0.3;
+        springN.connect(springFilter); springFilter.connect(springG);
+        springG.connect(dryGain);
+        springN.start(now + 0.12);
+        return;
 
     } else if (type === 'pickup') {
         // Satisfying pickup chime
@@ -1912,7 +2359,7 @@ const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide
 });
 const sky = new THREE.Mesh(skyGeo, skyMat);
-scene.add(sky);
+// scene.add(sky); // Disabled - indoor arena with roof
 
 // Sunset clouds - scattered wispy shapes
 const cloudGroup = new THREE.Group();
@@ -1942,14 +2389,14 @@ for (let i = 0; i < 25; i++) {
     cloud.lookAt(0, height, 0);
     cloudGroup.add(cloud);
 }
-scene.add(cloudGroup);
+// scene.add(cloudGroup); // Disabled - indoor arena with roof
 
-// Setting sun
+// Setting sun (disabled for indoor)
 const sunGeo = new THREE.SphereGeometry(25, 32, 32);
 const sunMat = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
 const sun = new THREE.Mesh(sunGeo, sunMat);
 sun.position.set(-200, 40, -350);
-scene.add(sun);
+// scene.add(sun); // Disabled - indoor arena
 
 // Sun glow - large orange halo
 const sunGlowGeo = new THREE.SphereGeometry(60, 32, 32);
@@ -1960,7 +2407,7 @@ const sunGlowMat = new THREE.MeshBasicMaterial({
 });
 const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
 sunGlow.position.copy(sun.position);
-scene.add(sunGlow);
+// scene.add(sunGlow); // Disabled - indoor arena
 
 // Outer sun glow
 const sunGlow2Geo = new THREE.SphereGeometry(100, 32, 32);
@@ -1971,24 +2418,25 @@ const sunGlow2Mat = new THREE.MeshBasicMaterial({
 });
 const sunGlow2 = new THREE.Mesh(sunGlow2Geo, sunGlow2Mat);
 sunGlow2.position.copy(sun.position);
-scene.add(sunGlow2);
+// scene.add(sunGlow2); // Disabled - indoor arena
 
-// Warm sunset fog
-scene.fog = new THREE.FogExp2(0x442020, 0.008);
+// Indoor haze/dust fog (subtle)
+scene.fog = new THREE.FogExp2(0x222225, 0.006);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500); // Reduced FOV and far plane for performance
 const renderer = new THREE.WebGLRenderer({
-    antialias: false, // Disable antialiasing for performance
+    antialias: true, // Enable for cleaner edges
     powerPreference: "high-performance",
-    precision: "mediump" // Lower precision for mobile
+    precision: "highp" // High precision for better visuals
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Reduced pixel ratio for performance
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0)); // Higher quality
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.BasicShadowMap; // Basic shadows for performance
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft realistic shadows
 renderer.shadowMap.autoUpdate = false; // Manual shadow update
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.NoToneMapping; // Disable tone mapping for performance
+renderer.toneMapping = THREE.ACESFilmicToneMapping; // Cinematic tone mapping
+renderer.toneMappingExposure = 1.1; // Slightly brighter
 renderer.physicallyCorrectLights = true; // PBR lighting
 document.body.appendChild(renderer.domElement);
 
@@ -2029,7 +2477,7 @@ const bloomPass = new THREE.UnrealBloomPass(
 );
 composer.addPass(bloomPass);
 
-// Color Grading - DISABLED (was causing blue tint)
+// Color Grading - DISABLED (ACES tone mapping provides good cinematic look)
 // const colorGradingPass = new THREE.ShaderPass(ColorGradingShader);
 // composer.addPass(colorGradingPass);
 
@@ -2037,19 +2485,25 @@ composer.addPass(bloomPass);
 const motionBlurPass = new THREE.ShaderPass(MotionBlurShader);
 composer.addPass(motionBlurPass);
 
-// Chromatic Aberration - DISABLED for performance
-// const chromaticPass = new THREE.ShaderPass(ChromaticAberrationShader);
-// composer.addPass(chromaticPass);
+// Chromatic Aberration - Subtle realism, increases during action
+const chromaticPass = new THREE.ShaderPass(ChromaticAberrationShader);
+chromaticPass.uniforms.amount.value = 0.001; // Very subtle base
+composer.addPass(chromaticPass);
 
-// Film Grain - DISABLED for performance (barely noticeable)
+// Film Grain - DISABLED for cleaner look
 // const grainPass = new THREE.ShaderPass(FilmGrainShader);
+// grainPass.uniforms.intensity.value = 0.04;
 // composer.addPass(grainPass);
 
-// Vignette - DISABLED
+// Vignette - DISABLED per user request
 // const vignettePass = new THREE.ShaderPass(VignetteShader);
-// vignettePass.uniforms.intensity.value = 0.35;
-// vignettePass.uniforms.smoothness.value = 0.5;
 // composer.addPass(vignettePass);
+
+// FXAA - Fast approximate anti-aliasing for cleaner edges
+const fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+const pixelRatio = renderer.getPixelRatio();
+fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pixelRatio), 1 / (window.innerHeight * pixelRatio));
+composer.addPass(fxaaPass);
 
 // Sun screen position for god rays and lens flare (updated in animate loop)
 let sunScreenPos = new THREE.Vector2(0.3, 0.7);
@@ -2069,34 +2523,66 @@ envCtx.fillRect(0, 0, envMapSize, envMapSize);
 const envMapTex = new THREE.CanvasTexture(envMapCanvas);
 envMapTex.mapping = THREE.EquirectangularReflectionMapping;
 
-// Warm ambient for sunset
-const ambientLight = new THREE.AmbientLight(0xff9966, 0.5);
+// ============ INDOOR FLUORESCENT LIGHTING ============
+// Brighter cool white ambient for indoor feel
+const ambientLight = new THREE.AmbientLight(0xdddde8, 0.6);
 scene.add(ambientLight);
 
-// Hemisphere light - orange sky, warm ground
-const hemiLight = new THREE.HemisphereLight(0xff8844, 0x553322, 0.4);
+// Hemisphere light - bright ceiling, lighter floor
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x666677, 0.5);
 scene.add(hemiLight);
 
-// Sunlight - warm golden, coming from sun position
-const dirLight = new THREE.DirectionalLight(0xffcc66, 1.5);
-dirLight.position.set(-200, 40, -350); // Same as sun position
+// Main overhead light (like a big fluorescent panel) - straight down
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dirLight.position.set(0, 100, 0); // Straight above
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048; // Higher resolution shadows
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
 dirLight.shadow.bias = -0.0002;
 dirLight.shadow.normalBias = 0.02;
-dirLight.shadow.radius = 2; // Soft shadow blur
+dirLight.shadow.radius = 3; // Softer shadows for fluorescent
 dirLight.shadow.camera.left = -100;
 dirLight.shadow.camera.right = 100;
 dirLight.shadow.camera.top = 100;
 dirLight.shadow.camera.bottom = -100;
-dirLight.shadow.camera.near = 0.5;
-dirLight.shadow.camera.far = 600;
+dirLight.shadow.camera.near = 10;
+dirLight.shadow.camera.far = 150;
 scene.add(dirLight);
 
-// Purple-ish rim light from opposite side for contrast
-// Subtle cool rim light for contrast (very low intensity)
-const rimLight = new THREE.DirectionalLight(0x8888aa, 0.15);
-rimLight.position.set(5, 2, 5);
+// Fluorescent strip lights array (for that warehouse look)
+const fluorLights = [];
+const FLUOR_ROWS = 5;
+const FLUOR_COLS = 5;
+const FLUOR_SPACING = 28;
+const ROOF_HEIGHT = 30;
+
+for (let row = 0; row < FLUOR_ROWS; row++) {
+    for (let col = 0; col < FLUOR_COLS; col++) {
+        const x = (col - (FLUOR_COLS - 1) / 2) * FLUOR_SPACING;
+        const z = (row - (FLUOR_ROWS - 1) / 2) * FLUOR_SPACING;
+
+        // Point light for each fluorescent fixture (brighter)
+        const fluorLight = new THREE.PointLight(0xffffff, 1.0, 50, 2);
+        fluorLight.position.set(x, ROOF_HEIGHT - 2, z);
+        scene.add(fluorLight);
+        fluorLights.push(fluorLight);
+
+        // Visible fluorescent tube (emissive mesh)
+        const tubeGeo = new THREE.BoxGeometry(8, 0.3, 1);
+        const tubeMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xeeffff,
+            emissiveIntensity: 2
+        });
+        const tube = new THREE.Mesh(tubeGeo, tubeMat);
+        tube.position.set(x, ROOF_HEIGHT - 1, z);
+        scene.add(tube);
+    }
+}
+
+// Subtle fill light for visibility
+const rimLight = new THREE.DirectionalLight(0xaaaacc, 0.1);
+rimLight.position.set(5, 10, 5);
 scene.add(rimLight);
 
 // Muzzle flash light
@@ -2125,13 +2611,220 @@ const floorMat = new THREE.MeshStandardMaterial({
     bumpMap: concreteTex,
     bumpScale: 0.05
 });
-// Map size reduced to 80x80
-const MAP_SIZE = 80;
+// Larger arena for zombie swarms
+const MAP_SIZE = 140;
 const MAP_HALF = MAP_SIZE / 2;
 
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE), floorMat);
 floor.rotation.x = -Math.PI / 2; floor.position.y = -5; floor.receiveShadow = true;
 scene.add(floor);
+
+// ============ ROOF/CEILING ============
+// Create industrial ceiling texture
+const ceilingTexCanvas = document.createElement('canvas');
+ceilingTexCanvas.width = 256;
+ceilingTexCanvas.height = 256;
+const ceilCtx = ceilingTexCanvas.getContext('2d');
+
+// Base ceiling color (industrial gray)
+ceilCtx.fillStyle = '#404045';
+ceilCtx.fillRect(0, 0, 256, 256);
+
+// Add ceiling tile grid pattern
+ceilCtx.strokeStyle = '#353538';
+ceilCtx.lineWidth = 2;
+const tileSize = 64;
+for (let x = 0; x <= 256; x += tileSize) {
+    ceilCtx.beginPath();
+    ceilCtx.moveTo(x, 0);
+    ceilCtx.lineTo(x, 256);
+    ceilCtx.stroke();
+}
+for (let y = 0; y <= 256; y += tileSize) {
+    ceilCtx.beginPath();
+    ceilCtx.moveTo(0, y);
+    ceilCtx.lineTo(256, y);
+    ceilCtx.stroke();
+}
+
+// Add some subtle variation/stains
+for (let i = 0; i < 20; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const radius = 5 + Math.random() * 20;
+    ceilCtx.fillStyle = `rgba(${Math.random() > 0.5 ? 50 : 30}, ${Math.random() > 0.5 ? 50 : 30}, ${Math.random() > 0.5 ? 52 : 32}, 0.3)`;
+    ceilCtx.beginPath();
+    ceilCtx.arc(x, y, radius, 0, Math.PI * 2);
+    ceilCtx.fill();
+}
+
+const ceilingTex = new THREE.CanvasTexture(ceilingTexCanvas);
+ceilingTex.wrapS = ceilingTex.wrapT = THREE.RepeatWrapping;
+ceilingTex.repeat.set(4, 4);
+
+const ceilingMat = new THREE.MeshStandardMaterial({
+    map: ceilingTex,
+    color: 0x555560,
+    roughness: 0.9,
+    side: THREE.BackSide // Visible from below
+});
+
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(MAP_SIZE + 10, MAP_SIZE + 10), ceilingMat);
+ceiling.rotation.x = -Math.PI / 2;
+ceiling.position.y = ROOF_HEIGHT;
+ceiling.receiveShadow = false;
+scene.add(ceiling);
+
+// ============ CENTRAL HILL ============
+const HILL_RADIUS = 18;
+const HILL_HEIGHT = 5;
+const HILL_CENTER_X = 0;
+const HILL_CENTER_Z = 0;
+
+// Create smooth mound geometry (hemisphere-like)
+const hillSegments = 32;
+const hillGeo = new THREE.BufferGeometry();
+const hillVertices = [];
+const hillIndices = [];
+const hillUvs = [];
+const hillNormals = [];
+
+// Generate vertices for a smooth dome/mound
+for (let ring = 0; ring <= hillSegments; ring++) {
+    const ringRatio = ring / hillSegments;
+    const radius = HILL_RADIUS * ringRatio;
+    const height = HILL_HEIGHT * Math.cos(ringRatio * Math.PI / 2); // Cosine falloff for smooth hill
+
+    for (let seg = 0; seg <= hillSegments; seg++) {
+        const angle = (seg / hillSegments) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = height;
+
+        hillVertices.push(x, y, z);
+        hillUvs.push(seg / hillSegments, ring / hillSegments);
+
+        // Calculate normal (pointing outward/upward)
+        const nx = Math.cos(angle) * ringRatio * 0.5;
+        const ny = 1 - ringRatio * 0.5;
+        const nz = Math.sin(angle) * ringRatio * 0.5;
+        const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        hillNormals.push(nx / nLen, ny / nLen, nz / nLen);
+    }
+}
+
+// Generate indices (reversed winding for outward-facing normals)
+for (let ring = 0; ring < hillSegments; ring++) {
+    for (let seg = 0; seg < hillSegments; seg++) {
+        const curr = ring * (hillSegments + 1) + seg;
+        const next = curr + hillSegments + 1;
+
+        // Correct winding order for visible from outside
+        hillIndices.push(curr, curr + 1, next);
+        hillIndices.push(curr + 1, next + 1, next);
+    }
+}
+
+hillGeo.setAttribute('position', new THREE.Float32BufferAttribute(hillVertices, 3));
+hillGeo.setAttribute('uv', new THREE.Float32BufferAttribute(hillUvs, 2));
+hillGeo.setAttribute('normal', new THREE.Float32BufferAttribute(hillNormals, 3));
+hillGeo.setIndex(hillIndices);
+
+// Procedural grass texture for hill
+const grassTexCanvas = document.createElement('canvas');
+grassTexCanvas.width = 256;
+grassTexCanvas.height = 256;
+const grassCtx = grassTexCanvas.getContext('2d');
+
+// Base grass green
+grassCtx.fillStyle = '#3d5c28';
+grassCtx.fillRect(0, 0, 256, 256);
+
+// Add grass blade variations
+for (let i = 0; i < 2000; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const length = 3 + Math.random() * 8;
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+
+    // Vary green shades
+    const shade = Math.floor(Math.random() * 40);
+    const r = 45 + shade;
+    const g = 80 + Math.floor(Math.random() * 30);
+    const b = 30 + Math.floor(Math.random() * 20);
+
+    grassCtx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+    grassCtx.lineWidth = 1 + Math.random();
+    grassCtx.beginPath();
+    grassCtx.moveTo(x, y);
+    grassCtx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+    grassCtx.stroke();
+}
+
+// Add some darker patches for depth
+for (let i = 0; i < 30; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const radius = 5 + Math.random() * 15;
+    grassCtx.fillStyle = 'rgba(30, 50, 20, 0.3)';
+    grassCtx.beginPath();
+    grassCtx.arc(x, y, radius, 0, Math.PI * 2);
+    grassCtx.fill();
+}
+
+// Add lighter highlights
+for (let i = 0; i < 20; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const radius = 3 + Math.random() * 10;
+    grassCtx.fillStyle = 'rgba(100, 140, 60, 0.2)';
+    grassCtx.beginPath();
+    grassCtx.arc(x, y, radius, 0, Math.PI * 2);
+    grassCtx.fill();
+}
+
+const grassTex = new THREE.CanvasTexture(grassTexCanvas);
+grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+grassTex.repeat.set(4, 4);
+
+// Hill material - lush green grass
+const hillMat = new THREE.MeshStandardMaterial({
+    map: grassTex,
+    color: 0x4a7030,
+    roughness: 0.9,
+    bumpMap: grassTex,
+    bumpScale: 0.15
+});
+
+const hill = new THREE.Mesh(hillGeo, hillMat);
+hill.position.set(HILL_CENTER_X, -5, HILL_CENTER_Z);
+hill.receiveShadow = true;
+hill.castShadow = true;
+scene.add(hill);
+
+// Terrain height function - returns Y position at any world X/Z
+function getTerrainHeight(x, z) {
+    const dx = x - HILL_CENTER_X;
+    const dz = z - HILL_CENTER_Z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist >= HILL_RADIUS) {
+        return -5; // Base ground level
+    }
+
+    // Smooth cosine falloff for natural hill shape
+    const ratio = dist / HILL_RADIUS;
+    const height = HILL_HEIGHT * Math.cos(ratio * Math.PI / 2);
+    return -5 + height;
+}
+
+// Check if a position is on the hill (for spawn avoidance)
+function isOnHill(x, z, margin = 2) {
+    const dx = x - HILL_CENTER_X;
+    const dz = z - HILL_CENTER_Z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    return dist < (HILL_RADIUS + margin);
+}
 
 // Walls (Concrete/Light Brick)
 const wallMat = new THREE.MeshStandardMaterial({ 
@@ -2147,8 +2840,177 @@ const wall2 = new THREE.Mesh(wallGeo, wallMat); wall2.position.set(0, 20, MAP_HA
 const wall3 = new THREE.Mesh(wallGeo, wallMat); wall3.position.set(-MAP_HALF, 20, 0); wall3.rotation.y = Math.PI/2; wall3.receiveShadow = true; scene.add(wall3);
 const wall4 = new THREE.Mesh(wallGeo, wallMat); wall4.position.set(MAP_HALF, 20, 0); wall4.rotation.y = -Math.PI/2; wall4.receiveShadow = true; scene.add(wall4);
 
+// ============ SPAWN DOORS ============
+const DOOR_WIDTH = 4;
+const DOOR_HEIGHT = 6;
+const DOOR_DEPTH = 1.5;
+
+// Dark rusty metal door material
+const doorMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.7,
+    metalness: 0.8,
+    emissive: 0x000000
+});
+
+// Door frame material (slightly lighter)
+const doorFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    roughness: 0.6,
+    metalness: 0.7
+});
+
+// Create door geometry
+const doorGeo = new THREE.BoxGeometry(DOOR_WIDTH, DOOR_HEIGHT, DOOR_DEPTH);
+const doorFrameGeo = new THREE.BoxGeometry(DOOR_WIDTH + 0.6, DOOR_HEIGHT + 0.4, DOOR_DEPTH + 0.2);
+
+// Spawn doors array (stores door objects and spawn positions)
+const spawnDoors = [];
+
+// Create doors on each wall (2 per wall = 8 total)
+function createSpawnDoor(x, z, rotationY, wallSide) {
+    const doorGroup = new THREE.Group();
+
+    // Door frame (dark background)
+    const frame = new THREE.Mesh(doorFrameGeo, doorFrameMat);
+    frame.position.y = 0;
+    frame.castShadow = true;
+    frame.receiveShadow = true;
+    doorGroup.add(frame);
+
+    // Left door panel
+    const leftDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(DOOR_WIDTH / 2 - 0.1, DOOR_HEIGHT - 0.4, 0.3),
+        doorMat.clone()
+    );
+    leftDoor.position.set(-DOOR_WIDTH / 4, 0, DOOR_DEPTH / 2 + 0.1);
+    leftDoor.castShadow = true;
+    leftDoor.userData.originalX = leftDoor.position.x;
+    leftDoor.userData.isLeftDoor = true;
+    doorGroup.add(leftDoor);
+
+    // Right door panel
+    const rightDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(DOOR_WIDTH / 2 - 0.1, DOOR_HEIGHT - 0.4, 0.3),
+        doorMat.clone()
+    );
+    rightDoor.position.set(DOOR_WIDTH / 4, 0, DOOR_DEPTH / 2 + 0.1);
+    rightDoor.castShadow = true;
+    rightDoor.userData.originalX = rightDoor.position.x;
+    rightDoor.userData.isRightDoor = true;
+    doorGroup.add(rightDoor);
+
+    // Red warning light above door
+    const warningLight = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 8, 8),
+        new THREE.MeshStandardMaterial({
+            color: 0x330000,
+            emissive: 0x330000,
+            emissiveIntensity: 0.5
+        })
+    );
+    warningLight.position.set(0, DOOR_HEIGHT / 2 + 0.5, DOOR_DEPTH / 2);
+    doorGroup.add(warningLight);
+
+    // Position the door group
+    doorGroup.position.set(x, DOOR_HEIGHT / 2 - 5, z); // -5 is floor offset
+    doorGroup.rotation.y = rotationY;
+    scene.add(doorGroup);
+
+    // Calculate spawn position (slightly in front of door)
+    const spawnOffset = 3;
+    let spawnX = x, spawnZ = z;
+    switch (wallSide) {
+        case 'north': spawnZ += spawnOffset; break;
+        case 'south': spawnZ -= spawnOffset; break;
+        case 'west': spawnX += spawnOffset; break;
+        case 'east': spawnX -= spawnOffset; break;
+    }
+
+    spawnDoors.push({
+        group: doorGroup,
+        leftDoor: leftDoor,
+        rightDoor: rightDoor,
+        warningLight: warningLight,
+        spawnX: spawnX,
+        spawnZ: spawnZ,
+        isOpen: false,
+        openTimer: 0
+    });
+}
+
+// Create doors on each wall (3 per wall for larger arena = 12 total)
+// North wall (z = -MAP_HALF): 3 doors
+createSpawnDoor(-40, -MAP_HALF + 0.5, 0, 'north');
+createSpawnDoor(0, -MAP_HALF + 0.5, 0, 'north');
+createSpawnDoor(40, -MAP_HALF + 0.5, 0, 'north');
+
+// South wall (z = MAP_HALF): 3 doors
+createSpawnDoor(-40, MAP_HALF - 0.5, Math.PI, 'south');
+createSpawnDoor(0, MAP_HALF - 0.5, Math.PI, 'south');
+createSpawnDoor(40, MAP_HALF - 0.5, Math.PI, 'south');
+
+// West wall (x = -MAP_HALF): 3 doors
+createSpawnDoor(-MAP_HALF + 0.5, -40, Math.PI / 2, 'west');
+createSpawnDoor(-MAP_HALF + 0.5, 0, Math.PI / 2, 'west');
+createSpawnDoor(-MAP_HALF + 0.5, 40, Math.PI / 2, 'west');
+
+// East wall (x = MAP_HALF): 3 doors
+createSpawnDoor(MAP_HALF - 0.5, -40, -Math.PI / 2, 'east');
+createSpawnDoor(MAP_HALF - 0.5, 0, -Math.PI / 2, 'east');
+createSpawnDoor(MAP_HALF - 0.5, 40, -Math.PI / 2, 'east');
+
+// Door animation function
+function openDoor(door) {
+    if (door.isOpen) return;
+    door.isOpen = true;
+    door.openTimer = 0;
+
+    // Flash warning light red
+    door.warningLight.material.emissive.setHex(0xff0000);
+    door.warningLight.material.emissiveIntensity = 2;
+
+    // Play door sound
+    playSound('doorOpen');
+}
+
+function updateDoors(dt) {
+    for (const door of spawnDoors) {
+        if (door.isOpen) {
+            door.openTimer += dt;
+
+            // Animate doors sliding open (0 to 0.3 seconds)
+            const openProgress = Math.min(door.openTimer / 0.3, 1);
+            const eased = 1 - Math.pow(1 - openProgress, 3); // ease out cubic
+
+            door.leftDoor.position.x = door.leftDoor.userData.originalX - (DOOR_WIDTH / 2) * eased;
+            door.rightDoor.position.x = door.rightDoor.userData.originalX + (DOOR_WIDTH / 2) * eased;
+
+            // Close door after 1.5 seconds
+            if (door.openTimer > 1.5) {
+                door.isOpen = false;
+                door.openTimer = 0;
+                door.warningLight.material.emissive.setHex(0x330000);
+                door.warningLight.material.emissiveIntensity = 0.5;
+            }
+        } else if (door.leftDoor.position.x !== door.leftDoor.userData.originalX) {
+            // Animate closing
+            door.openTimer += dt;
+            const closeProgress = Math.min(door.openTimer / 0.5, 1);
+            const eased = 1 - Math.pow(1 - closeProgress, 2);
+
+            door.leftDoor.position.x = door.leftDoor.userData.originalX - (DOOR_WIDTH / 2) * (1 - eased);
+            door.rightDoor.position.x = door.rightDoor.userData.originalX + (DOOR_WIDTH / 2) * (1 - eased);
+
+            if (closeProgress >= 1) {
+                door.openTimer = 0;
+            }
+        }
+    }
+}
+
 const targets = [];
-targets.push(floor, wall1, wall2, wall3, wall4);
+targets.push(floor, hill, wall1, wall2, wall3, wall4);
 
 // ============ COLLISION SYSTEM ============
 // Get bounding box for an object (handles world transforms)
@@ -2415,47 +3277,154 @@ const shirtTex = new THREE.CanvasTexture(shirtTexCanvas);
 const zombieShirtMat = new THREE.MeshStandardMaterial({ map: shirtTex, roughness: 0.8 });
 const zombiePantsMat = new THREE.MeshStandardMaterial({ color: 0x252525, roughness: 0.8 });
 
-function createZombieMesh() {
-    const group = new THREE.Group();
-    const scale = 2.0;
+// ============ ZOMBIE VARIANTS ============
+const ZOMBIE_VARIANTS = {
+    normal: {
+        name: 'Normal',
+        scale: 1.0,
+        healthMod: 1.0,
+        speedMod: 1.0,
+        damageMod: 1.0,
+        skinColor: 0x5a6b4a,     // Gray-green
+        skinColorDark: 0x3d4a35,
+        shirtColor: null,        // Use default texture
+        pantsColor: 0x252525,
+        spawnWeight: 50          // Higher = more common
+    },
+    runner: {
+        name: 'Runner',
+        scale: 0.85,
+        healthMod: 0.5,          // Low health
+        speedMod: 1.8,           // Very fast
+        damageMod: 0.7,
+        skinColor: 0x8a9a8a,     // Pale gray
+        skinColorDark: 0x6a7a6a,
+        shirtColor: 0x444444,
+        pantsColor: 0x333333,
+        spawnWeight: 25
+    },
+    brute: {
+        name: 'Brute',
+        scale: 1.5,
+        healthMod: 3.0,          // Very tanky
+        speedMod: 0.55,          // Slow
+        damageMod: 2.5,          // Hits hard
+        skinColor: 0x4a2525,     // Dark red/brown
+        skinColorDark: 0x351818,
+        shirtColor: 0x2a1515,
+        pantsColor: 0x1a1010,
+        spawnWeight: 10
+    },
+    crawler: {
+        name: 'Crawler',
+        scale: 0.65,
+        healthMod: 0.8,
+        speedMod: 0.7,
+        damageMod: 1.2,
+        skinColor: 0x5a4a35,     // Rotted brown
+        skinColorDark: 0x3d3020,
+        shirtColor: 0x352a20,
+        pantsColor: 0x252015,
+        spawnWeight: 15
+    }
+};
 
-    // Head - decayed zombie skin
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 12, 8), zombieSkinMat);
+// Pick random variant based on wave and weights
+function pickZombieVariant(waveNum) {
+    // Early waves: mostly normal zombies
+    // Later waves: more special variants
+    const variantChance = Math.min(0.6, 0.1 + waveNum * 0.05);
+
+    if (Math.random() > variantChance) {
+        return 'normal';
+    }
+
+    // Pick weighted random variant (excluding normal for special spawn)
+    const specialVariants = ['runner', 'brute', 'crawler'];
+    let weights = specialVariants.map(v => {
+        let w = ZOMBIE_VARIANTS[v].spawnWeight;
+        // Brutes more common in later waves
+        if (v === 'brute' && waveNum >= 5) w *= 1.5;
+        // Runners more common early
+        if (v === 'runner' && waveNum < 3) w *= 1.5;
+        return w;
+    });
+
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * totalWeight;
+
+    for (let i = 0; i < specialVariants.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) return specialVariants[i];
+    }
+
+    return 'normal';
+}
+
+function createZombieMesh(variant = 'normal') {
+    const config = ZOMBIE_VARIANTS[variant] || ZOMBIE_VARIANTS.normal;
+    const group = new THREE.Group();
+    const baseScale = 2.0;
+    const scale = baseScale * config.scale;
+
+    // Create variant-specific materials
+    const variantSkinMat = new THREE.MeshStandardMaterial({
+        color: config.skinColor,
+        roughness: 0.9
+    });
+    const variantSkinDarkMat = new THREE.MeshStandardMaterial({
+        color: config.skinColorDark,
+        roughness: 0.9
+    });
+    const variantShirtMat = config.shirtColor
+        ? new THREE.MeshStandardMaterial({ color: config.shirtColor, roughness: 0.8 })
+        : zombieShirtMat;
+    const variantPantsMat = new THREE.MeshStandardMaterial({
+        color: config.pantsColor,
+        roughness: 0.8
+    });
+
+    // Head - variant colored zombie skin
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 12, 8), variantSkinMat);
     head.position.y = 1.85 * scale;
     head.castShadow = true;
     group.add(head);
 
-    // Torso - tattered bloody shirt
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * scale, 0.9 * scale, 0.4 * scale), zombieShirtMat);
+    // Torso - variant shirt
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * scale, 0.9 * scale, 0.4 * scale), variantShirtMat);
     torso.position.y = 1.1 * scale;
     torso.castShadow = true;
     group.add(torso);
 
     // Arms - zombie skin, arms extended forward
     const armGeo = new THREE.BoxGeometry(0.2 * scale, 0.7 * scale, 0.2 * scale);
-    const leftArm = new THREE.Mesh(armGeo, zombieSkinMat);
+    const leftArm = new THREE.Mesh(armGeo, variantSkinMat);
     leftArm.position.set(-0.45 * scale, 1.3 * scale, 0.4 * scale);
     leftArm.rotation.x = -Math.PI / 3; // Arms reaching forward
     leftArm.castShadow = true;
     group.add(leftArm);
 
-    const rightArm = new THREE.Mesh(armGeo, zombieSkinDarkMat);
+    const rightArm = new THREE.Mesh(armGeo, variantSkinDarkMat);
     rightArm.position.set(0.45 * scale, 1.3 * scale, 0.4 * scale);
     rightArm.rotation.x = -Math.PI / 3;
     rightArm.castShadow = true;
     group.add(rightArm);
 
-    // Legs - dirty dark pants
+    // Legs - variant pants
     const legGeo = new THREE.BoxGeometry(0.25 * scale, 0.8 * scale, 0.25 * scale);
-    const leftLeg = new THREE.Mesh(legGeo, zombiePantsMat);
+    const leftLeg = new THREE.Mesh(legGeo, variantPantsMat);
     leftLeg.position.set(-0.2 * scale, 0.4 * scale, 0);
     leftLeg.castShadow = true;
     group.add(leftLeg);
 
-    const rightLeg = new THREE.Mesh(legGeo, zombiePantsMat);
+    const rightLeg = new THREE.Mesh(legGeo, variantPantsMat);
     rightLeg.position.set(0.2 * scale, 0.4 * scale, 0);
     rightLeg.castShadow = true;
     group.add(rightLeg);
+
+    // Store variant info on group for reference
+    group.userData.variant = variant;
+    group.userData.variantScale = config.scale;
 
     return group;
 }
@@ -2568,24 +3537,32 @@ const HiveMind = {
 };
 
 class Zombie {
-    constructor(x, z, waveNum = 1) {
-        this.mesh = createZombieMesh();
+    constructor(x, z, waveNum = 1, variant = 'normal') {
+        // Get variant config
+        this.variant = variant;
+        this.variantConfig = ZOMBIE_VARIANTS[variant] || ZOMBIE_VARIANTS.normal;
+
+        this.mesh = createZombieMesh(variant);
         this.mesh.position.set(x, -5, z);
         scene.add(this.mesh);
 
-        // Scale health and speed with wave
+        // Scale health and speed with wave AND variant
         const waveMod = 1 + (waveNum - 1) * 0.1;
-        this.health = Math.floor(2 + Math.random() * 2 * waveMod);
+        const baseHealth = Math.floor(2 + Math.random() * 2 * waveMod);
+        this.health = Math.floor(baseHealth * this.variantConfig.healthMod);
         this.maxHealth = this.health;
-        this.baseSpeed = 3 + Math.random() * 2; // Normal speed (removed wave scaling)
+        const baseSpd = 4.0 + Math.random() * 2.0; // Slower zombies
+        this.baseSpeed = baseSpd * this.variantConfig.speedMod;
         this.speed = this.baseSpeed;
 
         // State
         this.isDead = false;
         this.deathTime = 0;
         this.attackCooldown = 0;
-        this.attackRange = 3.5; // Distance to damage player
-        this.attackDamage = 10 + Math.floor(waveNum / 2) * 5; // More damage later waves
+        this.attackRange = 3.5 * this.variantConfig.scale; // Scale attack range with size
+        const baseDamage = 10 + Math.floor(waveNum / 2) * 5;
+        this.attackDamage = Math.floor(baseDamage * this.variantConfig.damageMod);
+        this.headExploded = false; // Tracks if head was blown off
         
         // AI STATE - Swarm Intelligence
         this.aiRole = this.assignRole(); // 'rusher', 'flanker', 'lurker'
@@ -2610,12 +3587,13 @@ class Zombie {
         // Ragdoll parts (populated on death)
         this.ragdollParts = [];
 
-        // Hitbox for raycasting
+        // Hitbox for raycasting (scaled by variant)
+        const hitScale = this.variantConfig.scale;
         this.hitbox = new THREE.Mesh(
-            new THREE.BoxGeometry(1.6, 4.4, 1.0),
+            new THREE.BoxGeometry(1.6 * hitScale, 4.4 * hitScale, 1.0 * hitScale),
             new THREE.MeshBasicMaterial({ visible: false })
         );
-        this.hitbox.position.y = 2.2;
+        this.hitbox.position.y = 2.2 * hitScale;
         this.mesh.add(this.hitbox);
         this.hitbox.userData.isBot = true;
         this.hitbox.userData.botRef = this;
@@ -2787,13 +3765,36 @@ class Zombie {
         this.health -= damage;
         playSound('zombieHit');
 
-        // Flinch reaction
-        this.mesh.rotation.x = -0.2;
+        // === ENHANCED: Hit Stagger Animation ===
+        // Direction from player to zombie (knockback direction)
+        const knockDir = new THREE.Vector3();
+        knockDir.subVectors(this.mesh.position, camera.position).normalize();
+
+        // Stagger/flinch with random variation
+        const flinchIntensity = 0.15 + Math.random() * 0.15;
+        this.mesh.rotation.x = -flinchIntensity - Math.random() * 0.1;
+        this.mesh.rotation.z = (Math.random() - 0.5) * 0.2; // Slight random side tilt
+
+        // Knockback - push zombie away from player slightly
+        const knockbackStrength = 0.3 + Math.random() * 0.2;
+        this.mesh.position.x += knockDir.x * knockbackStrength;
+        this.mesh.position.z += knockDir.z * knockbackStrength;
+
+        // Store hit time for stagger recovery animation
+        if (!this.lastHitTime) this.lastHitTime = 0;
+        this.lastHitTime = performance.now();
+        this.isStaggered = true;
+
+        // Schedule stagger recovery
+        setTimeout(() => {
+            if (!this.isDead) {
+                this.isStaggered = false;
+            }
+        }, 150 + Math.random() * 100);
 
         // VIOLENT blood spray from hit point
         const bloodPos = hitPoint || this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
-        const bloodDir = new THREE.Vector3();
-        bloodDir.subVectors(this.mesh.position, camera.position).normalize();
+        const bloodDir = knockDir.clone();
         spawnBloodSpray(bloodPos, bloodDir, this.health <= 0 ? 4 : 2); // More blood on every hit
         if (Math.random() > 0.5) {
             spawnGoreChunks(bloodPos, bloodDir); // Chance for gore on hits too
@@ -2807,22 +3808,17 @@ class Zombie {
     die() {
         this.isDead = true;
         this.deathTime = performance.now();
-        
+
         // Release flank slot when zombie dies
         HiveMind.releaseFlankSlot(this);
-        
-        playSound('zombieDeath');
 
-        // Award score
-        addScore(100);
+        // Only play death sound if not headshot (headshot has its own sound)
+        if (!this.headExploded) {
+            playSound('zombieDeath');
+            addScore(100);
+        }
+        // Headshot score is already added in shoot()
         zombiesKilledThisWave++;
-
-        // Drops disabled for now
-        // if (Math.random() < 0.2) {
-        //     const dropTypes = ['ammo', 'ammo', 'ammo', 'health', 'speed', 'damage'];
-        //     const dropType = dropTypes[Math.floor(Math.random() * dropTypes.length)];
-        //     spawnPickup(dropType, this.mesh.position.x, this.mesh.position.z);
-        // }
 
         // Remove hitbox from targets
         const idx = targets.indexOf(this.hitbox);
@@ -2832,12 +3828,18 @@ class Zombie {
         const deathDir = new THREE.Vector3();
         deathDir.subVectors(this.mesh.position, camera.position).normalize();
 
-        // VIOLENT Gore effects - extra blood and chunks
-        const centerPos = this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
-        spawnGoreChunks(centerPos, deathDir);
-        spawnGoreChunks(centerPos, deathDir); // Double gore
-        spawnBloodSpray(centerPos, deathDir, 4); // Much more blood
-        spawnBloodSpray(centerPos.clone().add(new THREE.Vector3(0, -0.5, 0)), deathDir, 3);
+        // Gore effects - less if headshot (head already exploded separately)
+        if (!this.headExploded) {
+            const centerPos = this.mesh.position.clone().add(new THREE.Vector3(0, 2, 0));
+            spawnGoreChunks(centerPos, deathDir);
+            spawnGoreChunks(centerPos, deathDir); // Double gore
+            spawnBloodSpray(centerPos, deathDir, 4); // Much more blood
+            spawnBloodSpray(centerPos.clone().add(new THREE.Vector3(0, -0.5, 0)), deathDir, 3);
+        } else {
+            // For headshot, just torso/body blood
+            const torsoPos = this.mesh.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+            spawnBloodSpray(torsoPos, deathDir, 2);
+        }
         spawnBloodPool(this.mesh.position.clone());
         spawnBloodPool(this.mesh.position.clone().add(new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5)));
 
@@ -3008,7 +4010,7 @@ class Zombie {
         // Attack if close enough
         if (dist < this.attackRange && this.attackCooldown <= 0) {
             this.attackCooldown = 1.0; // 1 second between attacks
-            damagePlayer(this.attackDamage);
+            damagePlayer(this.attackDamage, this.mesh.position); // Pass attacker position for directional indicator
             playSound('zombieAttack');
         }
 
@@ -3100,9 +4102,10 @@ class Zombie {
             const leftLeg = this.mesh.children[4];
             const rightLeg = this.mesh.children[5];
 
-            // Organic body vertical bob
+            // Organic body vertical bob + terrain following
             this.headBob = THREE.MathUtils.lerp(this.headBob, Math.sin(this.walkCycle * 2) * 0.08, 0.15);
-            this.mesh.position.y = -5 + this.headBob;
+            const zombieTerrainY = getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
+            this.mesh.position.y = zombieTerrainY + this.headBob;
 
             // Body lean into movement
             this.bodyLean = THREE.MathUtils.lerp(this.bodyLean, 0.15, 0.05);
@@ -3137,12 +4140,19 @@ class Zombie {
                 rightArm.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset + Math.PI) * 0.2 + 0.1;
             }
 
-            // Fluid body sway (drunk shamble)
-            this.mesh.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset) * 0.1;
-            this.mesh.rotation.x = Math.sin(this.walkCycle + this.bobOffset) * 0.03;
+            // Fluid body sway (drunk shamble) - don't override when staggered
+            if (!this.isStaggered) {
+                this.mesh.rotation.z = Math.sin(this.walkCycle * 0.5 + this.swayOffset) * 0.1;
+                this.mesh.rotation.x = Math.sin(this.walkCycle + this.bobOffset) * 0.03;
+            } else {
+                // During stagger, smoothly recover z rotation
+                this.mesh.rotation.z *= 0.92;
+            }
         } else {
-            // Idle sway when close
-            this.mesh.rotation.z = Math.sin(time * 0.002 + this.swayOffset) * 0.05;
+            // Idle sway when close - also respect stagger
+            if (!this.isStaggered) {
+                this.mesh.rotation.z = Math.sin(time * 0.002 + this.swayOffset) * 0.05;
+            }
         }
 
         // Keep within bounds (collision system handles this, but keep as backup)
@@ -3188,18 +4198,25 @@ function startWave(waveNum) {
 
 function spawnZombie() {
     if (zombiesSpawnedThisWave >= zombiesThisWave) return;
+    if (spawnDoors.length === 0) return;
 
-    // Spawn from edges, away from player (adjusted for smaller map)
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 25 + Math.random() * 15;
-    const x = camera.position.x + Math.cos(angle) * distance;
-    const z = camera.position.z + Math.sin(angle) * distance;
+    // Pick a random door to spawn from
+    const doorIndex = Math.floor(Math.random() * spawnDoors.length);
+    const door = spawnDoors[doorIndex];
 
-    // Clamp to arena bounds (smaller map)
-    const clampedX = Math.max(-MAP_HALF + 5, Math.min(MAP_HALF - 5, x));
-    const clampedZ = Math.max(-MAP_HALF + 5, Math.min(MAP_HALF - 5, z));
+    // Open the door with animation and sound
+    openDoor(door);
 
-    zombies.push(new Zombie(clampedX, clampedZ, currentWave));
+    // Spawn zombie at door position (slightly randomized)
+    const offsetX = (Math.random() - 0.5) * 2;
+    const offsetZ = (Math.random() - 0.5) * 2;
+    const x = door.spawnX + offsetX;
+    const z = door.spawnZ + offsetZ;
+
+    // Pick zombie variant based on wave
+    const variant = pickZombieVariant(currentWave);
+
+    zombies.push(new Zombie(x, z, currentWave, variant));
     zombiesSpawnedThisWave++;
 }
 
@@ -3743,7 +4760,150 @@ function spawnGoreChunks(position, direction) {
     }
 }
 
-// Spawn blood decal on surface
+// HEAD EXPLOSION - Satisfying headshot effect
+// Brain/skull material for headshot gore
+const brainMat = new THREE.MeshStandardMaterial({ color: 0xcc6677, roughness: 0.8 });
+const skullMat = new THREE.MeshStandardMaterial({ color: 0xddccbb, roughness: 0.5 });
+
+function explodeHead(zombie, hitPoint, direction) {
+    // Get the head mesh (first child of zombie mesh)
+    const head = zombie.mesh.children[0];
+    if (!head) return;
+
+    // Get head world position before hiding
+    const headWorldPos = new THREE.Vector3();
+    head.getWorldPosition(headWorldPos);
+
+    // Hide the head
+    head.visible = false;
+    zombie.headExploded = true;
+
+    // Play headshot sound
+    playSound('headshot');
+
+    // MASSIVE blood spray in all directions
+    for (let i = 0; i < 5; i++) {
+        const sprayDir = new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 0.5 + 0.5,
+            (Math.random() - 0.5) * 2
+        ).normalize();
+        spawnBloodSpray(headWorldPos.clone(), sprayDir, 3);
+    }
+
+    // Spawn skull fragments
+    const skullFragCount = 6 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < skullFragCount; i++) {
+        const size = 0.08 + Math.random() * 0.12;
+        const geo = new THREE.TetrahedronGeometry(size);
+        const chunk = new THREE.Mesh(geo, skullMat.clone());
+        chunk.position.copy(headWorldPos);
+        chunk.castShadow = true;
+
+        // Explosive outward velocity
+        const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 20,
+            Math.random() * 15 + 5,
+            (Math.random() - 0.5) * 20
+        );
+        // Add direction bias from bullet
+        vel.add(direction.clone().multiplyScalar(10));
+
+        const rotVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 40,
+            (Math.random() - 0.5) * 40,
+            (Math.random() - 0.5) * 40
+        );
+
+        scene.add(chunk);
+        goreChunks.push({
+            mesh: chunk,
+            velocity: vel,
+            rotVelocity: rotVel,
+            life: 5 + Math.random() * 3,
+            grounded: false,
+            canBleed: true,
+            bleedTimer: 0,
+            isSkull: true
+        });
+    }
+
+    // Spawn brain chunks (pink/red squishy bits)
+    const brainChunkCount = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < brainChunkCount; i++) {
+        const size = 0.06 + Math.random() * 0.1;
+        const geo = new THREE.SphereGeometry(size, 6, 4);
+        // Deform slightly for organic look
+        const positions = geo.attributes.position;
+        for (let j = 0; j < positions.count; j++) {
+            positions.setXYZ(j,
+                positions.getX(j) * (0.8 + Math.random() * 0.4),
+                positions.getY(j) * (0.8 + Math.random() * 0.4),
+                positions.getZ(j) * (0.8 + Math.random() * 0.4)
+            );
+        }
+
+        const chunk = new THREE.Mesh(geo, brainMat.clone());
+        chunk.position.copy(headWorldPos);
+        chunk.castShadow = true;
+
+        // Slower, goopier velocity for brain matter
+        const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 15,
+            Math.random() * 10 + 3,
+            (Math.random() - 0.5) * 15
+        );
+        vel.add(direction.clone().multiplyScalar(8));
+
+        const rotVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 20
+        );
+
+        scene.add(chunk);
+        goreChunks.push({
+            mesh: chunk,
+            velocity: vel,
+            rotVelocity: rotVel,
+            life: 4 + Math.random() * 2,
+            grounded: false,
+            canBleed: true,
+            bleedTimer: 0,
+            isBrain: true
+        });
+    }
+
+    // Create a blood mist cloud at head position
+    for (let i = 0; i < 3; i++) {
+        const mistSprite = bloodSpritePool.get();
+        mistSprite.material = bloodSpriteMats[bloodMatIdx++ % bloodSpriteMats.length];
+        mistSprite.position.copy(headWorldPos);
+        mistSprite.position.add(new THREE.Vector3(
+            (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 0.5
+        ));
+        mistSprite.scale.setScalar(1.0 + Math.random() * 0.5);
+        mistSprite.visible = true;
+
+        scene.add(mistSprite);
+        bloodParticles.push({
+            mesh: mistSprite,
+            velocity: new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                Math.random() * 2,
+                (Math.random() - 0.5) * 2
+            ),
+            life: 0.6,
+            gravity: 0,
+            type: 'mist',
+            initialScale: mistSprite.scale.x
+        });
+    }
+}
+
+// Spawn blood decal on ANY surface (floor or obstacles)
 function spawnBloodDecal(position, normal, size = 1) {
     const decalMat = new THREE.MeshBasicMaterial({
         map: bloodDecalTex,
@@ -3751,21 +4911,55 @@ function spawnBloodDecal(position, normal, size = 1) {
         opacity: 0.85,
         depthWrite: false,
         polygonOffset: true,
-        polygonOffsetFactor: -2
+        polygonOffsetFactor: -2,
+        side: THREE.DoubleSide
     });
 
     const decalSize = (1.5 + Math.random() * 1.5) * size;
     const decal = new THREE.Mesh(new THREE.PlaneGeometry(decalSize, decalSize), decalMat);
     decal.position.copy(position);
-    decal.position.y = -4.95; // Just above floor
-    decal.rotation.x = -Math.PI / 2;
-    decal.rotation.z = Math.random() * Math.PI * 2;
+
+    // If normal is provided and not pointing up, orient to surface
+    if (normal && Math.abs(normal.y) < 0.9) {
+        // Vertical or angled surface (obstacle)
+        decal.position.addScaledVector(normal, 0.02); // Offset slightly from surface
+        decal.lookAt(position.clone().add(normal));
+        decal.rotation.z = Math.random() * Math.PI * 2;
+    } else {
+        // Floor (horizontal surface)
+        decal.position.y = -4.95; // Just above floor
+        decal.rotation.x = -Math.PI / 2;
+        decal.rotation.z = Math.random() * Math.PI * 2;
+    }
 
     scene.add(decal);
     bloodDecals.push({
         mesh: decal,
-        life: 10.0 + Math.random() * 5.0 // Fixed: 10-15 seconds instead of 600-900 frames
+        life: 10.0 + Math.random() * 5.0
     });
+}
+
+// Raycaster for blood collision with obstacles
+const bloodRaycaster = new THREE.Raycaster();
+const _bloodRayDir = new THREE.Vector3();
+
+// Check if blood particle hits an obstacle and spawn decal
+function checkBloodObstacleCollision(particle) {
+    if (!particle.velocity || particle.type !== 'droplet') return false;
+
+    // Cast ray in direction of movement
+    _bloodRayDir.copy(particle.velocity).normalize();
+    bloodRaycaster.set(particle.mesh.position, _bloodRayDir);
+    bloodRaycaster.far = particle.velocity.length() * 0.1; // Check short distance
+
+    const hits = bloodRaycaster.intersectObjects(obstacles);
+    if (hits.length > 0) {
+        const hit = hits[0];
+        // Spawn blood splat on obstacle surface
+        spawnBloodDecal(hit.point, hit.face.normal, 0.4 + Math.random() * 0.3);
+        return true;
+    }
+    return false;
 }
 
 // Spawn expanding blood pool under body
@@ -3817,9 +5011,18 @@ function updateBloodEffects(dt) {
             p.mesh.position.addScaledVector(p.velocity, dt);
             p.mesh.material.opacity = Math.min(1, p.life);
 
+            // Check for obstacle collision (blood sticks to walls/crates)
+            if (checkBloodObstacleCollision(p)) {
+                scene.remove(p.mesh);
+                bloodSpritePool.release(p.mesh);
+                bloodParticles[i] = bloodParticles[bloodParticles.length - 1];
+                bloodParticles.pop();
+                continue;
+            }
+
             // Hit ground
             if (p.mesh.position.y < -4.8) {
-                if (Math.random() > 0.8) { // Reduced decal spawns
+                if (Math.random() > 0.7) { // Increased decal spawns
                     spawnBloodDecal(p.mesh.position.clone(), _upNormal, 0.3);
                 }
                 scene.remove(p.mesh);
@@ -3854,6 +5057,20 @@ function updateBloodEffects(dt) {
             g.mesh.rotation.y += g.rotVelocity.y * dt;
             g.mesh.rotation.z += g.rotVelocity.z * dt;
 
+            // Check for obstacle collision (gore sticks to walls/crates)
+            _bloodRayDir.copy(g.velocity).normalize();
+            bloodRaycaster.set(g.mesh.position, _bloodRayDir);
+            bloodRaycaster.far = g.velocity.length() * dt * 2;
+            const goreHits = bloodRaycaster.intersectObjects(obstacles);
+            if (goreHits.length > 0 && g.canBleed) {
+                const hit = goreHits[0];
+                // Splatter blood on obstacle
+                spawnBloodDecal(hit.point, hit.face.normal, 0.5 + Math.random() * 0.3);
+                // Bounce off
+                g.velocity.reflect(hit.face.normal).multiplyScalar(0.3);
+                g.rotVelocity.multiplyScalar(0.5);
+            }
+
             if (g.mesh.position.y < -4.7) {
                 g.mesh.position.y = -4.7;
                 if (Math.abs(g.velocity.y) > 2) {
@@ -3861,8 +5078,8 @@ function updateBloodEffects(dt) {
                     g.velocity.x *= 0.7;
                     g.velocity.z *= 0.7;
                     g.rotVelocity.multiplyScalar(0.5);
-                    if (Math.random() > 0.5) { // Reduced decal spawns
-                        spawnBloodDecal(g.mesh.position.clone(), _upNormal, 0.4);
+                    if (Math.random() > 0.4) { // More decal spawns
+                        spawnBloodDecal(g.mesh.position.clone(), _upNormal, 0.5);
                     }
                 } else {
                     g.grounded = true;
@@ -4161,6 +5378,92 @@ function spawnSmoke() {
     }
 }
 
+// === NEW: Muzzle Smoke Wisps - lingering smoke after firing ===
+const muzzleSmokeWisps = [];
+const wispMats = [];
+for (let i = 0; i < 10; i++) {
+    wispMats.push(new THREE.SpriteMaterial({
+        map: smokeSpriteTex,
+        color: 0x888899,
+        transparent: true,
+        blending: THREE.NormalBlending,
+        opacity: 0.3,
+        depthWrite: false
+    }));
+}
+let wispMatIdx = 0;
+
+function spawnMuzzleSmokeWisps() {
+    // Only spawn wisps occasionally for subtle effect
+    if (Math.random() > 0.4) return;
+
+    const basePos = _smokeSpawnPos.clone().applyMatrix4(gunGroup.matrixWorld);
+    gunGroup.getWorldQuaternion(_smokeQuat);
+
+    // Spawn 1-2 slow-moving wisps that rise gently
+    const wispCount = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < wispCount; i++) {
+        const s = new THREE.Sprite(wispMats[wispMatIdx++ % wispMats.length].clone());
+        s.position.copy(basePos);
+        s.position.x += (Math.random() - 0.5) * 0.2;
+        s.position.y += (Math.random() - 0.5) * 0.1;
+        s.scale.setScalar(0.15 + Math.random() * 0.1);
+        scene.add(s);
+
+        // Very slow upward drift with slight random motion
+        const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.2,
+            0.3 + Math.random() * 0.2,
+            (Math.random() - 0.5) * 0.2
+        );
+
+        muzzleSmokeWisps.push({
+            mesh: s,
+            velocity: vel,
+            age: 0,
+            life: 2.0 + Math.random() * 1.5, // Long-lasting
+            initialScale: s.scale.x
+        });
+    }
+}
+
+// Update smoke wisps (called in main loop)
+function updateMuzzleSmokeWisps(dt) {
+    for (let i = muzzleSmokeWisps.length - 1; i >= 0; i--) {
+        const w = muzzleSmokeWisps[i];
+        w.age += dt;
+
+        if (w.age >= w.life) {
+            scene.remove(w.mesh);
+            w.mesh.material.dispose();
+            muzzleSmokeWisps.splice(i, 1);
+            continue;
+        }
+
+        // Move upward slowly
+        w.mesh.position.add(w.velocity.clone().multiplyScalar(dt));
+
+        // Add slight turbulence
+        w.mesh.position.x += Math.sin(w.age * 3 + i) * 0.01 * dt;
+        w.mesh.position.z += Math.cos(w.age * 2.5 + i * 2) * 0.01 * dt;
+
+        // Grow and fade
+        const lifeRatio = w.age / w.life;
+        const growthFactor = 1 + lifeRatio * 3; // Grow to 4x size
+        w.mesh.scale.setScalar(w.initialScale * growthFactor);
+
+        // Fade out smoothly
+        const fadeStart = 0.3;
+        if (lifeRatio > fadeStart) {
+            const fadeRatio = (lifeRatio - fadeStart) / (1 - fadeStart);
+            w.mesh.material.opacity = 0.3 * (1 - fadeRatio);
+        }
+
+        // Slow down over time
+        w.velocity.multiplyScalar(0.995);
+    }
+}
+
 // SPARK PARTICLES - pooled for performance
 const sparks = [];
 const sparkGeo = new THREE.SphereGeometry(0.02, 3, 3); // Reduced geometry complexity
@@ -4328,7 +5631,7 @@ let isGameOver = false;
 let lastDamageTime = 0;
 let damageFlashIntensity = 0;
 
-function damagePlayer(amount) {
+function damagePlayer(amount, attackerPos = null) {
     if (isGameOver) return;
 
     playerHealth -= amount;
@@ -4340,6 +5643,46 @@ function damagePlayer(amount) {
     Springs.shakeX.impulse((Math.random() - 0.5) * 20);
     Springs.shakeY.impulse((Math.random() - 0.5) * 20);
 
+    // === NEW: Damage Direction Indicator ===
+    if (attackerPos) {
+        // Calculate direction from player to attacker in camera space
+        const toAttacker = new THREE.Vector3();
+        toAttacker.subVectors(attackerPos, camera.position);
+        toAttacker.y = 0; // Ignore vertical
+
+        // Get camera forward direction (horizontal)
+        const camForward = new THREE.Vector3(0, 0, -1);
+        camForward.applyQuaternion(camera.quaternion);
+        camForward.y = 0;
+        camForward.normalize();
+
+        // Get camera right direction
+        const camRight = new THREE.Vector3(1, 0, 0);
+        camRight.applyQuaternion(camera.quaternion);
+        camRight.y = 0;
+        camRight.normalize();
+
+        // Dot products to determine relative position
+        const forward = toAttacker.dot(camForward);
+        const right = toAttacker.dot(camRight);
+
+        // Determine which arrow to show based on angle
+        const angle = Math.atan2(right, forward);
+        const deg = (angle * 180 / Math.PI + 360) % 360;
+
+        // Map angle to direction (0 = front, 90 = right, 180 = back, 270 = left)
+        if (deg >= 337.5 || deg < 22.5) lastDamageDir = 'top';         // Front
+        else if (deg >= 22.5 && deg < 67.5) lastDamageDir = 'top-right';
+        else if (deg >= 67.5 && deg < 112.5) lastDamageDir = 'right';
+        else if (deg >= 112.5 && deg < 157.5) lastDamageDir = 'bottom-right';
+        else if (deg >= 157.5 && deg < 202.5) lastDamageDir = 'bottom'; // Back
+        else if (deg >= 202.5 && deg < 247.5) lastDamageDir = 'bottom-left';
+        else if (deg >= 247.5 && deg < 292.5) lastDamageDir = 'left';
+        else lastDamageDir = 'top-left';
+
+        damageIndicatorAlpha = 1.0; // Start fade
+    }
+
     if (playerHealth <= 0) {
         playerHealth = 0;
         gameOver();
@@ -4350,6 +5693,14 @@ function damagePlayer(amount) {
 function addScore(points) {
     score += points;
     updateHUD();
+
+    // Micro-animation: score bump
+    const scoreEl = document.getElementById('score-display');
+    if (scoreEl) {
+        scoreEl.classList.remove('score-bump');
+        void scoreEl.offsetWidth; // Force reflow to restart animation
+        scoreEl.classList.add('score-bump');
+    }
 }
 
 function gameOver() {
@@ -4407,15 +5758,15 @@ function restartGame() {
 
 const moveState = { f: false, b: false, l: false, r: false, sprint: false };
 const velocity = new THREE.Vector3();
-// Player speed is 1.15x average zombie speed (zombie avg = 4, so player = 4.6)
-const baseSpeed = 4.6;
+// Player speed is 1.15x average zombie speed (zombie avg = 7.75, so player = ~9)
+const baseSpeed = 9.0;
 const sprintMultiplier = 1.8;
 let prevTime = performance.now();
 
 // Jump physics
 let verticalVelocity = 0;
-let playerHeight = 0; // Offset from ground (-5)
-const groundLevel = 0;
+let playerHeight = 0; // Height above current terrain
+let currentGroundLevel = 0; // Dynamic ground level (updated each frame)
 const gravity = 35;
 const jumpForce = 12;
 let isGrounded = true;
@@ -4434,12 +5785,16 @@ const crosshair = document.getElementById('crosshair');
 const hitmarker = document.getElementById('hitmarker');
 
 let hitmarkerTimeout = null;
-function showHitmarker() {
+function showHitmarker(isHeadshot = false) {
     hitmarker.classList.add('show');
+    if (isHeadshot) {
+        hitmarker.classList.add('headshot');
+    }
     if (hitmarkerTimeout) clearTimeout(hitmarkerTimeout);
     hitmarkerTimeout = setTimeout(() => {
         hitmarker.classList.remove('show');
-    }, 100);
+        hitmarker.classList.remove('headshot');
+    }, isHeadshot ? 200 : 100);
 }
 
 // Power-up display element (created once)
@@ -4463,30 +5818,56 @@ function updateHUD(force = false) {
     const healthPercent = Math.ceil(playerHealth);
 
     // Only update if values changed (or forced)
-    if (force || lastHUDValues.ammo !== ammo || lastHUDValues.reserve !== reserve) {
+    if (force || lastHUDValues.ammo !== ammo || lastHUDValues.reserve !== reserve || lastHUDValues.isReloading !== isReloading) {
         lastHUDValues.ammo = ammo;
         lastHUDValues.reserve = reserve;
+        lastHUDValues.isReloading = isReloading;
         if (dom.ammoDisplay) {
-            dom.ammoDisplay.innerText = `${isReloading ? 'RLD' : ammo} / ∞`; // Infinite reserve
-            dom.ammoDisplay.style.color = ammo <= 5 ? '#ff3333' : '#0f0';
+            dom.ammoDisplay.innerText = `${isReloading ? 'RLD' : ammo} / ∞`;
+
+            // Micro-animation classes for ammo state
+            dom.ammoDisplay.classList.remove('low-ammo', 'empty', 'reloading');
+            if (isReloading) {
+                dom.ammoDisplay.classList.add('reloading');
+            } else if (ammo === 0) {
+                dom.ammoDisplay.classList.add('empty');
+            } else if (ammo <= 10) {
+                dom.ammoDisplay.classList.add('low-ammo');
+            }
         }
     }
 
     if (force || lastHUDValues.health !== healthPercent) {
         lastHUDValues.health = healthPercent;
+        const pct = (playerHealth / maxPlayerHealth) * 100;
+
         if (dom.healthFill) {
-            const pct = (playerHealth / maxPlayerHealth) * 100;
             dom.healthFill.style.width = pct + '%';
-            dom.healthFill.style.background = pct > 50 ? '#0f0' : pct > 25 ? '#ff0' : '#f00';
+            dom.healthFill.classList.remove('damaged', 'critical');
+            if (pct <= 25) {
+                dom.healthFill.classList.add('critical');
+            } else if (pct <= 50) {
+                dom.healthFill.classList.add('damaged');
+            }
         }
         if (dom.healthText) {
             dom.healthText.textContent = healthPercent;
+            dom.healthText.classList.toggle('critical', pct <= 25);
+        }
+
+        // Health bar border animation
+        const healthBar = document.getElementById('health-bar');
+        if (healthBar) {
+            healthBar.classList.toggle('critical', pct <= 25);
         }
     }
 
     if (force || lastHUDValues.wave !== currentWave || lastHUDValues.remaining !== remaining) {
+        const prevWave = lastHUDValues.wave;
+        const prevRemaining = lastHUDValues.remaining;
         lastHUDValues.wave = currentWave;
         lastHUDValues.remaining = remaining;
+
         if (dom.waveDisplay) {
             if (betweenWaves && currentWave > 0) {
                 dom.waveDisplay.textContent = `WAVE ${currentWave} COMPLETE`;
@@ -4495,9 +5876,23 @@ function updateHUD(force = false) {
             } else {
                 dom.waveDisplay.textContent = `WAVE ${currentWave}`;
             }
+
+            // New wave animation
+            if (currentWave !== prevWave && currentWave > 0) {
+                dom.waveDisplay.classList.remove('new-wave');
+                void dom.waveDisplay.offsetWidth;
+                dom.waveDisplay.classList.add('new-wave');
+            }
         }
         if (dom.zombieCount) {
             dom.zombieCount.textContent = `${remaining} ZOMBIES`;
+
+            // Kill flash animation
+            if (remaining < prevRemaining && remaining >= 0) {
+                dom.zombieCount.classList.remove('kill-flash');
+                void dom.zombieCount.offsetWidth;
+                dom.zombieCount.classList.add('kill-flash');
+            }
         }
     }
 
@@ -4600,11 +5995,14 @@ function shoot() {
     Springs.shakeY.impulse((Math.random() - 0.3) * 2 * shakeIntensity); // Bias upward
     Springs.shakeRoll.impulse((Math.random() - 0.5) * 1.5 * shakeIntensity);
 
-    // Bolt snap
-    bolt.position.z = 0.5; 
-    
+    // Bolt snap - spring-driven for smooth return
+    Springs.boltZ.impulse(8); // Impulse bolt backward
+    lastFireTime = performance.now();
+    consecutiveShots++;
+
     ejectShell();
     spawnSmoke();
+    spawnMuzzleSmokeWisps(); // NEW: Lingering smoke wisps
 
     // RAYCAST
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -4622,11 +6020,36 @@ function shoot() {
                 playSound('targetHit');
             }
         } else if (intersects[0].object.userData.isBot) {
-            // Hit a bot
+            // Hit a bot (zombie)
             const bot = intersects[0].object.userData.botRef;
             if (bot && !bot.isDead) {
-                bot.hit(intersects[0].point.clone());
-                showHitmarker();
+                const hitPointWorld = intersects[0].point.clone();
+
+                // HEADSHOT DETECTION
+                // Zombie head is at local y = 3.7 (1.85 * scale of 2.0)
+                // Head radius is 0.7 (0.35 * 2.0)
+                // So headshot if hit point is above torso top (~3.0 local y)
+                const zombieBaseY = bot.mesh.position.y;
+                const hitLocalY = hitPointWorld.y - zombieBaseY;
+                const isHeadshot = hitLocalY > 2.9 && !bot.headExploded;
+
+                if (isHeadshot) {
+                    // Get direction from camera to zombie
+                    const hitDir = new THREE.Vector3();
+                    hitDir.subVectors(hitPointWorld, camera.position).normalize();
+
+                    // EXPLODE THE HEAD!
+                    explodeHead(bot, hitPointWorld, hitDir);
+                    showHitmarker(true);
+
+                    // Headshot is instant kill + bonus score
+                    addScore(150); // +50 bonus for headshot
+                    bot.health = 0;
+                    bot.die();
+                } else {
+                    bot.hit(hitPointWorld);
+                    showHitmarker(false);
+                }
             }
         } else if (intersects[0].face) {
             spawnDecal(intersects[0].point, intersects[0].face.normal);
@@ -4870,15 +6293,28 @@ function animate(time) {
     const sprintRoll = Springs.sprintRoll.update(dt);
     const landingTilt = Springs.landingTilt.update(dt);
 
+    // === NEW: Attention to Detail Spring Updates ===
+    const strafeTilt = Springs.strafeTilt.update(dt);
+    const strafeRoll = Springs.strafeRoll.update(dt);
+    const velocityDragX = Springs.velocityDragX.update(dt);
+    const velocityDragY = Springs.velocityDragY.update(dt);
+    const turnLagX = Springs.turnLagX.update(dt);
+    const turnLagY = Springs.turnLagY.update(dt);
+    const inspectRotX = Springs.inspectRotX.update(dt);
+    const inspectRotY = Springs.inspectRotY.update(dt);
+    const inspectRotZ = Springs.inspectRotZ.update(dt);
+    const boltZ = Springs.boltZ.update(dt);
+    const crosshairSpread = Springs.crosshairSpread.update(dt);
+
     // Organic idle animations using layered noise
-    const idleTime = time * 0.001;
-    const breatheWave = organicNoise(idleTime, 0.8, 2) * 0.012;
-    const idleSwayWave = organicNoise(idleTime + 100, 0.3, 3) * 0.008;
-    const microTremor = organicNoise(idleTime * 3, 2.5, 2) * 0.002;
+    const idleAnimTime = time * 0.001;
+    const breatheWave = organicNoise(idleAnimTime, 0.8, 2) * 0.012;
+    const idleSwayWave = organicNoise(idleAnimTime + 100, 0.3, 3) * 0.008;
+    const microTremor = organicNoise(idleAnimTime * 3, 2.5, 2) * 0.002;
 
     Springs.breathe.target = breatheWave;
     Springs.idleSway.target = idleSwayWave;
-    Springs.heartbeat.target = Math.sin(idleTime * 1.2) * 0.003; // Subtle pulse
+    Springs.heartbeat.target = Math.sin(idleAnimTime * 1.2) * 0.003; // Subtle pulse
 
     // Feed camera velocity into multi-layer lag springs for organic weapon inertia
     Springs.swayLagX.target = swayX * 0.7;
@@ -4894,6 +6330,116 @@ function animate(time) {
     Springs.momentumX.target = -moveVelX * 0.003;
     Springs.momentumZ.target = -moveVelZ * 0.002;
 
+    // === NEW: Strafe Tilt - Weapon leans into strafe direction ===
+    const strafeInput = Number(moveState.r) - Number(moveState.l);
+    if (strafeInput !== 0 && !isAiming) {
+        Springs.strafeTilt.target = strafeInput * 0.04;  // Lean into strafe
+        Springs.strafeRoll.target = -strafeInput * 0.06; // Weapon roll opposite
+        lastStrafeInput = strafeInput;
+    } else {
+        Springs.strafeTilt.target = 0;
+        Springs.strafeRoll.target = 0;
+    }
+
+    // === NEW: Turn Inertia - Weapon trails behind fast camera turns ===
+    const turnSpeed = Math.abs(camVelX) + Math.abs(camVelY);
+    Springs.turnLagX.target = -camVelX * 0.0004;
+    Springs.turnLagY.target = -camVelY * 0.0003;
+
+    // === NEW: Velocity Drag - Weapon trails behind fast movement ===
+    const moveSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+    Springs.velocityDragX.target = -moveVelX * 0.005;
+    Springs.velocityDragY.target = Math.abs(moveVelZ) * 0.002; // Slight bounce when moving
+
+    // === NEW: Weapon Inspection - After idle for 5+ seconds ===
+    if (!isFiring && !isReloading && !isAiming && moveSpeed < 0.5 && turnSpeed < 50) {
+        idleTime += dt;
+        if (idleTime > 5.0 && !isInspecting) {
+            isInspecting = true;
+            inspectPhase = 0;
+        }
+    } else {
+        idleTime = 0;
+        isInspecting = false;
+        Springs.inspectRotX.target = 0;
+        Springs.inspectRotY.target = 0;
+        Springs.inspectRotZ.target = 0;
+    }
+
+    if (isInspecting) {
+        inspectPhase += dt * 0.5; // Slow inspection cycle
+        // Subtle inspection animation - look at the weapon
+        Springs.inspectRotX.target = Math.sin(inspectPhase) * 0.15;
+        Springs.inspectRotY.target = Math.sin(inspectPhase * 0.7) * 0.1 + 0.1;
+        Springs.inspectRotZ.target = Math.cos(inspectPhase * 0.5) * 0.08;
+        // Reset after full cycle
+        if (inspectPhase > Math.PI * 4) {
+            isInspecting = false;
+            inspectPhase = 0;
+        }
+    }
+
+    // === NEW: Bolt Carrier Animation - Smooth return after firing ===
+    Springs.boltZ.target = 0; // Always return to closed position
+    bolt.position.z = boltZ; // Apply spring-driven bolt position
+
+    // === NEW: Dynamic Crosshair Spread ===
+    let crosshairTarget = crosshairBaseSize;
+    if (isFiring) {
+        crosshairTarget += 25; // Expand on fire
+        crosshair.classList.add('firing');
+    } else {
+        crosshair.classList.remove('firing');
+    }
+    if (moveSpeed > 2) {
+        crosshairTarget += moveSpeed * 2; // Expand when moving
+        crosshair.classList.add('moving');
+    } else {
+        crosshair.classList.remove('moving');
+    }
+    if (!isGrounded) {
+        crosshairTarget += 15; // Expand in air
+    }
+    if (isAiming) {
+        crosshairTarget = 0; // Hidden when ADS
+    }
+    Springs.crosshairSpread.target = crosshairTarget;
+    crosshairCurrentSize = crosshairSpread;
+    if (!isAiming) {
+        crosshair.style.width = crosshairCurrentSize + 'px';
+        crosshair.style.height = crosshairCurrentSize + 'px';
+    }
+
+    // === NEW: Low Health Visual Effects ===
+    const lowHealthVignette = document.getElementById('low-health-vignette');
+    if (lowHealthVignette) {
+        if (playerHealth <= 30) {
+            lowHealthPulse += dt * (1 + (30 - playerHealth) / 15); // Faster pulse at lower health
+            const pulseIntensity = Math.max(0, 1 - playerHealth / 30);
+            lowHealthVignette.style.opacity = 0.3 + Math.sin(lowHealthPulse * 3) * 0.2 * pulseIntensity;
+            if (playerHealth <= 20) {
+                lowHealthVignette.classList.add('pulse');
+            } else {
+                lowHealthVignette.classList.remove('pulse');
+            }
+        } else {
+            lowHealthVignette.style.opacity = 0;
+            lowHealthVignette.classList.remove('pulse');
+            lowHealthPulse = 0;
+        }
+    }
+
+    // === NEW: Damage Direction Indicator Fade ===
+    if (damageIndicatorAlpha > 0) {
+        damageIndicatorAlpha -= dt * 3; // Fade over ~0.33 seconds
+        const arrows = document.querySelectorAll('.damage-arrow');
+        arrows.forEach(a => a.style.opacity = 0);
+        if (lastDamageDir && damageIndicatorAlpha > 0) {
+            const arrow = document.querySelector('.damage-arrow.' + lastDamageDir);
+            if (arrow) arrow.style.opacity = damageIndicatorAlpha;
+        }
+    }
+
     // Recoil recovery feeds into slower springs for organic settle
     Springs.recoilRecoverZ.target = recoilZ * 0.3;
     Springs.recoilRecoverX.target = recoilX * 0.3;
@@ -4904,21 +6450,21 @@ function animate(time) {
     const adsMultiplier = 1 - adsAmount * 0.6; // Reduce motion when ADS
 
     // Apply Springs to Gun - ULTRA FLUID layered organic motion
-    // Position: recoil + bob + breathing + momentum + micro tremors
+    // Position: recoil + bob + breathing + momentum + micro tremors + NEW effects
     const combinedRecoilZ = recoilZ + recoilRecoverZ * 0.5;
     const combinedRecoilX = recoilX + recoilRecoverX * 0.5;
 
-    gunGroup.position.z = combinedRecoilZ * adsMultiplier + bobZ * adsMultiplier + breathe * 0.4 + momentumZ;
-    gunGroup.position.y = bobY * adsMultiplier + recoilY * adsMultiplier + breathe + heartbeat + microTremor;
-    gunGroup.position.x = bobX * adsMultiplier + swayLag2X * 0.25 + momentumX + idleSway * 0.5;
+    gunGroup.position.z = combinedRecoilZ * adsMultiplier + bobZ * adsMultiplier + breathe * 0.4 + momentumZ + velocityDragY;
+    gunGroup.position.y = bobY * adsMultiplier + recoilY * adsMultiplier + breathe + heartbeat + microTremor + strafeTilt * 0.3;
+    gunGroup.position.x = bobX * adsMultiplier + swayLag2X * 0.25 + momentumX + idleSway * 0.5 + velocityDragX + turnLagX;
 
-    // Rotation: multi-layered sway + recoil + tilt + breathing + organic noise
-    const totalSwayX = (swayX + swayLagX * 0.5 + swayLag2X * 0.3 + camLagX) * adsMultiplier;
-    const totalSwayY = (swayY + swayLagY * 0.5 + swayLag2Y * 0.3 + camLagY) * adsMultiplier;
+    // Rotation: multi-layered sway + recoil + tilt + breathing + organic noise + NEW effects
+    const totalSwayX = (swayX + swayLagX * 0.5 + swayLag2X * 0.3 + camLagX + turnLagX) * adsMultiplier;
+    const totalSwayY = (swayY + swayLagY * 0.5 + swayLag2Y * 0.3 + camLagY + turnLagY) * adsMultiplier;
 
-    gunGroup.rotation.x = combinedRecoilX * adsMultiplier + totalSwayY + tilt + breathe * 0.25 + landingTilt * 0.5 + sprintTilt;
-    gunGroup.rotation.y = Math.PI + totalSwayX + idleSway * 0.3;
-    gunGroup.rotation.z = (roll + recoilRoll) * adsMultiplier + totalSwayX * 0.35 + breathe * 0.15 + sprintRoll + microTremor * 2;
+    gunGroup.rotation.x = combinedRecoilX * adsMultiplier + totalSwayY + tilt + breathe * 0.25 + landingTilt * 0.5 + sprintTilt + inspectRotX;
+    gunGroup.rotation.y = Math.PI + totalSwayX + idleSway * 0.3 + strafeTilt + inspectRotY;
+    gunGroup.rotation.z = (roll + recoilRoll) * adsMultiplier + totalSwayX * 0.35 + breathe * 0.15 + sprintRoll + microTremor * 2 + strafeRoll + inspectRotZ;
 
     // Reset Spring Targets (decay to neutral)
     Springs.swayX.target = 0;
@@ -4936,12 +6482,12 @@ function animate(time) {
     Springs.sprintRoll.target = 0;
     Springs.landingTilt.target = 0;
 
-    // Camera Recoil Recovery + Screen Shake - more organic
+    // Camera Recoil Recovery + Screen Shake - more organic + strafe lean
     cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.08); // Slower recovery
     camera.rotation.set(
         cameraPitch + cameraRecoil + shakeY * 0.018 + breathe * 0.1,
         cameraYaw + shakeX * 0.018,
-        (roll + shakeRoll) * 0.08,
+        (roll + shakeRoll) * 0.08 + strafeTilt * 0.5, // Camera also leans into strafe
         'YXZ'
     );
 
@@ -4984,6 +6530,10 @@ function animate(time) {
         camera.position.x = resolved.x;
         camera.position.z = resolved.z;
 
+        // Calculate dynamic ground level based on terrain height at player position
+        const terrainY = getTerrainHeight(camera.position.x, camera.position.z);
+        currentGroundLevel = terrainY + 5; // Eye level is 5 units above terrain
+
         // ULTRA FLUID Jump physics
         if (!isGrounded) {
             verticalVelocity -= gravity * dt;
@@ -5011,9 +6561,9 @@ function animate(time) {
             Springs.swayX.target += Math.sin(time * 0.003) * 0.005;
             Springs.idleSway.target = Math.cos(time * 0.002) * 0.01;
 
-            // Landing
-            if (playerHeight <= groundLevel) {
-                playerHeight = groundLevel;
+            // Landing - check against dynamic ground level
+            if (playerHeight <= currentGroundLevel) {
+                playerHeight = currentGroundLevel;
                 const landingImpact = Math.abs(verticalVelocity);
                 verticalVelocity = 0;
                 isGrounded = true;
@@ -5052,6 +6602,11 @@ function animate(time) {
         // Apply landing spring
         const landingOffset = Springs.landing.update(dt);
         Springs.landing.target = 0;
+
+        // When grounded, smoothly follow terrain height (for walking up/down hill)
+        if (isGrounded) {
+            playerHeight = THREE.MathUtils.lerp(playerHeight, currentGroundLevel, 0.15);
+        }
 
         // Set camera Y position (base + jump height - landing dip)
         camera.position.y = playerHeight - landingOffset * 0.1;
@@ -5228,6 +6783,9 @@ function animate(time) {
         s.velocity.multiplyScalar(0.99);
     }
 
+    // === NEW: Update muzzle smoke wisps ===
+    updateMuzzleSmokeWisps(dt);
+
     // Sparks with pooling
     for(let i = sparks.length - 1; i >= 0; i--) {
         const sp = sparks[i];
@@ -5298,6 +6856,7 @@ function animate(time) {
     if (!isGameOver) {
         updateWaveSystem(dt);
         updatePickups(dt, time);
+        updateDoors(dt);
 
         // Update power-up timers (only when active)
         if (speedBoostTimer > 0) {
@@ -5320,16 +6879,9 @@ function animate(time) {
         HiveMind.update(dt);
     }
     
-    // Update zombies with swarm intelligence (staggered for performance)
+    // Update all zombies every frame (no staggering - causes slow motion!)
     for (let i = 0; i < zombies.length; i++) {
-        const zombie = zombies[i];
-        // Stagger zombie updates to spread load across frames
-        if (i % 3 === frameCount % 3) {
-            zombie.update(dt, time);
-        } else {
-            // Minimal update for non-active zombies
-            zombie.updateMinimal(dt);
-        }
+        zombies[i].update(dt, time);
     }
 
     // Update blood and gore effects
@@ -5366,6 +6918,9 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
     bloomPass.setSize(window.innerWidth / 2, window.innerHeight / 2); // Half resolution for performance
     outlinePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    // Update FXAA resolution
+    const pr = renderer.getPixelRatio();
+    fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
 });
 
 // Initialize HUD (force update all values)
