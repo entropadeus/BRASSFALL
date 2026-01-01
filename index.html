@@ -216,6 +216,172 @@
         #restart-btn:active {
             transform: scale(0.98);
         }
+        /* === WEAPON INDICATOR === */
+        #weapon-indicator {
+            position: absolute;
+            bottom: 60px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            pointer-events: none;
+            user-select: none;
+        }
+        .weapon-slot {
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.15s ease-out;
+        }
+        .weapon-slot.active {
+            background: rgba(0, 255, 0, 0.15);
+            border-color: #0f0;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+        /* === SCOPE OVERLAY === */
+        #scope-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+            z-index: 60;
+        }
+        #scope-overlay.active {
+            opacity: 1;
+        }
+        .scope-vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(
+                circle at center,
+                transparent 0%,
+                transparent 25%,
+                rgba(0, 0, 0, 0.95) 35%,
+                #000 40%
+            );
+        }
+        .scope-reticle {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; height: 400px;
+        }
+        .reticle-cross-h {
+            position: absolute;
+            top: 50%; left: 0;
+            width: 100%; height: 1px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(0,0,0,0.8) 30%,
+                transparent 45%,
+                transparent 55%,
+                rgba(0,0,0,0.8) 70%,
+                transparent 100%
+            );
+            transform: translateY(-50%);
+        }
+        .reticle-cross-h::after {
+            content: '';
+            position: absolute;
+            top: -0.5px; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255,0,0,0.6) 30%,
+                transparent 45%,
+                transparent 55%,
+                rgba(255,0,0,0.6) 70%,
+                transparent 100%
+            );
+        }
+        .reticle-cross-v {
+            position: absolute;
+            top: 0; left: 50%;
+            width: 1px; height: 100%;
+            background: linear-gradient(180deg,
+                transparent 0%,
+                rgba(0,0,0,0.8) 30%,
+                transparent 45%,
+                transparent 55%,
+                rgba(0,0,0,0.8) 70%,
+                transparent 100%
+            );
+            transform: translateX(-50%);
+        }
+        .reticle-cross-v::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -0.5px;
+            width: 2px; height: 100%;
+            background: linear-gradient(180deg,
+                transparent 0%,
+                rgba(255,0,0,0.6) 30%,
+                transparent 45%,
+                transparent 55%,
+                rgba(255,0,0,0.6) 70%,
+                transparent 100%
+            );
+        }
+        .reticle-dot {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 4px; height: 4px;
+            background: rgba(255, 0, 0, 0.9);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 4px rgba(255, 0, 0, 0.8);
+        }
+        .reticle-mil {
+            position: absolute;
+            left: 50%;
+            width: 8px; height: 1px;
+            background: rgba(0, 0, 0, 0.7);
+            transform: translateX(-50%);
+        }
+        .reticle-mil::after {
+            content: '';
+            position: absolute;
+            width: 100%; height: 2px;
+            background: rgba(255, 0, 0, 0.4);
+            top: -0.5px;
+        }
+        .mil-1 { top: calc(50% + 30px); }
+        .mil-2 { top: calc(50% + 60px); }
+        .mil-3 { top: calc(50% + 90px); }
+        .mil-4 { top: calc(50% + 120px); }
+        /* === BOLT ACTION INDICATOR === */
+        #bolt-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 60px);
+            padding: 8px 16px;
+            background: rgba(255, 150, 0, 0.2);
+            border: 1px solid rgba(255, 150, 0, 0.6);
+            color: #f90;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #f90;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+        #bolt-indicator.show {
+            opacity: 1;
+            animation: bolt-pulse 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes bolt-pulse {
+            0% { box-shadow: 0 0 5px rgba(255, 150, 0, 0.3); }
+            100% { box-shadow: 0 0 15px rgba(255, 150, 0, 0.6); }
+        }
     </style>
 </head>
 <body>
@@ -225,6 +391,7 @@
     <p style="color: #0f0; font-size: 18px;">Survive the zombie horde!</p>
     <p>Click to Start</p>
     <p style="color: #888;">WASD: Move | SHIFT: Sprint | SPACE: Jump | LMB: Shoot | RMB: Aim | R: Reload</p>
+    <p style="color: #f90; font-size: 14px;">1: AK-47 | 2: SNIPER (Bolt Action) | SCROLL: Switch Weapons</p>
 </div>
 
 <div id="game-over" style="display: none;">
@@ -274,6 +441,29 @@
 
 <!-- Bottom Right - Ammo -->
 <div id="ammo-display">30 / 90</div>
+
+<!-- Weapon Indicator -->
+<div id="weapon-indicator">
+    <div class="weapon-slot active" data-weapon="ak">1: AK-47</div>
+    <div class="weapon-slot" data-weapon="sniper">2: SNIPER</div>
+</div>
+
+<!-- Scope Overlay (for sniper ADS) -->
+<div id="scope-overlay">
+    <div class="scope-vignette"></div>
+    <div class="scope-reticle">
+        <div class="reticle-cross-h"></div>
+        <div class="reticle-cross-v"></div>
+        <div class="reticle-dot"></div>
+        <div class="reticle-mil mil-1"></div>
+        <div class="reticle-mil mil-2"></div>
+        <div class="reticle-mil mil-3"></div>
+        <div class="reticle-mil mil-4"></div>
+    </div>
+</div>
+
+<!-- Bolt Action Indicator -->
+<div id="bolt-indicator">CYCLE BOLT [LMB]</div>
 
 <!-- Three.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -2188,6 +2378,384 @@ function playSound(type) {
         sizzleGain.gain.setValueAtTime(0.3, now);
         sizzleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         sizzleOsc.start(now); sizzleOsc.stop(now + 0.4);
+
+    } else if (type === 'sniperShoot') {
+        // === ABSOLUTELY MASSIVE .50 BMG ANTI-MATERIEL RIFLE SOUND ===
+        // This needs to SHAKE THE ROOM. 10+ layered audio components.
+
+        // LAYER 1: SUB-BASS EARTHQUAKE (15-30Hz - feel it in your chest)
+        const subOsc = actx.createOscillator();
+        const subGain = actx.createGain();
+        const subFilter = actx.createBiquadFilter();
+        subOsc.connect(subFilter);
+        subFilter.connect(subGain);
+        subGain.connect(dryGain);
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(25, now);
+        subOsc.frequency.exponentialRampToValueAtTime(12, now + 0.4);
+        subFilter.type = 'lowpass';
+        subFilter.frequency.value = 60;
+        subFilter.Q.value = 1.5;
+        subGain.gain.setValueAtTime(2.0, now); // CRANKED
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        subOsc.start(now); subOsc.stop(now + 0.55);
+
+        // LAYER 2: CHEST PUNCH - Low frequency impact
+        const chestOsc = actx.createOscillator();
+        const chestGain = actx.createGain();
+        chestOsc.connect(chestGain);
+        chestGain.connect(dryGain);
+        chestGain.connect(convolver);
+        chestOsc.type = 'sine';
+        chestOsc.frequency.setValueAtTime(50, now);
+        chestOsc.frequency.exponentialRampToValueAtTime(20, now + 0.25);
+        chestGain.gain.setValueAtTime(1.8, now);
+        chestGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        chestOsc.start(now); chestOsc.stop(now + 0.4);
+
+        // LAYER 3: CANNON BOOM - The main explosion body
+        const boomOsc = actx.createOscillator();
+        const boomGain = actx.createGain();
+        const boomFilter = actx.createBiquadFilter();
+        boomOsc.connect(boomFilter);
+        boomFilter.connect(boomGain);
+        boomGain.connect(dryGain);
+        boomGain.connect(convolver);
+        boomOsc.type = 'sawtooth';
+        boomOsc.frequency.setValueAtTime(100, now);
+        boomOsc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+        boomFilter.type = 'lowpass';
+        boomFilter.frequency.setValueAtTime(500, now);
+        boomFilter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+        boomGain.gain.setValueAtTime(1.2, now);
+        boomGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        boomOsc.start(now); boomOsc.stop(now + 0.4);
+
+        // LAYER 4: SUPERSONIC CRACK - Sharp transient (bullet breaking sound barrier)
+        const crackBuf = actx.createBuffer(1, actx.sampleRate * 0.03, actx.sampleRate);
+        const crackData = crackBuf.getChannelData(0);
+        for (let i = 0; i < crackBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            // Sharp attack, fast decay
+            crackData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 150) * 2.5;
+        }
+        const crackSrc = actx.createBufferSource();
+        crackSrc.buffer = crackBuf;
+        const crackFilter = actx.createBiquadFilter();
+        crackFilter.type = 'highpass';
+        crackFilter.frequency.value = 4000;
+        const crackGain = actx.createGain();
+        crackGain.gain.value = 1.4;
+        crackSrc.connect(crackFilter);
+        crackFilter.connect(crackGain);
+        crackGain.connect(dryGain);
+        crackSrc.start(now);
+
+        // LAYER 5: SECONDARY CRACK - Slightly delayed echo crack
+        const crack2Buf = actx.createBuffer(1, actx.sampleRate * 0.025, actx.sampleRate);
+        const crack2Data = crack2Buf.getChannelData(0);
+        for (let i = 0; i < crack2Buf.length; i++) {
+            const t = i / actx.sampleRate;
+            crack2Data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 120) * 1.5;
+        }
+        const crack2Src = actx.createBufferSource();
+        crack2Src.buffer = crack2Buf;
+        const crack2Filter = actx.createBiquadFilter();
+        crack2Filter.type = 'bandpass';
+        crack2Filter.frequency.value = 6000;
+        crack2Filter.Q.value = 0.5;
+        const crack2Gain = actx.createGain();
+        crack2Gain.gain.value = 0.8;
+        crack2Src.connect(crack2Filter);
+        crack2Filter.connect(crack2Gain);
+        crack2Gain.connect(dryGain);
+        crack2Src.start(now + 0.008); // Slight delay for echo effect
+
+        // LAYER 6: EXPLOSION NOISE - Chaotic burst
+        const explosionBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
+        const explosionData = explosionBuf.getChannelData(0);
+        for (let i = 0; i < explosionBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            explosionData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 20) * 1.2;
+        }
+        const explosionSrc = actx.createBufferSource();
+        explosionSrc.buffer = explosionBuf;
+        const explosionFilter = actx.createBiquadFilter();
+        explosionFilter.type = 'bandpass';
+        explosionFilter.frequency.value = 400;
+        explosionFilter.Q.value = 0.3;
+        const explosionGain = actx.createGain();
+        explosionGain.gain.setValueAtTime(1.5, now);
+        explosionGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        explosionSrc.connect(explosionFilter);
+        explosionFilter.connect(explosionGain);
+        explosionGain.connect(dryGain);
+        explosionGain.connect(convolver);
+        explosionSrc.start(now);
+
+        // LAYER 7: MID-RANGE PUNCH - Body of the shot
+        const midOsc = actx.createOscillator();
+        const midGain = actx.createGain();
+        midOsc.connect(midGain);
+        midGain.connect(dryGain);
+        midOsc.type = 'triangle';
+        midOsc.frequency.setValueAtTime(180, now);
+        midOsc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+        midGain.gain.setValueAtTime(0.9, now);
+        midGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        midOsc.start(now); midOsc.stop(now + 0.25);
+
+        // LAYER 8: MECHANICAL CLUNK - Bolt/action resonance
+        const mechOsc = actx.createOscillator();
+        const mechGain = actx.createGain();
+        mechOsc.connect(mechGain);
+        mechGain.connect(dryGain);
+        mechOsc.type = 'square';
+        mechOsc.frequency.setValueAtTime(800, now + 0.01);
+        mechOsc.frequency.exponentialRampToValueAtTime(300, now + 0.04);
+        mechGain.gain.setValueAtTime(0.35, now + 0.01);
+        mechGain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        mechOsc.start(now + 0.01); mechOsc.stop(now + 0.08);
+
+        // LAYER 9: AIR DISPLACEMENT WHOOSH
+        const whooshBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
+        const whooshData = whooshBuf.getChannelData(0);
+        for (let i = 0; i < whooshBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            whooshData[i] = (Math.random() * 2 - 1) * Math.sin(t * 50) * Math.exp(-t * 25) * 0.6;
+        }
+        const whooshSrc = actx.createBufferSource();
+        whooshSrc.buffer = whooshBuf;
+        const whooshFilter = actx.createBiquadFilter();
+        whooshFilter.type = 'bandpass';
+        whooshFilter.frequency.value = 1200;
+        whooshFilter.Q.value = 0.8;
+        const whooshGain = actx.createGain();
+        whooshGain.gain.value = 0.5;
+        whooshSrc.connect(whooshFilter);
+        whooshFilter.connect(whooshGain);
+        whooshGain.connect(dryGain);
+        whooshSrc.start(now);
+
+        // LAYER 10: LONG REVERB TAIL - Echoing across the battlefield
+        const tailBuf = actx.createBuffer(1, actx.sampleRate * 0.8, actx.sampleRate);
+        const tailData = tailBuf.getChannelData(0);
+        for (let i = 0; i < tailBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            // Multiple decay stages for realistic echo
+            const decay1 = Math.exp(-t * 4);
+            const decay2 = Math.exp(-t * 2) * 0.3;
+            tailData[i] = (Math.random() * 2 - 1) * (decay1 + decay2) * 0.7;
+        }
+        const tailSrc = actx.createBufferSource();
+        tailSrc.buffer = tailBuf;
+        const tailFilter = actx.createBiquadFilter();
+        tailFilter.type = 'lowpass';
+        tailFilter.frequency.setValueAtTime(1200, now);
+        tailFilter.frequency.exponentialRampToValueAtTime(300, now + 0.6);
+        const tailGain = actx.createGain();
+        tailGain.gain.setValueAtTime(0.8, now);
+        tailGain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+        tailSrc.connect(tailFilter);
+        tailFilter.connect(tailGain);
+        tailGain.connect(convolver);
+        tailSrc.start(now);
+
+        // LAYER 11: DISTANT THUNDER RUMBLE - The shot echoing off terrain
+        const thunderOsc = actx.createOscillator();
+        const thunderGain = actx.createGain();
+        const thunderFilter = actx.createBiquadFilter();
+        thunderOsc.connect(thunderFilter);
+        thunderFilter.connect(thunderGain);
+        thunderGain.connect(convolver);
+        thunderOsc.type = 'sine';
+        thunderOsc.frequency.setValueAtTime(35, now + 0.15);
+        thunderOsc.frequency.exponentialRampToValueAtTime(18, now + 0.6);
+        thunderFilter.type = 'lowpass';
+        thunderFilter.frequency.value = 80;
+        thunderGain.gain.setValueAtTime(0.01, now);
+        thunderGain.gain.linearRampToValueAtTime(0.6, now + 0.2);
+        thunderGain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        thunderOsc.start(now + 0.15); thunderOsc.stop(now + 0.85);
+
+        // LAYER 12: MUZZLE BRAKE HISS - High frequency gas escape
+        const hissBuf = actx.createBuffer(1, actx.sampleRate * 0.2, actx.sampleRate);
+        const hissData = hissBuf.getChannelData(0);
+        for (let i = 0; i < hissBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            hissData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 15) * 0.4;
+        }
+        const hissSrc = actx.createBufferSource();
+        hissSrc.buffer = hissBuf;
+        const hissFilter = actx.createBiquadFilter();
+        hissFilter.type = 'highpass';
+        hissFilter.frequency.value = 5000;
+        const hissGain = actx.createGain();
+        hissGain.gain.setValueAtTime(0.4, now);
+        hissGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        hissSrc.connect(hissFilter);
+        hissFilter.connect(hissGain);
+        hissGain.connect(dryGain);
+        hissSrc.start(now);
+
+        return;
+
+    } else if (type === 'boltLift') {
+        // Bolt handle lift - metallic click up
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+        filter.type = 'bandpass';
+        filter.frequency.value = 2000;
+        filter.Q.value = 3;
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now); osc.stop(now + 0.1);
+
+        // Metallic click
+        const clickOsc = actx.createOscillator();
+        const clickGain = actx.createGain();
+        clickOsc.connect(clickGain); clickGain.connect(dryGain);
+        clickOsc.type = 'square';
+        clickOsc.frequency.setValueAtTime(3000, now);
+        clickOsc.frequency.exponentialRampToValueAtTime(1500, now + 0.02);
+        clickGain.gain.setValueAtTime(0.25, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+        clickOsc.start(now); clickOsc.stop(now + 0.04);
+
+    } else if (type === 'boltPull') {
+        // Bolt pull back - heavy scrape
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+        filter.Q.value = 2;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        osc.start(now); osc.stop(now + 0.2);
+
+        // Metal scrape noise
+        const scrapeBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
+        const scrapeOut = scrapeBuf.getChannelData(0);
+        for (let i = 0; i < scrapeBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            scrapeOut[i] = (Math.random() * 2 - 1) * (0.3 + 0.7 * Math.sin(i * 0.1)) * (1 - t * 4);
+        }
+        const scrapeN = actx.createBufferSource(); scrapeN.buffer = scrapeBuf;
+        const scrapeFilter = actx.createBiquadFilter();
+        scrapeFilter.type = 'bandpass'; scrapeFilter.frequency.value = 2500; scrapeFilter.Q.value = 2;
+        const scrapeG = actx.createGain();
+        scrapeG.gain.value = 0.4;
+        scrapeN.connect(scrapeFilter); scrapeFilter.connect(scrapeG);
+        scrapeG.connect(dryGain);
+        scrapeN.start(now);
+
+    } else if (type === 'boltPush') {
+        // Bolt push forward - chamber round, heavy slam
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(200, now + 0.12);
+        filter.type = 'bandpass';
+        filter.frequency.value = 800;
+        filter.Q.value = 1.5;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now); osc.stop(now + 0.18);
+
+        // Heavy thunk at end
+        const thunkOsc = actx.createOscillator();
+        const thunkGain = actx.createGain();
+        thunkOsc.connect(thunkGain); thunkGain.connect(dryGain); thunkGain.connect(convolver);
+        thunkOsc.type = 'sine';
+        thunkOsc.frequency.setValueAtTime(120, now + 0.1);
+        thunkOsc.frequency.exponentialRampToValueAtTime(50, now + 0.18);
+        thunkGain.gain.setValueAtTime(0.6, now + 0.1);
+        thunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        thunkOsc.start(now + 0.1); thunkOsc.stop(now + 0.22);
+
+    } else if (type === 'boltDown') {
+        // Bolt handle lock down - solid click
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.03);
+        filter.type = 'highpass';
+        filter.frequency.value = 800;
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        osc.start(now); osc.stop(now + 0.08);
+
+        // Locking click
+        const lockOsc = actx.createOscillator();
+        const lockGain = actx.createGain();
+        lockOsc.connect(lockGain); lockGain.connect(dryGain);
+        lockOsc.type = 'square';
+        lockOsc.frequency.setValueAtTime(2500, now + 0.02);
+        lockOsc.frequency.exponentialRampToValueAtTime(1800, now + 0.04);
+        lockGain.gain.setValueAtTime(0.3, now + 0.02);
+        lockGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        lockOsc.start(now + 0.02); lockOsc.stop(now + 0.06);
+
+    } else if (type === 'weaponSwitch') {
+        // Quick weapon swap sound
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+        filter.type = 'bandpass';
+        filter.frequency.value = 1500;
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.12);
+
+        // Cloth/strap rustle
+        const rustleBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
+        const rustleOut = rustleBuf.getChannelData(0);
+        for (let i = 0; i < rustleBuf.length; i++) {
+            rustleOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.03)) * 0.3;
+        }
+        const rustleN = actx.createBufferSource(); rustleN.buffer = rustleBuf;
+        const rustleFilter = actx.createBiquadFilter();
+        rustleFilter.type = 'highpass'; rustleFilter.frequency.value = 2000;
+        const rustleG = actx.createGain();
+        rustleG.gain.value = 0.25;
+        rustleN.connect(rustleFilter); rustleFilter.connect(rustleG);
+        rustleG.connect(dryGain);
+        rustleN.start(now);
+
+    } else if (type === 'collateral') {
+        // Satisfying multi-kill sound - rising chime with bass punch
+        // Bass punch
+        const punchOsc = actx.createOscillator();
+        const punchGain = actx.createGain();
+        punchOsc.connect(punchGain); punchGain.connect(dryGain);
+        punchOsc.type = 'sine';
+        punchOsc.frequency.setValueAtTime(100, now);
+        punchOsc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+        punchGain.gain.setValueAtTime(0.6, now);
+        punchGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        punchOsc.start(now); punchOsc.stop(now + 0.25);
+
+        // Rising chime (satisfying ding)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
+        filter.type = 'bandpass';
+        filter.frequency.value = 1500;
+        filter.Q.value = 2;
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now); osc.stop(now + 0.45);
+
+        // Harmonic overtone
+        const harmOsc = actx.createOscillator();
+        const harmGain = actx.createGain();
+        harmOsc.connect(harmGain); harmGain.connect(dryGain);
+        harmOsc.type = 'sine';
+        harmOsc.frequency.setValueAtTime(1200, now + 0.05);
+        harmOsc.frequency.exponentialRampToValueAtTime(2000, now + 0.2);
+        harmGain.gain.setValueAtTime(0.2, now + 0.05);
+        harmGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        harmOsc.start(now + 0.05); harmOsc.stop(now + 0.4);
     }
 }
 
@@ -3757,11 +4325,12 @@ class Zombie {
         return false;
     }
 
-    hit(hitPoint) {
+    hit(hitPoint, weaponDamageMultiplier = 1.0) {
         if (this.isDead) return;
 
-        // Apply damage (boosted if power-up active)
-        const damage = damageBoostTimer > 0 ? damageBoostMultiplier : 1;
+        // Apply damage (boosted if power-up active, multiplied by weapon damage)
+        const baseDamage = damageBoostTimer > 0 ? damageBoostMultiplier : 1;
+        const damage = baseDamage * weaponDamageMultiplier;
         this.health -= damage;
         playSound('zombieHit');
 
@@ -3770,13 +4339,13 @@ class Zombie {
         const knockDir = new THREE.Vector3();
         knockDir.subVectors(this.mesh.position, camera.position).normalize();
 
-        // Stagger/flinch with random variation
-        const flinchIntensity = 0.15 + Math.random() * 0.15;
+        // Stagger/flinch with random variation (heavier hits = bigger flinch)
+        const flinchIntensity = (0.15 + Math.random() * 0.15) * Math.min(weaponDamageMultiplier, 2.0);
         this.mesh.rotation.x = -flinchIntensity - Math.random() * 0.1;
-        this.mesh.rotation.z = (Math.random() - 0.5) * 0.2; // Slight random side tilt
+        this.mesh.rotation.z = (Math.random() - 0.5) * 0.2 * weaponDamageMultiplier; // More side tilt for big hits
 
-        // Knockback - push zombie away from player slightly
-        const knockbackStrength = 0.3 + Math.random() * 0.2;
+        // Knockback - push zombie away from player (stronger for high-damage weapons)
+        const knockbackStrength = (0.3 + Math.random() * 0.2) * weaponDamageMultiplier;
         this.mesh.position.x += knockDir.x * knockbackStrength;
         this.mesh.position.z += knockDir.z * knockbackStrength;
 
@@ -5296,12 +5865,296 @@ gunGroup.add(flashGroup);
 // Legacy reference for compatibility
 const flashMat = flashMidMat;
 
+/**
+ * SNIPER RIFLE CONSTRUCTION - Bolt Action
+ */
+const sniperGroup = new THREE.Group();
+const sniperRecoilGroup = new THREE.Group();
+sniperRecoilGroup.add(sniperGroup);
+
+// Long heavy barrel
+const sniperBarrel = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 12, 12),
+    metalMat
+);
+sniperBarrel.rotation.x = Math.PI / 2;
+sniperBarrel.position.set(0, 0.15, -5);
+sniperBarrel.castShadow = true;
+sniperGroup.add(sniperBarrel);
+
+// Barrel shroud/fluting
+const sniperShroud = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.14, 0.12, 8, 8),
+    darkMetalMat
+);
+sniperShroud.rotation.x = Math.PI / 2;
+sniperShroud.position.set(0, 0.15, -3);
+sniperGroup.add(sniperShroud);
+
+// Heavy receiver
+const sniperReceiver = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 0.8, 5),
+    darkMetalMat
+);
+sniperReceiver.position.set(0, 0, 1);
+sniperReceiver.castShadow = true;
+sniperGroup.add(sniperReceiver);
+
+// Bolt handle (prominent for bolt-action)
+const sniperBoltHandle = new THREE.Group();
+const boltBody = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8),
+    metalMat
+);
+boltBody.rotation.x = Math.PI / 2;
+boltBody.position.set(0.4, 0.3, 0.5);
+sniperBoltHandle.add(boltBody);
+
+const boltKnob = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 8, 8),
+    metalMat
+);
+boltKnob.position.set(0.4, 0.3, 1.1);
+sniperBoltHandle.add(boltKnob);
+
+const boltStem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.06, 0.4, 6),
+    metalMat
+);
+boltStem.rotation.z = Math.PI / 2;
+boltStem.position.set(0.2, 0.3, 0.5);
+sniperBoltHandle.add(boltStem);
+
+sniperGroup.add(sniperBoltHandle);
+
+// Scope rail
+const scopeRail = new THREE.Mesh(
+    new THREE.BoxGeometry(0.25, 0.15, 3),
+    darkMetalMat
+);
+scopeRail.position.set(0, 0.5, 0.5);
+sniperGroup.add(scopeRail);
+
+// SCOPE - Main tube
+const scopeTube = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.18, 4, 12),
+    darkMetalMat
+);
+scopeTube.rotation.x = Math.PI / 2;
+scopeTube.position.set(0, 0.85, 0);
+sniperGroup.add(scopeTube);
+
+// Scope objective lens (front, larger)
+const scopeObjective = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.25, 0.25, 0.4, 12),
+    darkMetalMat
+);
+scopeObjective.rotation.x = Math.PI / 2;
+scopeObjective.position.set(0, 0.85, -2);
+sniperGroup.add(scopeObjective);
+
+// Scope ocular (rear, smaller)
+const scopeOcular = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.2, 0.3, 12),
+    darkMetalMat
+);
+scopeOcular.rotation.x = Math.PI / 2;
+scopeOcular.position.set(0, 0.85, 2);
+sniperGroup.add(scopeOcular);
+
+// Scope lens glass (reflective)
+const scopeLensMat = new THREE.MeshStandardMaterial({
+    color: 0x88aaff,
+    metalness: 0.9,
+    roughness: 0.1,
+    envMap: envMapTex,
+    envMapIntensity: 1.5,
+    transparent: true,
+    opacity: 0.6
+});
+const scopeLensFront = new THREE.Mesh(
+    new THREE.CircleGeometry(0.22, 16),
+    scopeLensMat
+);
+scopeLensFront.position.set(0, 0.85, -2.2);
+sniperGroup.add(scopeLensFront);
+
+// Scope adjustment turrets
+const turretMat = darkMetalMat;
+const elevationTurret = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 0.3, 8),
+    turretMat
+);
+elevationTurret.position.set(0, 1.15, 0.5);
+sniperGroup.add(elevationTurret);
+
+const windageTurret = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 0.25, 8),
+    turretMat
+);
+windageTurret.rotation.z = Math.PI / 2;
+windageTurret.position.set(0.3, 0.85, 0.5);
+sniperGroup.add(windageTurret);
+
+// Thumbhole stock (ergonomic sniper stock)
+const sniperStock = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 1.4, 4),
+    woodMat
+);
+sniperStock.position.set(0, -0.3, 4);
+sniperStock.rotation.x = 0.15;
+sniperStock.castShadow = true;
+sniperGroup.add(sniperStock);
+
+// Cheek rest
+const cheekRest = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.4, 1.5),
+    woodMat
+);
+cheekRest.position.set(0, 0.4, 3.5);
+sniperGroup.add(cheekRest);
+
+// Pistol grip
+const sniperGrip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.45, 1.4, 0.7),
+    woodMat
+);
+sniperGrip.position.set(0, -0.9, 1.8);
+sniperGrip.rotation.x = -0.4;
+sniperGrip.castShadow = true;
+sniperGroup.add(sniperGrip);
+
+// Trigger guard
+const triggerGuard = new THREE.Mesh(
+    new THREE.TorusGeometry(0.2, 0.04, 6, 12, Math.PI),
+    darkMetalMat
+);
+triggerGuard.rotation.x = Math.PI;
+triggerGuard.rotation.z = Math.PI / 2;
+triggerGuard.position.set(0, -0.7, 1.2);
+sniperGroup.add(triggerGuard);
+
+// Bipod (folded)
+const bipodLegL = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6),
+    darkMetalMat
+);
+bipodLegL.rotation.x = Math.PI / 2;
+bipodLegL.rotation.z = 0.3;
+bipodLegL.position.set(-0.15, -0.1, -6);
+sniperGroup.add(bipodLegL);
+
+const bipodLegR = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6),
+    darkMetalMat
+);
+bipodLegR.rotation.x = Math.PI / 2;
+bipodLegR.rotation.z = -0.3;
+bipodLegR.position.set(0.15, -0.1, -6);
+sniperGroup.add(bipodLegR);
+
+// Muzzle brake
+const muzzleBrake = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.1, 0.8, 8),
+    metalMat
+);
+muzzleBrake.rotation.x = Math.PI / 2;
+muzzleBrake.position.set(0, 0.15, -10.5);
+sniperGroup.add(muzzleBrake);
+
+// Sniper muzzle flash (same structure as AK but positioned differently)
+const sniperFlashGroup = new THREE.Group();
+const sniperFlashCore = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), flashCoreMat);
+sniperFlashGroup.add(sniperFlashCore);
+for(let i=0; i<4; i++) {
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), flashMidMat);
+    f.rotation.z = (Math.PI / 4) * i;
+    sniperFlashGroup.add(f);
+}
+for(let i=0; i<6; i++) {
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), flashOuterMat);
+    f.rotation.z = (Math.PI / 3) * i;
+    sniperFlashGroup.add(f);
+}
+sniperFlashGroup.position.set(0, 0.15, -11);
+sniperGroup.add(sniperFlashGroup);
+
+// Sniper magazine (box mag)
+const sniperMagPivot = new THREE.Group();
+sniperMagPivot.position.set(0, -0.3, 0.5);
+sniperGroup.add(sniperMagPivot);
+
+const sniperMag = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 1.5, 1.0),
+    darkMetalMat
+);
+sniperMag.position.y = -0.7;
+sniperMag.castShadow = true;
+sniperMagPivot.add(sniperMag);
+
+// Position sniper (hidden by default)
+sniperRecoilGroup.rotation.y = Math.PI;
+sniperRecoilGroup.visible = false;
+camera.add(sniperRecoilGroup);
+
+// Sniper springs for bolt action
+const SniperSprings = {
+    // Bolt action springs
+    boltRotate: new Spring(300, 18, 1),   // Bolt handle rotation (lift)
+    boltPull: new Spring(350, 20, 1),     // Bolt pull back
+    boltPush: new Spring(400, 22, 1),     // Bolt push forward
+    boltDown: new Spring(350, 20, 1),     // Bolt rotate down
+
+    // === BRUTAL SNIPER RECOIL - Fast snap, slow recovery ===
+    // High stiffness for INSTANT jolt, high mass for slow return
+    heavyRecoilZ: new Spring(350, 12, 2.5),    // SNAP back instantly, settle slowly
+    heavyRecoilX: new Spring(280, 10, 2.8),    // Fast muzzle snap up
+    heavyRecoilY: new Spring(200, 8, 3.0),     // Quick vertical jump
+    heavyRecoilRoll: new Spring(250, 10, 2.5), // Violent rotational snap
+
+    // Stock compression - INSTANT slam into shoulder
+    stockCompress: new Spring(400, 15, 1.8),   // Fast compression, slow decompress
+    stockRotate: new Spring(300, 12, 2.2),     // Quick barrel tip
+
+    // Scope-specific shake (VIOLENT initial jitter)
+    scopeShakeX: new Spring(450, 18, 1.2),     // Very fast scope snap
+    scopeShakeY: new Spring(450, 18, 1.2),
+    scopeSettleX: new Spring(30, 3, 4.0),      // Very slow scope settle
+    scopeSettleY: new Spring(30, 3, 4.0),
+
+    // Heavy weapon sway - more inertia when moving
+    heavySwayX: new Spring(35, 3, 2.5),        // Sluggish sway
+    heavySwayY: new Spring(35, 3, 2.5),
+    heavyMomentumX: new Spring(20, 2, 3.5),    // Weapon trails behind significantly
+    heavyMomentumZ: new Spring(20, 2, 3.5),
+
+    // Barrel droop - forward dip after recoil settles
+    barrelDroop: new Spring(40, 3, 4.0),       // Slow barrel settle after kick
+
+    // Breathing amplification when scoped
+    scopedBreath: new Spring(10, 0.8, 4.0),    // Exaggerated breathing sway
+
+    // Recovery springs - SLOW crawl back to neutral
+    recoveryZ: new Spring(15, 2, 5.0),
+    recoveryX: new Spring(12, 1.8, 5.5),
+};
+
 // Camera Rig
 const hipPos = new THREE.Vector3(0.9, -1.1, -1.8);
 const aimPos = new THREE.Vector3(0.0, -1.22, -0.5);
+const sniperHipPos = new THREE.Vector3(0.8, -1.0, -1.5);
+const sniperAimPos = new THREE.Vector3(0.0, -0.75, -0.3); // Higher for scope alignment
+
+// Position AK-47
 recoilGroup.position.copy(hipPos);
-recoilGroup.rotation.y = Math.PI; 
+recoilGroup.rotation.y = Math.PI;
 camera.add(recoilGroup);
+
+// Position Sniper (starts hidden)
+sniperRecoilGroup.position.copy(sniperHipPos);
+// sniperRecoilGroup already has rotation.y = Math.PI set during construction
+// and is already added to camera and set visible = false
+
 scene.add(camera);
 
 /**
@@ -5623,6 +6476,25 @@ let isAiming = false;
 let lastShotTime = 0;
 const fireRate = 0.1;
 
+// === WEAPON SYSTEM ===
+let currentWeapon = 'ak'; // 'ak' or 'sniper'
+let isSwitchingWeapon = false;
+
+// Sniper-specific state
+let sniperAmmo = 5;
+let sniperReserve = 20;
+const sniperMagSize = 5;
+const sniperFireRate = 1.5; // Slower fire rate
+const sniperDamageMultiplier = 3.0; // More damage per shot
+
+// Bolt action state
+let needsBoltCycle = false;  // True after firing, must cycle bolt
+let isCyclingBolt = false;   // Currently in bolt animation
+let boltCyclePhase = 0;      // Animation phase: 0=idle, 1=lift, 2=pull, 3=push, 4=down
+
+// Scope state
+let scopeZoomLevel = 4; // 4x zoom when scoped
+
 // PLAYER HEALTH & GAME STATE
 let playerHealth = 100;
 let maxPlayerHealth = 100;
@@ -5728,6 +6600,21 @@ function restartGame() {
     isGameOver = false;
     isReloading = false;
 
+    // Reset sniper state
+    sniperAmmo = sniperMagSize;
+    needsBoltCycle = false;
+    isCyclingBolt = false;
+    boltCyclePhase = 0;
+    document.getElementById('bolt-indicator').classList.remove('show');
+
+    // Reset to AK-47
+    if (currentWeapon !== 'ak') {
+        sniperRecoilGroup.visible = false;
+        recoilGroup.visible = true;
+        currentWeapon = 'ak';
+        updateWeaponIndicator();
+    }
+
     // Clear all zombies
     for (const zombie of zombies) {
         zombie.cleanup();
@@ -5797,6 +6684,108 @@ function showHitmarker(isHeadshot = false) {
     }, isHeadshot ? 200 : 100);
 }
 
+/**
+ * PENETRATION EFFECT - Sparks and blood spray at penetration point
+ */
+function spawnPenetrationEffect(position) {
+    // Bright sparks at penetration point
+    for (let i = 0; i < 8; i++) {
+        const spark = sparks.find(s => !s.active);
+        if (spark) {
+            spark.active = true;
+            spark.life = 0.3 + Math.random() * 0.2;
+            spark.maxLife = spark.life;
+            spark.mesh.position.copy(position);
+            spark.mesh.visible = true;
+            // Radial burst from penetration point
+            const angle = Math.random() * Math.PI * 2;
+            const upAngle = Math.random() * Math.PI - Math.PI / 2;
+            spark.velocity.set(
+                Math.cos(angle) * Math.cos(upAngle) * (8 + Math.random() * 6),
+                Math.sin(upAngle) * 4 + Math.random() * 3,
+                Math.sin(angle) * Math.cos(upAngle) * (8 + Math.random() * 6)
+            );
+            spark.mesh.material.color.setHex(0xffcc00); // Golden penetration sparks
+        }
+    }
+
+    // Blood/impact spray
+    for (let i = 0; i < 5; i++) {
+        const debris = debrisParticles.find(d => !d.active);
+        if (debris) {
+            debris.active = true;
+            debris.life = 0.4 + Math.random() * 0.3;
+            debris.maxLife = debris.life;
+            debris.mesh.position.copy(position);
+            debris.mesh.visible = true;
+            const spread = 6;
+            debris.velocity.set(
+                (Math.random() - 0.5) * spread,
+                Math.random() * 4 + 2,
+                (Math.random() - 0.5) * spread
+            );
+            debris.mesh.material.color.setHex(0x8b0000); // Dark blood red
+            debris.mesh.scale.setScalar(0.08 + Math.random() * 0.06);
+        }
+    }
+}
+
+/**
+ * COLLATERAL NOTIFICATION - Show multi-kill announcement
+ */
+let collateralNotification = null;
+let collateralTimeout = null;
+
+function showCollateralNotification(killCount) {
+    if (!collateralNotification) {
+        collateralNotification = document.createElement('div');
+        collateralNotification.style.cssText = `
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        `;
+        document.body.appendChild(collateralNotification);
+    }
+
+    const messages = {
+        2: { text: 'DOUBLE KILL', color: '#ffcc00' },
+        3: { text: 'TRIPLE KILL', color: '#ff6600' },
+        4: { text: 'COLLATERAL!', color: '#ff0000' }
+    };
+    const msg = messages[Math.min(killCount, 4)];
+
+    collateralNotification.innerHTML = `
+        <div style="font-size: 32px; color: ${msg.color}; text-shadow: 0 0 20px ${msg.color}, 0 2px 4px rgba(0,0,0,0.8);">
+            ${msg.text}
+        </div>
+        <div style="font-size: 16px; color: #fff; margin-top: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+            +${killCount * 50} BONUS
+        </div>
+    `;
+    collateralNotification.style.opacity = '1';
+
+    // Play satisfying collateral sound
+    playSound('collateral');
+
+    if (collateralTimeout) clearTimeout(collateralTimeout);
+    collateralTimeout = setTimeout(() => {
+        collateralNotification.style.opacity = '0';
+    }, 1500);
+
+    // Extra score for collateral
+    addScore(killCount * 50);
+}
+
 // Power-up display element (created once)
 let powerupsEl = null;
 function ensurePowerupsEl() {
@@ -5817,21 +6806,33 @@ function updateHUD(force = false) {
     const remaining = zombiesThisWave - zombiesKilledThisWave;
     const healthPercent = Math.ceil(playerHealth);
 
+    // Get current weapon's ammo
+    const currentAmmo = currentWeapon === 'sniper' ? sniperAmmo : ammo;
+    const currentMagSize = currentWeapon === 'sniper' ? sniperMagSize : 30;
+    const lowAmmoThreshold = currentWeapon === 'sniper' ? 2 : 10;
+
     // Only update if values changed (or forced)
-    if (force || lastHUDValues.ammo !== ammo || lastHUDValues.reserve !== reserve || lastHUDValues.isReloading !== isReloading) {
-        lastHUDValues.ammo = ammo;
+    if (force || lastHUDValues.ammo !== currentAmmo || lastHUDValues.reserve !== reserve || lastHUDValues.isReloading !== isReloading || lastHUDValues.weapon !== currentWeapon) {
+        lastHUDValues.ammo = currentAmmo;
         lastHUDValues.reserve = reserve;
         lastHUDValues.isReloading = isReloading;
+        lastHUDValues.weapon = currentWeapon;
         if (dom.ammoDisplay) {
-            dom.ammoDisplay.innerText = `${isReloading ? 'RLD' : ammo} / ∞`;
+            if (isReloading) {
+                dom.ammoDisplay.innerText = 'RLD / ∞';
+            } else if (currentWeapon === 'sniper' && needsBoltCycle) {
+                dom.ammoDisplay.innerText = `${currentAmmo} / ∞ [CYCLE]`;
+            } else {
+                dom.ammoDisplay.innerText = `${currentAmmo} / ∞`;
+            }
 
             // Micro-animation classes for ammo state
             dom.ammoDisplay.classList.remove('low-ammo', 'empty', 'reloading');
             if (isReloading) {
                 dom.ammoDisplay.classList.add('reloading');
-            } else if (ammo === 0) {
+            } else if (currentAmmo === 0) {
                 dom.ammoDisplay.classList.add('empty');
-            } else if (ammo <= 10) {
+            } else if (currentAmmo <= lowAmmoThreshold) {
                 dom.ammoDisplay.classList.add('low-ammo');
             }
         }
@@ -5919,46 +6920,124 @@ function updateHUD(force = false) {
 
 function shoot() {
     if (isGameOver) return;
-    if (isReloading || ammo <= 0) {
-        if (ammo <= 0 && !isReloading) playSound('empty');
-        return;
+
+    // Handle sniper bolt action requirement
+    if (currentWeapon === 'sniper') {
+        if (needsBoltCycle) {
+            // Must cycle bolt before firing again
+            if (!isCyclingBolt) {
+                cycleBolt();
+            }
+            return;
+        }
+        if (isCyclingBolt) return; // Can't fire while cycling
+        if (isReloading || sniperAmmo <= 0) {
+            if (sniperAmmo <= 0 && !isReloading) playSound('empty');
+            return;
+        }
+        const now = performance.now() / 1000;
+        if (now - lastShotTime < sniperFireRate) return;
+
+        lastShotTime = now;
+        sniperAmmo--;
+        needsBoltCycle = true; // Must cycle bolt after shot
+        updateHUD();
+        playSound('sniperShoot');
+
+        // Show bolt indicator after short delay
+        setTimeout(() => {
+            if (needsBoltCycle && currentWeapon === 'sniper') {
+                document.getElementById('bolt-indicator').classList.add('show');
+            }
+        }, 300);
+    } else {
+        // AK-47 behavior (unchanged)
+        if (isReloading || ammo <= 0) {
+            if (ammo <= 0 && !isReloading) playSound('empty');
+            return;
+        }
+        const now = performance.now() / 1000;
+        if (now - lastShotTime < fireRate) return;
+
+        lastShotTime = now;
+        ammo--;
+        updateHUD();
+        playSound('shoot');
     }
-    const now = performance.now() / 1000;
-    if (now - lastShotTime < fireRate) return;
-    
-    lastShotTime = now;
-    ammo--; // Still decrement for reload mechanic
-    updateHUD();
-    playSound('shoot');
 
     // ORGANIC RECOIL IMPULSE PHYSICS
-    const aimMod = isAiming ? 0.35 : 1.0;
+    const isSniper = currentWeapon === 'sniper';
+    const aimMod = isAiming ? (isSniper ? 0.12 : 0.35) : 1.0; // Sniper kicks HARD even when aimed
+    const recoilMult = isSniper ? 2.5 : 1.0; // Sniper has BRUTAL screen shake
 
     // Randomize recoil slightly for organic feel (no two shots identical)
     const recoilVariance = 0.85 + Math.random() * 0.3;
-    const horizontalBias = (Math.random() - 0.5) * 0.4; // Slight random horizontal pull
+    const horizontalBias = (Math.random() - 0.5) * (isSniper ? 0.15 : 0.4);
 
-    // Z: Backward kick into shoulder - primary recoil
-    Springs.recoilZ.impulse(-14 * aimMod * recoilVariance);
+    if (isSniper) {
+        // === BRUTAL SNIPER RECOIL - VIOLENT JOLT ===
+        // This thing KICKS. Hard. Like getting punched in the shoulder.
 
-    // X: Muzzle climb (negative = up) - with variance
-    Springs.recoilX.impulse(-3.5 * aimMod * recoilVariance);
+        // Primary kick - VIOLENT backward jolt (the gun SLAMS back)
+        SniperSprings.heavyRecoilZ.impulse(-80 * aimMod * recoilVariance);
 
-    // Y: Vertical physical rise
-    Springs.recoilY.impulse(0.6 * aimMod * recoilVariance);
+        // Muzzle SNAP up - aggressive climb
+        SniperSprings.heavyRecoilX.impulse(-25 * aimMod * recoilVariance);
 
-    // Roll: Rotational torque - asymmetric for realism
-    Springs.recoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.3) * 0.8 * aimMod);
-    Springs.roll.impulse(horizontalBias * 0.4 * aimMod);
+        // Vertical physical rise - whole gun jumps up
+        SniperSprings.heavyRecoilY.impulse(8 * aimMod * recoilVariance);
 
-    // Horizontal sway from recoil
-    Springs.swayX.impulse(horizontalBias * 0.15 * aimMod);
+        // Rotational torque - violent twist
+        SniperSprings.heavyRecoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.4) * 4 * aimMod);
 
-    // Camera recoil - gradual climb
-    cameraRecoil += 0.025 * aimMod * recoilVariance;
+        // Stock compression - gun SLAMS into shoulder
+        SniperSprings.stockCompress.impulse(40 * aimMod * recoilVariance);
+        SniperSprings.stockRotate.impulse(-18 * aimMod * recoilVariance);
 
-    // Subtle forward jolt
-    Springs.bobZ.impulse(-0.8 * aimMod);
+        // Scope shake - VIOLENT jitter (your view gets rocked)
+        SniperSprings.scopeShakeX.impulse((Math.random() - 0.5) * 35 * aimMod);
+        SniperSprings.scopeShakeY.impulse((Math.random() - 0.3) * 30 * aimMod);
+
+        // Scope settle - crosshair wobbles for a while
+        SniperSprings.scopeSettleX.impulse((Math.random() - 0.5) * 12);
+        SniperSprings.scopeSettleY.impulse((Math.random() - 0.5) * 12);
+
+        // Barrel droop - dramatic forward dip after the jolt
+        SniperSprings.barrelDroop.impulse(8 * recoilVariance);
+
+        // Heavy momentum - weapon gets THROWN back
+        SniperSprings.heavyMomentumX.impulse(horizontalBias * 20);
+        SniperSprings.heavyMomentumZ.impulse(-30 * aimMod);
+
+        // Recovery targets - slow crawl back to neutral
+        SniperSprings.recoveryZ.target = SniperSprings.heavyRecoilZ.position * 0.4;
+        SniperSprings.recoveryX.target = SniperSprings.heavyRecoilX.position * 0.4;
+
+        // BRUTAL camera recoil - your whole view gets PUNCHED
+        cameraRecoil += 0.18 * aimMod * recoilVariance;
+
+        // Screen shake - VIOLENT
+        Springs.shakeX.impulse((Math.random() - 0.5) * 15 * aimMod);
+        Springs.shakeY.impulse((Math.random() - 0.2) * 12 * aimMod);
+        Springs.shakeRoll.impulse((Math.random() - 0.5) * 8 * aimMod);
+
+        // Whole body rocks back HARD from the shot
+        Springs.bobZ.impulse(-8 * aimMod);
+        Springs.bobY.impulse(-3 * aimMod); // Body dips down from impact
+        Springs.roll.impulse(horizontalBias * 2 * aimMod);
+        Springs.tilt.impulse(-4 * aimMod); // Lean back from the kick
+
+    } else {
+        // === AK-47 RECOIL (unchanged - snappy and responsive) ===
+        Springs.recoilZ.impulse(-14 * aimMod * recoilVariance);
+        Springs.recoilX.impulse(-3.5 * aimMod * recoilVariance);
+        Springs.recoilY.impulse(0.6 * aimMod * recoilVariance);
+        Springs.recoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.3) * 0.8 * aimMod);
+        Springs.roll.impulse(horizontalBias * 0.4 * aimMod);
+        Springs.swayX.impulse(horizontalBias * 0.15 * aimMod);
+        cameraRecoil += 0.025 * aimMod * recoilVariance;
+        Springs.bobZ.impulse(-0.8 * aimMod);
+    }
 
     // Crosshair pop with smooth animation
     if(!isAiming) {
@@ -5971,93 +7050,292 @@ function shoot() {
     }
 
     // ENHANCED FLASH with variance
-    const flashIntensity = 0.9 + Math.random() * 0.2;
+    const flashIntensity = (isSniper ? 1.1 : 0.9) + Math.random() * 0.2;
     flashCoreMat.opacity = flashIntensity;
     flashMidMat.opacity = flashIntensity * 0.9;
     flashOuterMat.opacity = flashIntensity * 0.7;
     flashStreakMat.opacity = flashIntensity * 0.8;
-    flashGroup.rotation.z = Math.random() * Math.PI;
-    flashGroup.scale.setScalar(0.75 + Math.random() * 0.5);
-    muzzleLight.position.copy(new THREE.Vector3(0, 0.3, -7.5).applyMatrix4(gunGroup.matrixWorld));
-    muzzleLight.intensity = 25 + Math.random() * 10;
+
+    // Use correct weapon group for flash
+    const activeGunGroup = isSniper ? sniperGroup : gunGroup;
+    const activeFlashGroup = isSniper ? sniperFlashGroup : flashGroup;
+    activeFlashGroup.rotation.z = Math.random() * Math.PI;
+    activeFlashGroup.scale.setScalar((isSniper ? 0.9 : 0.75) + Math.random() * 0.5);
+
+    const muzzleOffset = isSniper ? new THREE.Vector3(0, 0.15, -11) : new THREE.Vector3(0, 0.3, -7.5);
+    muzzleLight.position.copy(muzzleOffset.applyMatrix4(activeGunGroup.matrixWorld));
+    muzzleLight.intensity = (isSniper ? 35 : 25) + Math.random() * 10;
     muzzleLight.color.setHex(0xffaa44);
 
     // Spawn muzzle sparks
     spawnMuzzleSparks();
 
-    // Dynamic post-processing punch
-    bloomIntensity = 0.4 + Math.random() * 0.15;
-    chromaticAmount = 0.0015 + Math.random() * 0.001;
+    // Dynamic post-processing punch (stronger for sniper)
+    bloomIntensity = (isSniper ? 0.6 : 0.4) + Math.random() * 0.15;
+    chromaticAmount = (isSniper ? 0.003 : 0.0015) + Math.random() * 0.001;
 
-    // Screen shake - organic variance
-    const shakeIntensity = aimMod * recoilVariance;
+    // Screen shake - organic variance (stronger for sniper)
+    const shakeIntensity = aimMod * recoilVariance * recoilMult;
     Springs.shakeX.impulse((Math.random() - 0.5) * 2.5 * shakeIntensity);
     Springs.shakeY.impulse((Math.random() - 0.3) * 2 * shakeIntensity); // Bias upward
     Springs.shakeRoll.impulse((Math.random() - 0.5) * 1.5 * shakeIntensity);
 
-    // Bolt snap - spring-driven for smooth return
-    Springs.boltZ.impulse(8); // Impulse bolt backward
+    // Bolt snap - spring-driven for smooth return (AK only, sniper has manual bolt)
+    if (!isSniper) {
+        Springs.boltZ.impulse(8);
+    }
     lastFireTime = performance.now();
     consecutiveShots++;
 
-    ejectShell();
+    // Shell ejection (AK ejects immediately, sniper ejects during bolt cycle)
+    if (!isSniper) {
+        ejectShell();
+    }
     spawnSmoke();
-    spawnMuzzleSmokeWisps(); // NEW: Lingering smoke wisps
+    spawnMuzzleSmokeWisps();
 
     // RAYCAST
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
     const intersects = raycaster.intersectObjects(targets);
-    const muzzlePos = new THREE.Vector3(0, 0.3, -6.5).applyMatrix4(gunGroup.matrixWorld);
+    const muzzlePos = isSniper
+        ? new THREE.Vector3(0, 0.15, -10.5).applyMatrix4(sniperGroup.matrixWorld)
+        : new THREE.Vector3(0, 0.3, -6.5).applyMatrix4(gunGroup.matrixWorld);
     let hitPoint;
-    if (intersects.length > 0) {
-        hitPoint = intersects[0].point;
 
-        // Check if we hit a shooting target
-        if (intersects[0].object.userData.isTarget) {
-            const target = intersects[0].object.userData.targetRef;
-            if (target && target.isUp) {
-                target.knockDown();
-                playSound('targetHit');
-            }
-        } else if (intersects[0].object.userData.isBot) {
-            // Hit a bot (zombie)
-            const bot = intersects[0].object.userData.botRef;
-            if (bot && !bot.isDead) {
-                const hitPointWorld = intersects[0].point.clone();
+    // SNIPER PENETRATION: Can pierce through multiple enemies
+    const maxPenetrations = isSniper ? 3 : 1; // Sniper goes through 3, AK stops at 1
+    let penetrationCount = 0;
+    let lastHitPoint = null;
+    const hitBots = new Set(); // Track already-hit bots to avoid double damage
+
+    if (intersects.length > 0) {
+        // Process hits - sniper can penetrate through multiple targets
+        for (let i = 0; i < intersects.length && penetrationCount < maxPenetrations; i++) {
+            const hit = intersects[i];
+            lastHitPoint = hit.point;
+
+            // Check if we hit a shooting target
+            if (hit.object.userData.isTarget) {
+                const target = hit.object.userData.targetRef;
+                if (target && target.isUp) {
+                    target.knockDown();
+                    playSound('targetHit');
+                    penetrationCount++;
+
+                    // Spawn penetration sparks/impact for sniper
+                    if (isSniper && penetrationCount < maxPenetrations) {
+                        spawnPenetrationEffect(hit.point);
+                    }
+                }
+            } else if (hit.object.userData.isBot) {
+                // Hit a bot (zombie)
+                const bot = hit.object.userData.botRef;
+
+                // Skip if already hit this bot or bot is dead
+                if (!bot || bot.isDead || hitBots.has(bot)) continue;
+                hitBots.add(bot);
+
+                const hitPointWorld = hit.point.clone();
 
                 // HEADSHOT DETECTION
-                // Zombie head is at local y = 3.7 (1.85 * scale of 2.0)
-                // Head radius is 0.7 (0.35 * 2.0)
-                // So headshot if hit point is above torso top (~3.0 local y)
                 const zombieBaseY = bot.mesh.position.y;
                 const hitLocalY = hitPointWorld.y - zombieBaseY;
                 const isHeadshot = hitLocalY > 2.9 && !bot.headExploded;
 
                 if (isHeadshot) {
-                    // Get direction from camera to zombie
                     const hitDir = new THREE.Vector3();
                     hitDir.subVectors(hitPointWorld, camera.position).normalize();
 
-                    // EXPLODE THE HEAD!
                     explodeHead(bot, hitPointWorld, hitDir);
                     showHitmarker(true);
 
-                    // Headshot is instant kill + bonus score
-                    addScore(150); // +50 bonus for headshot
+                    // Extra score for sniper headshots, bonus for collateral kills
+                    const collateralBonus = penetrationCount > 0 ? 50 * penetrationCount : 0;
+                    addScore((isSniper ? 200 : 150) + collateralBonus);
                     bot.health = 0;
                     bot.die();
                 } else {
-                    bot.hit(hitPointWorld);
+                    bot.hit(hitPointWorld, isSniper ? sniperDamageMultiplier : 1.0);
                     showHitmarker(false);
+
+                    // Collateral bonus
+                    if (penetrationCount > 0 && isSniper) {
+                        addScore(25 * penetrationCount);
+                    }
+                }
+
+                penetrationCount++;
+
+                // Show penetration effect if bullet continues
+                if (isSniper && penetrationCount < maxPenetrations) {
+                    spawnPenetrationEffect(hitPointWorld);
+                }
+
+            } else if (hit.face) {
+                // Hit world geometry - stops AK, but sniper can punch through thin walls once
+                spawnDecal(hit.point, hit.face.normal);
+
+                if (!isSniper) {
+                    // AK stops at walls
+                    break;
+                } else {
+                    // Sniper can penetrate one wall/obstacle
+                    penetrationCount++;
+                    if (penetrationCount < maxPenetrations) {
+                        spawnPenetrationEffect(hit.point);
+                    }
                 }
             }
-        } else if (intersects[0].face) {
-            spawnDecal(intersects[0].point, intersects[0].face.normal);
+        }
+
+        hitPoint = lastHitPoint;
+
+        // Collateral kill announcement
+        if (isSniper && hitBots.size > 1) {
+            showCollateralNotification(hitBots.size);
         }
     } else {
         hitPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(100));
     }
     spawnTracer(muzzlePos, hitPoint);
+}
+
+/**
+ * BOLT ACTION CYCLE - Manual bolt work after each sniper shot
+ */
+function cycleBolt() {
+    if (!needsBoltCycle || isCyclingBolt || currentWeapon !== 'sniper') return;
+
+    isCyclingBolt = true;
+    boltCyclePhase = 1;
+    document.getElementById('bolt-indicator').classList.remove('show');
+
+    // Phase 1: Lift bolt handle (rotate up)
+    playSound('boltLift');
+    new TWEEN.Tween(sniperBoltHandle.rotation)
+        .to({ z: -Math.PI / 3 }, 120)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .onComplete(() => {
+            boltCyclePhase = 2;
+
+            // Phase 2: Pull bolt back (extract casing)
+            playSound('boltPull');
+            new TWEEN.Tween(sniperBoltHandle.position)
+                .to({ z: sniperBoltHandle.position.z + 1.5 }, 180)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .onComplete(() => {
+                    // Eject the spent casing during pull
+                    ejectSniperShell();
+                    boltCyclePhase = 3;
+
+                    // Phase 3: Push bolt forward (chamber new round)
+                    setTimeout(() => {
+                        playSound('boltPush');
+                        new TWEEN.Tween(sniperBoltHandle.position)
+                            .to({ z: sniperBoltHandle.position.z - 1.5 }, 150)
+                            .easing(TWEEN.Easing.Quadratic.In)
+                            .onComplete(() => {
+                                boltCyclePhase = 4;
+
+                                // Phase 4: Lock bolt down
+                                playSound('boltDown');
+                                new TWEEN.Tween(sniperBoltHandle.rotation)
+                                    .to({ z: 0 }, 100)
+                                    .easing(TWEEN.Easing.Cubic.In)
+                                    .onComplete(() => {
+                                        boltCyclePhase = 0;
+                                        isCyclingBolt = false;
+                                        needsBoltCycle = false;
+
+                                        // Slight weapon shake on bolt close
+                                        Springs.recoilZ.impulse(-3);
+                                        Springs.recoilX.impulse(-1);
+                                    })
+                                    .start();
+                            })
+                            .start();
+                    }, 80);
+                })
+                .start();
+        })
+        .start();
+}
+
+// Sniper shell ejection (bigger brass)
+function ejectSniperShell() {
+    const shellGeoSniper = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8);
+    const shell = new THREE.Mesh(shellGeoSniper, shellMat);
+    shell.position.copy(new THREE.Vector3(0.5, 0.35, 0.8).applyMatrix4(sniperGroup.matrixWorld));
+    shell.quaternion.copy(sniperGroup.quaternion);
+    shell.rotation.z = Math.PI / 2;
+    const velocity = new THREE.Vector3(0.15 + Math.random() * 0.1, 0.25 + Math.random() * 0.1, 0.1).applyQuaternion(camera.quaternion);
+    shell.userData = { velocity: velocity, life: 3.0 };
+    scene.add(shell);
+    shells.push(shell);
+}
+
+/**
+ * WEAPON SWITCHING SYSTEM
+ */
+function switchWeapon(targetWeapon) {
+    if (isSwitchingWeapon || isReloading || isCyclingBolt) return;
+    if (targetWeapon === currentWeapon) return;
+
+    isSwitchingWeapon = true;
+    playSound('weaponSwitch');
+
+    // Hide bolt indicator if switching away from sniper
+    if (currentWeapon === 'sniper') {
+        document.getElementById('bolt-indicator').classList.remove('show');
+    }
+
+    // Lower current weapon
+    const currentRecoilGroup = currentWeapon === 'ak' ? recoilGroup : sniperRecoilGroup;
+    new TWEEN.Tween(currentRecoilGroup.position)
+        .to({ y: currentRecoilGroup.position.y - 2 }, 150)
+        .easing(TWEEN.Easing.Cubic.In)
+        .onComplete(() => {
+            // Hide current weapon
+            currentRecoilGroup.visible = false;
+
+            // Switch weapon
+            currentWeapon = targetWeapon;
+
+            // Show and raise new weapon
+            const newRecoilGroup = currentWeapon === 'ak' ? recoilGroup : sniperRecoilGroup;
+            const newHipPos = currentWeapon === 'ak' ? hipPos : sniperHipPos;
+
+            newRecoilGroup.visible = true;
+            newRecoilGroup.position.copy(newHipPos);
+            newRecoilGroup.position.y -= 2;
+
+            new TWEEN.Tween(newRecoilGroup.position)
+                .to({ y: newHipPos.y }, 200)
+                .easing(TWEEN.Easing.Cubic.Out)
+                .onComplete(() => {
+                    isSwitchingWeapon = false;
+                    updateHUD();
+                    updateWeaponIndicator();
+
+                    // Show bolt indicator if sniper needs cycling
+                    if (currentWeapon === 'sniper' && needsBoltCycle) {
+                        document.getElementById('bolt-indicator').classList.add('show');
+                    }
+                })
+                .start();
+        })
+        .start();
+}
+
+function updateWeaponIndicator() {
+    const slots = document.querySelectorAll('.weapon-slot');
+    slots.forEach(slot => {
+        if (slot.dataset.weapon === currentWeapon) {
+            slot.classList.add('active');
+        } else {
+            slot.classList.remove('active');
+        }
+    });
 }
 
 function dropMag() {
@@ -6076,7 +7354,64 @@ function dropMag() {
  */
 function reload() {
     if (isGameOver) return;
-    if (isReloading || ammo === 30) return; // Infinite reserve, always can reload
+
+    // Handle sniper reload
+    if (currentWeapon === 'sniper') {
+        if (isReloading || sniperAmmo === sniperMagSize || isCyclingBolt) return;
+        if (isAiming) isAiming = false;
+        isReloading = true;
+        needsBoltCycle = false; // Reset bolt state on reload
+        document.getElementById('bolt-indicator').classList.remove('show');
+        updateHUD();
+
+        // Sniper reload animation
+        new TWEEN.Tween(sniperRecoilGroup.rotation)
+            .to({ z: 0.6, x: 0.25 }, 350)
+            .easing(TWEEN.Easing.Cubic.Out)
+            .start();
+
+        setTimeout(() => {
+            playSound('mag_out');
+            new TWEEN.Tween(sniperMagPivot.rotation)
+                .to({ x: 1.2 }, 180)
+                .easing(TWEEN.Easing.Back.In)
+                .onComplete(() => {
+                    sniperMagPivot.visible = false;
+                    Springs.bobY.impulse(-1.5);
+                })
+                .start();
+
+            setTimeout(() => {
+                sniperMagPivot.visible = true;
+                sniperMagPivot.rotation.x = 0;
+                sniperMagPivot.position.y = -3;
+
+                new TWEEN.Tween(sniperMagPivot.position)
+                    .to({ y: -0.3 }, 280)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .onComplete(() => {
+                        playSound('mag_in');
+                        Springs.recoilX.impulse(-1.5);
+
+                        // Return to idle
+                        new TWEEN.Tween(sniperRecoilGroup.rotation)
+                            .to({ z: 0, x: 0 }, 350)
+                            .easing(TWEEN.Easing.Elastic.Out)
+                            .start();
+
+                        sniperAmmo = sniperMagSize;
+                        isReloading = false;
+                        updateHUD();
+                    })
+                    .start();
+            }, 350);
+        }, 280);
+
+        return;
+    }
+
+    // AK-47 reload (original behavior)
+    if (isReloading || ammo === 30) return;
     if (isAiming) isAiming = false;
     isReloading = true;
     updateHUD();
@@ -6161,6 +7496,21 @@ document.addEventListener('keydown', (e) => {
         // Slight upward weapon motion on jump
         Springs.bobY.impulse(-1.5);
     }
+    // Weapon switching
+    if (e.code === 'Digit1') switchWeapon('ak');
+    if (e.code === 'Digit2') switchWeapon('sniper');
+});
+
+// Mouse wheel for weapon switching
+document.addEventListener('wheel', (e) => {
+    if (document.pointerLockElement !== document.body) return;
+    if (e.deltaY > 0) {
+        // Scroll down - next weapon
+        switchWeapon(currentWeapon === 'ak' ? 'sniper' : 'ak');
+    } else if (e.deltaY < 0) {
+        // Scroll up - previous weapon
+        switchWeapon(currentWeapon === 'ak' ? 'sniper' : 'ak');
+    }
 });
 document.addEventListener('keyup', (e) => {
     keys[e.code] = false;
@@ -6239,18 +7589,41 @@ function animate(time) {
         renderer.shadowMap.needsUpdate = true;
     }
 
-    // ADS Logic + Sprint FOV
-    const targetPos = isAiming ? aimPos : hipPos;
+    // ADS Logic + Sprint FOV (weapon-specific)
+    const isSniper = currentWeapon === 'sniper';
+    const activeRecoilGroup = isSniper ? sniperRecoilGroup : recoilGroup;
+    const activeHipPos = isSniper ? sniperHipPos : hipPos;
+    const activeAimPos = isSniper ? sniperAimPos : aimPos;
+    const targetPos = isAiming ? activeAimPos : activeHipPos;
     const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
-    const targetFOV = isAiming ? 55 : (isSprinting ? 100 : 90);
+
+    // Sniper has much higher zoom when scoped
+    const baseFOV = 90;
+    const sprintFOV = 100;
+    const akAimFOV = 55;
+    const sniperAimFOV = baseFOV / scopeZoomLevel; // 4x zoom = 22.5 FOV
+    const targetFOV = isAiming ? (isSniper ? sniperAimFOV : akAimFOV) : (isSprinting ? sprintFOV : baseFOV);
 
     // Smooth transition for base position (Lerp is fine for macroscopic movements)
-    recoilGroup.position.lerp(targetPos, 15 * dt);
+    activeRecoilGroup.position.lerp(targetPos, 15 * dt);
     currentFOV = THREE.MathUtils.lerp(currentFOV, targetFOV, 8 * dt);
     camera.fov = currentFOV;
     camera.updateProjectionMatrix();
 
-    // Hide crosshair when aiming
+    // Handle scope overlay for sniper
+    const scopeOverlay = document.getElementById('scope-overlay');
+    if (scopeOverlay) {
+        if (isSniper && isAiming && currentFOV < 40) {
+            scopeOverlay.classList.add('active');
+            // Hide the sniper model when fully scoped
+            sniperGroup.visible = currentFOV > 30;
+        } else {
+            scopeOverlay.classList.remove('active');
+            if (isSniper) sniperGroup.visible = true;
+        }
+    }
+
+    // Hide crosshair when aiming (always for sniper scope)
     crosshair.style.opacity = isAiming ? 0 : 1;
 
     // Track camera velocity for inertia
@@ -6305,6 +7678,33 @@ function animate(time) {
     const inspectRotZ = Springs.inspectRotZ.update(dt);
     const boltZ = Springs.boltZ.update(dt);
     const crosshairSpread = Springs.crosshairSpread.update(dt);
+
+    // === SNIPER-SPECIFIC SPRING UPDATES ===
+    // Update all sniper springs (only affect sniper weapon)
+    const sniperHeavyRecoilZ = SniperSprings.heavyRecoilZ.update(dt);
+    const sniperHeavyRecoilX = SniperSprings.heavyRecoilX.update(dt);
+    const sniperHeavyRecoilY = SniperSprings.heavyRecoilY.update(dt);
+    const sniperHeavyRecoilRoll = SniperSprings.heavyRecoilRoll.update(dt);
+    const sniperStockCompress = SniperSprings.stockCompress.update(dt);
+    const sniperStockRotate = SniperSprings.stockRotate.update(dt);
+    const sniperScopeShakeX = SniperSprings.scopeShakeX.update(dt);
+    const sniperScopeShakeY = SniperSprings.scopeShakeY.update(dt);
+    const sniperScopeSettleX = SniperSprings.scopeSettleX.update(dt);
+    const sniperScopeSettleY = SniperSprings.scopeSettleY.update(dt);
+    const sniperBarrelDroop = SniperSprings.barrelDroop.update(dt);
+    const sniperHeavySwayX = SniperSprings.heavySwayX.update(dt);
+    const sniperHeavySwayY = SniperSprings.heavySwayY.update(dt);
+    const sniperHeavyMomentumX = SniperSprings.heavyMomentumX.update(dt);
+    const sniperHeavyMomentumZ = SniperSprings.heavyMomentumZ.update(dt);
+    const sniperScopedBreath = SniperSprings.scopedBreath.update(dt);
+    const sniperRecoveryZ = SniperSprings.recoveryZ.update(dt);
+    const sniperRecoveryX = SniperSprings.recoveryX.update(dt);
+
+    // Sniper bolt springs
+    const sniperBoltRotate = SniperSprings.boltRotate.update(dt);
+    const sniperBoltPull = SniperSprings.boltPull.update(dt);
+    const sniperBoltPush = SniperSprings.boltPush.update(dt);
+    const sniperBoltDown = SniperSprings.boltDown.update(dt);
 
     // Organic idle animations using layered noise
     const idleAnimTime = time * 0.001;
@@ -6465,6 +7865,83 @@ function animate(time) {
     gunGroup.rotation.x = combinedRecoilX * adsMultiplier + totalSwayY + tilt + breathe * 0.25 + landingTilt * 0.5 + sprintTilt + inspectRotX;
     gunGroup.rotation.y = Math.PI + totalSwayX + idleSway * 0.3 + strafeTilt + inspectRotY;
     gunGroup.rotation.z = (roll + recoilRoll) * adsMultiplier + totalSwayX * 0.35 + breathe * 0.15 + sprintRoll + microTremor * 2 + strafeRoll + inspectRotZ;
+
+    // === SNIPER-SPECIFIC TRANSFORMS - Heavy, deliberate, powerful ===
+    if (currentWeapon === 'sniper') {
+        // Combine sniper recoil with recovery for slow, weighty return
+        const sniperCombinedRecoilZ = sniperHeavyRecoilZ + sniperRecoveryZ * 0.3 + sniperStockCompress * 0.5;
+        const sniperCombinedRecoilX = sniperHeavyRecoilX + sniperRecoveryX * 0.3 + sniperStockRotate * 0.4 + sniperBarrelDroop;
+
+        // Sniper sway - heavier, more sluggish (high mass springs)
+        const sniperTotalSwayX = (sniperHeavySwayX + sniperScopeSettleX + turnLagX * 1.5) * adsMultiplier;
+        const sniperTotalSwayY = (sniperHeavySwayY + sniperScopeSettleY + turnLagY * 1.5) * adsMultiplier;
+
+        // Scope shake layer (faster, jittery, separate from body)
+        const scopeJitterX = (sniperScopeShakeX + sniperScopeSettleX) * 0.015;
+        const scopeJitterY = (sniperScopeShakeY + sniperScopeSettleY) * 0.015;
+
+        // Scoped breathing is more exaggerated
+        const scopedBreathAmount = isAiming ? sniperScopedBreath * 2 : breathe;
+
+        // Position: VIOLENT recoil jolt + sluggish momentum + breathing
+        sniperGroup.position.z = sniperCombinedRecoilZ * adsMultiplier * 0.18 + // MUCH more backward jolt
+                                  sniperHeavyMomentumZ * 0.25 +
+                                  bobZ * adsMultiplier * 0.6 +
+                                  scopedBreathAmount * 0.3;
+        sniperGroup.position.y = sniperHeavyRecoilY * adsMultiplier * 0.15 + // More vertical jump
+                                  bobY * adsMultiplier * 0.5 +
+                                  scopedBreathAmount +
+                                  heartbeat * 0.5 +
+                                  microTremor * 0.5;
+        sniperGroup.position.x = sniperHeavyMomentumX * 0.2 +
+                                  bobX * adsMultiplier * 0.5 +
+                                  sniperTotalSwayX * 0.4 +
+                                  idleSway * 0.3 +
+                                  scopeJitterX * 1.5; // More scope jitter visible
+
+        // Rotation: BRUTAL muzzle snap + roll + scope shake
+        sniperGroup.rotation.x = sniperCombinedRecoilX * adsMultiplier * 0.14 + // Much more muzzle flip
+                                  sniperTotalSwayY * 0.8 +
+                                  tilt * 0.7 +
+                                  scopedBreathAmount * 0.2 +
+                                  landingTilt * 0.3 +
+                                  scopeJitterY * 1.5;
+        sniperGroup.rotation.y = Math.PI + sniperTotalSwayX +
+                                  idleSway * 0.2 +
+                                  strafeTilt * 0.7;
+        sniperGroup.rotation.z = (roll * 0.7 + sniperHeavyRecoilRoll * 0.18) * adsMultiplier + // More rotational kick
+                                  sniperTotalSwayX * 0.25 +
+                                  scopedBreathAmount * 0.1 +
+                                  sprintRoll * 0.7 +
+                                  microTremor +
+                                  strafeRoll * 0.8;
+
+        // Sniper spring target resets - slow decay to neutral
+        SniperSprings.heavyRecoilZ.target = 0;
+        SniperSprings.heavyRecoilX.target = 0;
+        SniperSprings.heavyRecoilY.target = 0;
+        SniperSprings.heavyRecoilRoll.target = 0;
+        SniperSprings.stockCompress.target = 0;
+        SniperSprings.stockRotate.target = 0;
+        SniperSprings.scopeShakeX.target = 0;
+        SniperSprings.scopeShakeY.target = 0;
+        SniperSprings.scopeSettleX.target = 0;
+        SniperSprings.scopeSettleY.target = 0;
+        SniperSprings.barrelDroop.target = 0;
+        SniperSprings.heavyMomentumX.target = -moveVelX * 0.008; // Heavier trailing
+        SniperSprings.heavyMomentumZ.target = -moveVelZ * 0.006;
+
+        // Heavy sway targets - weapon lags behind camera more
+        SniperSprings.heavySwayX.target = -camVelX * 0.0008;
+        SniperSprings.heavySwayY.target = -camVelY * 0.0006;
+
+        // Scoped breathing amplification
+        if (isAiming) {
+            SniperSprings.scopedBreath.target = breatheWave * 2.5;
+        } else {
+            SniperSprings.scopedBreath.target = 0;
+        }
+    }
 
     // Reset Spring Targets (decay to neutral)
     Springs.swayX.target = 0;
