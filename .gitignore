@@ -1,0 +1,23 @@
+# Claude Code local settings (contains user paths)
+.claude/settings.local.json
+
+# Backup files
+*.backup
+*- Copy.html
+*-Copy.html
+*.bak
+
+# Windows artifacts
+nul
+Thumbs.db
+desktop.ini
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
