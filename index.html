@@ -379,6 +379,43 @@
             0%, 100% { text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88; }
             50% { text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88, 0 0 30px #00ff88; }
         }
+
+        /* === POWER-UP HUD STYLES === */
+        .powerup-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            margin: 3px 0;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 3px solid currentColor;
+            animation: powerup-pulse 0.8s ease-in-out infinite alternate;
+        }
+        .powerup-icon {
+            font-size: 16px;
+        }
+        @keyframes powerup-pulse {
+            0% { opacity: 0.85; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.02); }
+        }
+        .shield-active { color: #4488ff; text-shadow: 0 0 10px #4488ff; }
+        .speed-active { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
+        .damage-active { color: #ff4444; text-shadow: 0 0 10px #ff4444; }
+        .rapid-active { color: #ff8800; text-shadow: 0 0 10px #ff8800; }
+        .infinite-active { color: #ffdd00; text-shadow: 0 0 10px #ffdd00; }
+        .explosive-active { color: #ff4400; text-shadow: 0 0 10px #ff4400; }
+        .penetrating-active { color: #8844ff; text-shadow: 0 0 10px #8844ff; }
+
+        /* Shield active visual effect on screen edges */
+        @keyframes shield-border-glow {
+            0%, 100% { box-shadow: inset 0 0 30px rgba(68, 136, 255, 0.2); }
+            50% { box-shadow: inset 0 0 50px rgba(68, 136, 255, 0.35); }
+        }
+
         #damage-flash {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%);
@@ -2956,6 +2993,28 @@ function triggerSlowmo() {
     playSound('waveComplete');
 }
 
+// Extended bullet time from power-up (longer duration, different text)
+function triggerPowerupSlowmo() {
+    slowmoActive = true;
+    slowmoTimer = 5.0; // 5 seconds of bullet time
+    targetTimeScale = 0.2; // Slightly faster than wave-end slowmo
+    timeScale = 0.2;
+
+    // Visual effects
+    const overlay = document.getElementById('slowmo-overlay');
+    const text = document.getElementById('slowmo-text');
+    if (overlay) overlay.classList.add('active');
+    if (text) {
+        text.textContent = 'BULLET TIME';
+        text.classList.add('show');
+    }
+
+    // Set target music pitch
+    targetMusicPitch = MUSIC_PITCH_MIN;
+
+    playSound('waveComplete');
+}
+
 function updateSlowmo(realDt) {
     // Always update music pitch smoothly (even when not in slowmo for recovery)
     const bgMusic = document.getElementById('bg-music');
@@ -3713,6 +3772,34 @@ function playSound(type) {
         sizzleGain.gain.setValueAtTime(0.3, now);
         sizzleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         sizzleOsc.start(now); sizzleOsc.stop(now + 0.4);
+
+    } else if (type === 'explosion') {
+        // Explosive rounds smaller explosion - punchy but not overwhelming
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(25, now + 0.25);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(500, now);
+        filter.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.35);
+
+        // Quick blast noise
+        const blastBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
+        const blastOut = blastBuf.getChannelData(0);
+        for (let i = 0; i < blastBuf.length; i++) {
+            blastOut[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.04));
+        }
+        const blastN = actx.createBufferSource(); blastN.buffer = blastBuf;
+        const blastFilter = actx.createBiquadFilter();
+        blastFilter.type = 'bandpass'; blastFilter.frequency.value = 800; blastFilter.Q.value = 0.8;
+        const blastG = actx.createGain();
+        blastG.gain.setValueAtTime(0.4, now);
+        blastG.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        blastN.connect(blastFilter); blastFilter.connect(blastG);
+        blastG.connect(dryGain); blastG.connect(convolver);
+        blastN.start(now);
 
     } else if (type === 'sniperShoot') {
         // === ABSOLUTELY MASSIVE .50 BMG ANTI-MATERIEL RIFLE SOUND ===
@@ -6737,7 +6824,13 @@ function updateWaveSystem(dt) {
         addScore(currentWave * 500);
         playSound('waveComplete');
 
-        // Pickups disabled for now
+        // Spawn guaranteed pickup on wave clear as reward
+        if (currentWave >= 2) {
+            const type = getRandomPickupType();
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 8 + Math.random() * 15;
+            spawnPickup(type, camera.position.x + Math.cos(angle) * dist, camera.position.z + Math.sin(angle) * dist);
+        }
     }
 }
 
@@ -6747,19 +6840,74 @@ const pickups = [];
 // Power-up state
 let speedBoostTimer = 0;
 let damageBoostTimer = 0;
+let rapidFireTimer = 0;
+let infiniteAmmoTimer = 0;
+let explosiveRoundsTimer = 0;
+let penetratingRoundsTimer = 0;
+let shieldTimer = 0;
+
 const speedBoostMultiplier = 1.8;
 const damageBoostMultiplier = 2;
+const rapidFireMultiplier = 2.5; // 2.5x faster fire rate
+const shieldDamageReduction = 0.25; // Take only 25% damage
 
 // Pickup types configuration
 const PICKUP_TYPES = {
-    ammo: { color: 0xffaa00, glowColor: 0xffcc00, height: 0.4, label: 'AMMO' },
-    health: { color: 0x00ff00, glowColor: 0x44ff44, height: 0.5, label: '+HEALTH' },
-    speed: { color: 0x00ffff, glowColor: 0x44ffff, height: 0.5, label: 'SPEED!' },
-    damage: { color: 0xff0000, glowColor: 0xff4444, height: 0.5, label: '2X DAMAGE!' },
-    nuke: { color: 0xff00ff, glowColor: 0xff44ff, height: 0.6, label: 'NUKE!' }
+    ammo: { color: 0xffaa00, glowColor: 0xffcc00, height: 0.4, label: 'AMMO', rarity: 1 },
+    health: { color: 0x00ff00, glowColor: 0x44ff44, height: 0.5, label: '+HEALTH', rarity: 1 },
+    speed: { color: 0x00ffff, glowColor: 0x44ffff, height: 0.5, label: 'SPEED BOOST!', rarity: 2 },
+    damage: { color: 0xff0000, glowColor: 0xff4444, height: 0.5, label: '2X DAMAGE!', rarity: 2 },
+    rapidfire: { color: 0xff8800, glowColor: 0xffaa44, height: 0.5, label: 'RAPID FIRE!', rarity: 2 },
+    infiniteammo: { color: 0xffff00, glowColor: 0xffffaa, height: 0.5, label: 'INFINITE AMMO!', rarity: 3 },
+    explosive: { color: 0xff4400, glowColor: 0xff6622, height: 0.5, label: 'EXPLOSIVE ROUNDS!', rarity: 3 },
+    penetrating: { color: 0x8844ff, glowColor: 0xaa66ff, height: 0.5, label: 'ARMOR PIERCING!', rarity: 3 },
+    shield: { color: 0x4488ff, glowColor: 0x66aaff, height: 0.5, label: 'SHIELD!', rarity: 2 },
+    slowmo: { color: 0xaa00ff, glowColor: 0xcc44ff, height: 0.5, label: 'BULLET TIME!', rarity: 4 },
+    nuke: { color: 0xff00ff, glowColor: 0xff44ff, height: 0.6, label: 'NUKE!', rarity: 5 }
 };
 
+// === PICKUP MESH CACHE (pre-created at init for zero-lag spawns) ===
+const pickupCache = {
+    meshTemplates: {},      // Pre-built mesh for each type
+    glowGeo: null,          // Shared sphere geometry for all glows
+    glowMats: {},           // Material per type (shared across instances)
+    initialized: false
+};
+
+function initPickupCache() {
+    if (pickupCache.initialized) return;
+
+    // Pre-create mesh template for each pickup type
+    for (const type of Object.keys(PICKUP_TYPES)) {
+        pickupCache.meshTemplates[type] = createPickupMeshInternal(type);
+    }
+
+    // Single shared glow geometry for all pickups
+    pickupCache.glowGeo = new THREE.SphereGeometry(0.8, 16, 16);
+
+    // Pre-create glow materials (one per type, shared across instances)
+    for (const [type, config] of Object.entries(PICKUP_TYPES)) {
+        pickupCache.glowMats[type] = new THREE.MeshBasicMaterial({
+            color: config.glowColor,
+            transparent: true,
+            opacity: 0.15
+        });
+    }
+
+    pickupCache.initialized = true;
+    console.log('[Pickup Cache] Pre-cached', Object.keys(PICKUP_TYPES).length, 'pickup types');
+}
+
 function createPickupMesh(type) {
+    // Fast path: clone from cache (shares geometry/material refs)
+    if (pickupCache.initialized && pickupCache.meshTemplates[type]) {
+        return pickupCache.meshTemplates[type].clone();
+    }
+    // Fallback: create fresh (only during init before cache exists)
+    return createPickupMeshInternal(type);
+}
+
+function createPickupMeshInternal(type) {
     const config = PICKUP_TYPES[type];
     const group = new THREE.Group();
 
@@ -6870,6 +7018,187 @@ function createPickupMesh(type) {
             fin.position.z = Math.cos(fin.rotation.y) * 0.2;
             group.add(fin);
         }
+    } else if (type === 'rapidfire') {
+        // Triple bullet icon - fast fire
+        const bulletMat = new THREE.MeshStandardMaterial({ color: 0xff8800, emissive: 0x442200, metalness: 0.7, roughness: 0.3 });
+        for (let i = 0; i < 3; i++) {
+            const bullet = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.04, 0.4, 8),
+                bulletMat
+            );
+            bullet.position.set(-0.15 + i * 0.15, 0, 0);
+            bullet.rotation.x = Math.PI / 2;
+            // Stagger heights for motion effect
+            bullet.position.y = (i === 1) ? 0.1 : -0.05;
+            group.add(bullet);
+        }
+        // Speed lines
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.6 });
+        for (let i = 0; i < 3; i++) {
+            const line = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.02), lineMat);
+            line.position.set(-0.35, -0.1 + i * 0.1, 0);
+            group.add(line);
+        }
+    } else if (type === 'infiniteammo') {
+        // Infinity symbol made of bullets
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x443300, metalness: 0.9, roughness: 0.2 });
+        // Create infinity shape with torus segments
+        const torus1 = new THREE.Mesh(
+            new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI),
+            goldMat
+        );
+        torus1.position.x = -0.15;
+        torus1.rotation.y = Math.PI / 2;
+        group.add(torus1);
+        const torus2 = new THREE.Mesh(
+            new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI),
+            goldMat
+        );
+        torus2.position.x = 0.15;
+        torus2.rotation.y = -Math.PI / 2;
+        group.add(torus2);
+        // Center bullet
+        const centerBullet = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8),
+            goldMat
+        );
+        centerBullet.rotation.z = Math.PI / 2;
+        group.add(centerBullet);
+    } else if (type === 'explosive') {
+        // Grenade/explosive round
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.4 });
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), bodyMat);
+        body.scale.y = 1.2;
+        group.add(body);
+        // Orange warning stripes
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0x441100 });
+        for (let i = 0; i < 3; i++) {
+            const stripe = new THREE.Mesh(
+                new THREE.TorusGeometry(0.26, 0.03, 8, 16),
+                stripeMat
+            );
+            stripe.position.y = -0.1 + i * 0.1;
+            stripe.rotation.x = Math.PI / 2;
+            group.add(stripe);
+        }
+        // Fuse on top
+        const fuse = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.03, 0.03, 0.15, 8),
+            new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+        );
+        fuse.position.y = 0.35;
+        group.add(fuse);
+        // Spark
+        const spark = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xffff00 })
+        );
+        spark.position.y = 0.45;
+        group.add(spark);
+    } else if (type === 'penetrating') {
+        // Armor-piercing bullet (long, pointed)
+        const steelMat = new THREE.MeshStandardMaterial({ color: 0x666688, metalness: 0.95, roughness: 0.1 });
+        const purpleMat = new THREE.MeshStandardMaterial({ color: 0x8844ff, emissive: 0x221144, metalness: 0.5 });
+        // Main bullet body
+        const body = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8),
+            steelMat
+        );
+        body.rotation.x = Math.PI / 2;
+        group.add(body);
+        // Pointed tip
+        const tip = new THREE.Mesh(
+            new THREE.ConeGeometry(0.08, 0.25, 8),
+            purpleMat
+        );
+        tip.rotation.x = -Math.PI / 2;
+        tip.position.z = 0.35;
+        group.add(tip);
+        // Penetration rings
+        for (let i = 0; i < 2; i++) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.12, 0.02, 8, 16),
+                purpleMat
+            );
+            ring.position.z = -0.1 + i * 0.2;
+            group.add(ring);
+        }
+    } else if (type === 'shield') {
+        // Shield icon
+        const shieldMat = new THREE.MeshStandardMaterial({
+            color: 0x4488ff,
+            emissive: 0x112244,
+            metalness: 0.3,
+            roughness: 0.5,
+            transparent: true,
+            opacity: 0.9
+        });
+        // Shield shape using extruded geometry
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0.35);
+        shape.lineTo(0.3, 0.25);
+        shape.lineTo(0.3, 0);
+        shape.lineTo(0, -0.35);
+        shape.lineTo(-0.3, 0);
+        shape.lineTo(-0.3, 0.25);
+        shape.lineTo(0, 0.35);
+        const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02 };
+        const shieldGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        const shield = new THREE.Mesh(shieldGeo, shieldMat);
+        shield.position.z = -0.05;
+        group.add(shield);
+        // Cross/plus symbol in center
+        const crossMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x224466 });
+        const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.12), crossMat);
+        crossH.position.z = 0.06;
+        group.add(crossH);
+        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.12), crossMat);
+        crossV.position.z = 0.06;
+        group.add(crossV);
+    } else if (type === 'slowmo') {
+        // Hourglass/clock for bullet time
+        const glassMat = new THREE.MeshStandardMaterial({
+            color: 0xaa00ff,
+            emissive: 0x330044,
+            metalness: 0.2,
+            roughness: 0.3,
+            transparent: true,
+            opacity: 0.8
+        });
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+        // Top bulb
+        const topBulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), glassMat);
+        topBulb.position.y = 0.15;
+        topBulb.scale.y = 1.5;
+        group.add(topBulb);
+        // Bottom bulb
+        const bottomBulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), glassMat);
+        bottomBulb.position.y = -0.15;
+        bottomBulb.scale.y = 1.5;
+        group.add(bottomBulb);
+        // Neck
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.1, 8), glassMat);
+        group.add(neck);
+        // Frame rings
+        const topRing = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 8, 16), frameMat);
+        topRing.position.y = 0.35;
+        topRing.rotation.x = Math.PI / 2;
+        group.add(topRing);
+        const bottomRing = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 8, 16), frameMat);
+        bottomRing.position.y = -0.35;
+        bottomRing.rotation.x = Math.PI / 2;
+        group.add(bottomRing);
+        // Sand particles inside (just small spheres)
+        const sandMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+        for (let i = 0; i < 5; i++) {
+            const grain = new THREE.Mesh(new THREE.SphereGeometry(0.02, 4, 4), sandMat);
+            grain.position.set(
+                (Math.random() - 0.5) * 0.1,
+                -0.2 - Math.random() * 0.1,
+                (Math.random() - 0.5) * 0.1
+            );
+            group.add(grain);
+        }
     }
 
     return group;
@@ -6879,21 +7208,17 @@ class Pickup {
     constructor(type, x, z) {
         this.type = type;
         this.config = PICKUP_TYPES[type];
+
+        // Clone from cache (fast - shares geometry/material refs)
         this.mesh = createPickupMesh(type);
         this.mesh.position.set(x, -4.5 + this.config.height, z);
         scene.add(this.mesh);
 
-        // Glow effect
-        const glowGeo = new THREE.SphereGeometry(0.8, 16, 16);
-        const glowMat = new THREE.MeshBasicMaterial({
-            color: this.config.glowColor,
-            transparent: true,
-            opacity: 0.15
-        });
-        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        // Glow effect - use cached geometry & material (zero allocation)
+        this.glow = new THREE.Mesh(pickupCache.glowGeo, pickupCache.glowMats[type]);
         this.mesh.add(this.glow);
 
-        // Point light for visibility in the dark
+        // Point light for visibility (lightweight, can't easily pool)
         this.light = new THREE.PointLight(this.config.glowColor, 0.8, 8);
         this.light.position.set(0, 0.5, 0);
         this.mesh.add(this.light);
@@ -6968,6 +7293,57 @@ class Pickup {
                 addScore(100);
                 break;
 
+            case 'rapidfire':
+                rapidFireTimer = 8; // 8 seconds of rapid fire
+                addScore(150);
+                break;
+
+            case 'infiniteammo':
+                infiniteAmmoTimer = 10; // 10 seconds of infinite ammo
+                // Also refill current mag
+                if (currentWeapon === 'ak') ammo = 30;
+                else if (currentWeapon === 'sniper') sniperAmmo = 5;
+                else if (currentWeapon === 'shotgun') shotgunAmmo = 8;
+                addScore(200);
+                break;
+
+            case 'explosive':
+                explosiveRoundsTimer = 8; // 8 seconds of explosive rounds
+                addScore(200);
+                // Flash screen orange
+                damageFlashIntensity = 0.5;
+                document.getElementById('damage-flash').style.background =
+                    'radial-gradient(ellipse at center, rgba(255,100,0,0.3) 0%, rgba(255,50,0,0.5) 100%)';
+                setTimeout(() => {
+                    document.getElementById('damage-flash').style.background =
+                        'radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%)';
+                }, 200);
+                break;
+
+            case 'penetrating':
+                penetratingRoundsTimer = 10; // 10 seconds of armor-piercing
+                addScore(150);
+                break;
+
+            case 'shield':
+                shieldTimer = 12; // 12 seconds of shield
+                addScore(150);
+                // Flash screen blue
+                damageFlashIntensity = 0.4;
+                document.getElementById('damage-flash').style.background =
+                    'radial-gradient(ellipse at center, rgba(68,136,255,0.4) 0%, rgba(30,60,150,0.3) 100%)';
+                setTimeout(() => {
+                    document.getElementById('damage-flash').style.background =
+                        'radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%)';
+                }, 200);
+                break;
+
+            case 'slowmo':
+                // Trigger extended bullet time (player-controlled)
+                triggerPowerupSlowmo();
+                addScore(250);
+                break;
+
             case 'nuke':
                 // Kill all zombies!
                 for (const zombie of zombies) {
@@ -7004,6 +7380,28 @@ function spawnPickup(type, x, z) {
     pickups.push(new Pickup(type, x, z));
 }
 
+// Rarity-weighted pickup selection
+function getRandomPickupType() {
+    // Build weighted array based on rarity (lower rarity = more common)
+    // Rarity 1: 40% chance, Rarity 2: 25%, Rarity 3: 18%, Rarity 4: 12%, Rarity 5: 5%
+    const rarityWeights = { 1: 40, 2: 25, 3: 18, 4: 12, 5: 5 };
+    const weightedTypes = [];
+
+    for (const [type, config] of Object.entries(PICKUP_TYPES)) {
+        const weight = rarityWeights[config.rarity] || 10;
+        for (let i = 0; i < weight; i++) {
+            weightedTypes.push(type);
+        }
+    }
+
+    return weightedTypes[Math.floor(Math.random() * weightedTypes.length)];
+}
+
+// Track last pickup spawn time
+let lastPickupSpawnTime = 0;
+const PICKUP_SPAWN_INTERVAL = 15; // Seconds between potential spawns
+const MAX_PICKUPS = 5; // Maximum pickups on field at once
+
 function updatePickups(dt, time) {
     // Update existing pickups
     for (let i = pickups.length - 1; i >= 0; i--) {
@@ -7012,14 +7410,24 @@ function updatePickups(dt, time) {
         }
     }
 
-    // Pickups disabled for now
-    // if (waveInProgress && Math.random() < 0.001) {
-    //     const types = ['ammo', 'ammo', 'health', 'speed', 'damage'];
-    //     const type = types[Math.floor(Math.random() * types.length)];
-    //     const angle = Math.random() * Math.PI * 2;
-    //     const dist = 20 + Math.random() * 40;
-    //     spawnPickup(type, camera.position.x + Math.cos(angle) * dist, camera.position.z + Math.sin(angle) * dist);
-    // }
+    // Spawn pickups during waves (rarity-based)
+    if (waveInProgress && pickups.length < MAX_PICKUPS) {
+        const timeSec = time / 1000;
+        if (timeSec - lastPickupSpawnTime > PICKUP_SPAWN_INTERVAL) {
+            // Chance increases with wave number (up to 60%)
+            const spawnChance = Math.min(0.3 + currentWave * 0.03, 0.6);
+            if (Math.random() < spawnChance) {
+                const type = getRandomPickupType();
+                // Spawn at random position around player (not too close, not too far)
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 15 + Math.random() * 35;
+                const x = camera.position.x + Math.cos(angle) * dist;
+                const z = camera.position.z + Math.sin(angle) * dist;
+                spawnPickup(type, x, z);
+                lastPickupSpawnTime = timeSec;
+            }
+        }
+    }
 }
 
 // Floating pickup text
@@ -7191,6 +7599,100 @@ function spawnBloodSpray(position, direction, intensity = 1) {
             initialScale: 0.5
         });
     }
+}
+
+// EXPLOSIVE ROUNDS - AOE damage and visual effect
+function spawnExplosion(position, radius, damageMultiplier = 1.0) {
+    // Visual: expanding orange sphere
+    const explosionGeo = new THREE.SphereGeometry(0.5, 16, 12);
+    const explosionMat = new THREE.MeshBasicMaterial({
+        color: 0xff4400,
+        transparent: true,
+        opacity: 0.8
+    });
+    const explosion = new THREE.Mesh(explosionGeo, explosionMat);
+    explosion.position.copy(position);
+    scene.add(explosion);
+
+    // Point light for flash
+    const explosionLight = new THREE.PointLight(0xff6600, 5, radius * 2);
+    explosionLight.position.copy(position);
+    scene.add(explosionLight);
+
+    // Animate expansion and fade
+    let scale = 0.5;
+    let opacity = 0.8;
+    const maxScale = radius * 0.5;
+
+    const animateExplosion = () => {
+        scale += 0.8;
+        opacity -= 0.1;
+        explosionLight.intensity -= 0.6;
+
+        explosion.scale.setScalar(scale);
+        explosionMat.opacity = Math.max(0, opacity);
+
+        if (opacity > 0 && scale < maxScale) {
+            requestAnimationFrame(animateExplosion);
+        } else {
+            scene.remove(explosion);
+            scene.remove(explosionLight);
+            explosionGeo.dispose();
+            explosionMat.dispose();
+        }
+    };
+    animateExplosion();
+
+    // Spawn fire particles
+    for (let i = 0; i < 8; i++) {
+        const sprite = bloodSpritePool.get();
+        if (!sprite) continue;
+        sprite.material = new THREE.SpriteMaterial({
+            color: Math.random() > 0.5 ? 0xff4400 : 0xffaa00,
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false
+        });
+        sprite.position.copy(position);
+        sprite.scale.setScalar(0.2 + Math.random() * 0.3);
+        sprite.visible = true;
+        scene.add(sprite);
+
+        const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 10,
+            Math.random() * 8 + 2,
+            (Math.random() - 0.5) * 10
+        );
+
+        bloodParticles.push({
+            mesh: sprite,
+            velocity: vel,
+            life: 0.3 + Math.random() * 0.3,
+            gravity: 5,
+            type: 'explosion'
+        });
+    }
+
+    // AOE damage to zombies
+    for (const zombie of zombies) {
+        if (zombie.isDead) continue;
+        const dist = position.distanceTo(zombie.mesh.position);
+        if (dist < radius) {
+            // Damage falls off with distance
+            const falloff = 1 - (dist / radius);
+            const damage = falloff * damageMultiplier;
+            zombie.hit(position, damage);
+
+            // Screen shake for close explosions
+            if (dist < radius * 0.5) {
+                Springs.shakeX.impulse((Math.random() - 0.5) * 3 * falloff);
+                Springs.shakeY.impulse(Math.random() * 2 * falloff);
+            }
+        }
+    }
+
+    // Play explosion sound
+    playSound('explosion');
 }
 
 // Spawn gore chunks on death - VIOLENT
@@ -8828,9 +9330,23 @@ let scoreAnimationTarget = 0;
 function damagePlayer(amount, attackerPos = null) {
     if (isGameOver) return;
 
-    playerHealth -= amount;
+    // Apply shield damage reduction
+    const actualDamage = shieldTimer > 0 ? amount * shieldDamageReduction : amount;
+    playerHealth -= actualDamage;
     lastDamageTime = performance.now();
-    damageFlashIntensity = 0.5;
+
+    // Shield shows blue flash, no shield shows red
+    if (shieldTimer > 0) {
+        damageFlashIntensity = 0.3;
+        document.getElementById('damage-flash').style.background =
+            'radial-gradient(ellipse at center, rgba(68,136,255,0.3) 0%, rgba(68,136,255,0.5) 100%)';
+        setTimeout(() => {
+            document.getElementById('damage-flash').style.background =
+                'radial-gradient(ellipse at center, transparent 0%, rgba(255,0,0,0.4) 100%)';
+        }, 150);
+    } else {
+        damageFlashIntensity = 0.5;
+    }
     playSound('playerHurt');
 
     // Screen shake
@@ -9328,6 +9844,11 @@ function restartGame() {
     // Reset power-up timers
     speedBoostTimer = 0;
     damageBoostTimer = 0;
+    rapidFireTimer = 0;
+    infiniteAmmoTimer = 0;
+    explosiveRoundsTimer = 0;
+    penetratingRoundsTimer = 0;
+    shieldTimer = 0;
 
     // Reset player position
     camera.position.set(0, 0, 0);
@@ -9409,25 +9930,13 @@ function spawnPenetrationEffect(position) {
         }
     }
 
-    // Blood/impact spray
-    for (let i = 0; i < 5; i++) {
-        const debris = debrisParticles.find(d => !d.active);
-        if (debris) {
-            debris.active = true;
-            debris.life = 0.4 + Math.random() * 0.3;
-            debris.maxLife = debris.life;
-            debris.mesh.position.copy(position);
-            debris.mesh.visible = true;
-            const spread = 6;
-            debris.velocity.set(
-                (Math.random() - 0.5) * spread,
-                Math.random() * 4 + 2,
-                (Math.random() - 0.5) * spread
-            );
-            debris.mesh.material.color.setHex(0x8b0000); // Dark blood red
-            debris.mesh.scale.setScalar(0.08 + Math.random() * 0.06);
-        }
-    }
+    // Blood/impact spray using blood particle system
+    const hitDir = new THREE.Vector3(
+        (Math.random() - 0.5) * 2,
+        Math.random(),
+        (Math.random() - 0.5) * 2
+    ).normalize();
+    spawnBloodSpray(position, hitDir, 0.5);
 }
 
 /**
@@ -9612,13 +10121,43 @@ function updateHUD(force = false) {
     // Power-ups (throttled to whole seconds)
     const speedSec = Math.ceil(speedBoostTimer);
     const damageSec = Math.ceil(damageBoostTimer);
-    if (force || lastHUDValues.speedSec !== speedSec || lastHUDValues.damageSec !== damageSec) {
+    const rapidSec = Math.ceil(rapidFireTimer);
+    const infiniteSec = Math.ceil(infiniteAmmoTimer);
+    const explosiveSec = Math.ceil(explosiveRoundsTimer);
+    const penetratingSec = Math.ceil(penetratingRoundsTimer);
+    const shieldSec = Math.ceil(shieldTimer);
+
+    // Check if any power-up changed
+    const powerupsChanged = force ||
+        lastHUDValues.speedSec !== speedSec ||
+        lastHUDValues.damageSec !== damageSec ||
+        lastHUDValues.rapidSec !== rapidSec ||
+        lastHUDValues.infiniteSec !== infiniteSec ||
+        lastHUDValues.explosiveSec !== explosiveSec ||
+        lastHUDValues.penetratingSec !== penetratingSec ||
+        lastHUDValues.shieldSec !== shieldSec;
+
+    if (powerupsChanged) {
         lastHUDValues.speedSec = speedSec;
         lastHUDValues.damageSec = damageSec;
+        lastHUDValues.rapidSec = rapidSec;
+        lastHUDValues.infiniteSec = infiniteSec;
+        lastHUDValues.explosiveSec = explosiveSec;
+        lastHUDValues.penetratingSec = penetratingSec;
+        lastHUDValues.shieldSec = shieldSec;
+
         const pEl = ensurePowerupsEl();
         let html = '';
-        if (speedSec > 0) html += `<div style="color: #0ff; text-shadow: 0 0 10px #0ff; font-size: 16px;">⚡ SPEED ${speedSec}s</div>`;
-        if (damageSec > 0) html += `<div style="color: #f00; text-shadow: 0 0 10px #f00; font-size: 16px;">💀 2X DMG ${damageSec}s</div>`;
+
+        // Active power-ups with icons and colors
+        if (shieldSec > 0) html += `<div class="powerup-item shield-active"><span class="powerup-icon">🛡️</span> SHIELD ${shieldSec}s</div>`;
+        if (speedSec > 0) html += `<div class="powerup-item speed-active"><span class="powerup-icon">⚡</span> SPEED ${speedSec}s</div>`;
+        if (damageSec > 0) html += `<div class="powerup-item damage-active"><span class="powerup-icon">💀</span> 2X DMG ${damageSec}s</div>`;
+        if (rapidSec > 0) html += `<div class="powerup-item rapid-active"><span class="powerup-icon">🔥</span> RAPID FIRE ${rapidSec}s</div>`;
+        if (infiniteSec > 0) html += `<div class="powerup-item infinite-active"><span class="powerup-icon">∞</span> INFINITE AMMO ${infiniteSec}s</div>`;
+        if (explosiveSec > 0) html += `<div class="powerup-item explosive-active"><span class="powerup-icon">💥</span> EXPLOSIVE ${explosiveSec}s</div>`;
+        if (penetratingSec > 0) html += `<div class="powerup-item penetrating-active"><span class="powerup-icon">🎯</span> ARMOR PIERCING ${penetratingSec}s</div>`;
+
         pEl.innerHTML = html;
     }
 }
@@ -9682,16 +10221,19 @@ function shoot() {
             }
         }, 180);
     } else {
-        // AK-47 behavior (unchanged)
-        if (isReloading || ammo <= 0) {
-            if (ammo <= 0 && !isReloading) playSound('empty');
+        // AK-47 behavior with power-up support
+        if (isReloading || (ammo <= 0 && infiniteAmmoTimer <= 0)) {
+            if (ammo <= 0 && !isReloading && infiniteAmmoTimer <= 0) playSound('empty');
             return;
         }
         const now = performance.now() / 1000;
-        if (now - lastShotTime < fireRate) return;
+        // Apply rapid fire multiplier
+        const effectiveFireRate = rapidFireTimer > 0 ? fireRate / rapidFireMultiplier : fireRate;
+        if (now - lastShotTime < effectiveFireRate) return;
 
         lastShotTime = now;
-        ammo--;
+        // Infinite ammo prevents ammo consumption
+        if (infiniteAmmoTimer <= 0) ammo--;
         updateHUD();
         playSound('shoot');
     }
@@ -9994,8 +10536,9 @@ function shoot() {
         raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
         const intersects = raycaster.intersectObjects(targets);
 
-        // SNIPER PENETRATION: Can pierce through multiple enemies
-        const maxPenetrations = isSniper ? 3 : 1;
+        // PENETRATION: Sniper always pierces, AK pierces with power-up
+        const hasPenetration = isSniper || penetratingRoundsTimer > 0;
+        const maxPenetrations = isSniper ? 3 : (penetratingRoundsTimer > 0 ? 2 : 1);
         let penetrationCount = 0;
         let lastHitPoint = null;
 
@@ -10010,7 +10553,7 @@ function shoot() {
                         target.knockDown();
                         playSound('targetHit');
                         penetrationCount++;
-                        if (isSniper && penetrationCount < maxPenetrations) {
+                        if (hasPenetration && penetrationCount < maxPenetrations) {
                             spawnPenetrationEffect(hit.point);
                         }
                     }
@@ -10037,30 +10580,37 @@ function shoot() {
                     } else {
                         bot.hit(hitPointWorld, isSniper ? sniperDamageMultiplier : 1.0);
                         showHitmarker(false);
-                        if (penetrationCount > 0 && isSniper) {
+                        if (penetrationCount > 0 && hasPenetration) {
                             addScore(25 * penetrationCount);
                         }
                     }
 
+                    // EXPLOSIVE ROUNDS: AOE damage on hit
+                    if (explosiveRoundsTimer > 0) {
+                        spawnExplosion(hitPointWorld, 5, 2.0); // radius 5, damage multiplier 2.0
+                    }
+
                     penetrationCount++;
-                    if (isSniper && penetrationCount < maxPenetrations) {
+                    if (hasPenetration && penetrationCount < maxPenetrations) {
                         spawnPenetrationEffect(hitPointWorld);
                     }
 
                 } else if (hit.face) {
                     spawnDecal(hit.point, hit.face.normal);
-                    if (!isSniper) {
-                        break; // Non-sniper stops at first surface
+                    // Explosive rounds create small explosion on surface hits too
+                    if (explosiveRoundsTimer > 0) {
+                        spawnExplosion(hit.point, 4, 1.5);
                     }
-                    // Sniper: continue through surfaces without counting toward penetration limit
-                    // Only enemies count as penetrations, not walls/floor/obstacles
-                    // No effect here - floor/wall hits are just pass-through
+                    if (!hasPenetration) {
+                        break; // Non-penetrating stops at first surface
+                    }
+                    // Penetrating: continue through surfaces
                 }
             }
 
             hitPoint = lastHitPoint;
 
-            if (isSniper && hitBots.size > 1) {
+            if (hasPenetration && hitBots.size > 1) {
                 showCollateralNotification(hitBots.size);
             }
         } else {
@@ -11766,6 +12316,26 @@ function animate(time) {
             damageBoostTimer -= dt;
             if (damageBoostTimer <= 0) damageBoostTimer = 0;
         }
+        if (rapidFireTimer > 0) {
+            rapidFireTimer -= dt;
+            if (rapidFireTimer <= 0) rapidFireTimer = 0;
+        }
+        if (infiniteAmmoTimer > 0) {
+            infiniteAmmoTimer -= dt;
+            if (infiniteAmmoTimer <= 0) infiniteAmmoTimer = 0;
+        }
+        if (explosiveRoundsTimer > 0) {
+            explosiveRoundsTimer -= dt;
+            if (explosiveRoundsTimer <= 0) explosiveRoundsTimer = 0;
+        }
+        if (penetratingRoundsTimer > 0) {
+            penetratingRoundsTimer -= dt;
+            if (penetratingRoundsTimer <= 0) penetratingRoundsTimer = 0;
+        }
+        if (shieldTimer > 0) {
+            shieldTimer -= dt;
+            if (shieldTimer <= 0) shieldTimer = 0;
+        }
 
         // Throttled HUD update (increased interval for performance)
         if (frameCount % (HUD_UPDATE_INTERVAL * 2) === 0) {
@@ -11875,6 +12445,9 @@ window.addEventListener('resize', () => {
     const pr = renderer.getPixelRatio();
     fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
 });
+
+// Pre-cache all pickup meshes (eliminates spawn lag)
+initPickupCache();
 
 // Initialize HUD (force update all values)
 updateHUD(true);
