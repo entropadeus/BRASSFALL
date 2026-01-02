@@ -43,9 +43,54 @@
             50% { filter: brightness(1.3); }
         }
         @keyframes score-pop {
-            0% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.15); }
-            100% { transform: translateX(-50%) scale(1); }
+            0% {
+                transform: translateX(-50%) scale(1);
+                filter: brightness(1);
+            }
+            30% {
+                transform: translateX(-50%) scale(1.25) translateY(-3px);
+                filter: brightness(1.8);
+                text-shadow: 0 0 15px #ff0, 0 0 30px #ff8800, 0 0 45px #ff4400;
+            }
+            60% {
+                transform: translateX(-50%) scale(1.1) translateY(-1px);
+                filter: brightness(1.3);
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                filter: brightness(1);
+            }
+        }
+        @keyframes score-mega-pop {
+            0% {
+                transform: translateX(-50%) scale(1);
+                filter: brightness(1) hue-rotate(0deg);
+            }
+            20% {
+                transform: translateX(-50%) scale(1.4) translateY(-5px);
+                filter: brightness(2) hue-rotate(10deg);
+                text-shadow: 0 0 20px #fff, 0 0 40px #ff0, 0 0 60px #ff4400, 0 0 80px #ff0000;
+            }
+            40% {
+                transform: translateX(-50%) scale(1.15) translateY(-2px) rotate(1deg);
+                filter: brightness(1.5) hue-rotate(5deg);
+            }
+            60% {
+                transform: translateX(-50%) scale(1.2) translateY(-3px) rotate(-1deg);
+                filter: brightness(1.4);
+            }
+            80% {
+                transform: translateX(-50%) scale(1.05);
+                filter: brightness(1.1);
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                filter: brightness(1) hue-rotate(0deg);
+            }
+        }
+        @keyframes score-counting {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
         }
         @keyframes ammo-shake {
             0%, 100% { transform: translateX(0); }
@@ -116,12 +161,145 @@
             animation: kill-flash 0.3s ease-out;
         }
         #score-display {
-            font-size: 20px; color: #ff0; text-shadow: 0 0 5px #ff0;
-            margin-top: 10px; letter-spacing: 2px;
-            transition: all 0.15s ease-out;
+            font-size: 22px;
+            font-weight: 700;
+            color: #ff0;
+            text-shadow: 0 0 5px #ff0, 0 0 10px rgba(255, 200, 0, 0.3);
+            margin-top: 10px;
+            letter-spacing: 3px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s ease-out;
+            position: relative;
         }
         #score-display.score-bump {
-            animation: score-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: score-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #score-display.score-mega-bump {
+            animation: score-mega-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #score-display.counting {
+            animation: score-counting 0.08s ease-in-out infinite;
+        }
+        /* Floating score bonus indicator */
+        .score-bonus-float {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 900;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            color: #fff;
+            text-shadow: 0 0 20px #ff0, 0 0 40px #ff8800, 0 4px 8px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 200;
+            animation: score-bonus-animate 1s ease-out forwards;
+            letter-spacing: 2px;
+        }
+        @keyframes score-bonus-animate {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            40% {
+                opacity: 1;
+                transform: translate(-50%, -60%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -150%) scale(0.8);
+            }
+        }
+        /* === KILL MULTIPLIER === */
+        #multiplier-container {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+        #multiplier-container.active {
+            opacity: 1;
+        }
+        #multiplier-value {
+            font-size: 72px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow:
+                0 0 20px rgba(255, 200, 0, 0.8),
+                0 0 40px rgba(255, 100, 0, 0.6),
+                0 4px 8px rgba(0, 0, 0, 0.8);
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            letter-spacing: -2px;
+            line-height: 1;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #multiplier-value.bump {
+            animation: multiplier-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes multiplier-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1); }
+        }
+        #multiplier-label {
+            font-size: 14px;
+            color: rgba(255, 200, 0, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            margin-top: -5px;
+        }
+        #multiplier-timer {
+            width: 80px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        #multiplier-timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6600, #ffcc00);
+            border-radius: 2px;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px rgba(255, 150, 0, 0.6);
+        }
+        /* Multiplier color tiers */
+        #multiplier-container[data-tier="1"] #multiplier-value { color: #ffffff; }
+        #multiplier-container[data-tier="2"] #multiplier-value { color: #ffee00; }
+        #multiplier-container[data-tier="3"] #multiplier-value { color: #ffaa00; }
+        #multiplier-container[data-tier="4"] #multiplier-value { color: #ff6600; }
+        #multiplier-container[data-tier="5"] #multiplier-value { color: #ff0000; text-shadow: 0 0 30px rgba(255, 0, 0, 0.9), 0 0 60px rgba(255, 0, 0, 0.6), 0 4px 8px rgba(0, 0, 0, 0.8); }
+        /* Decay warning pulse */
+        #multiplier-container.warning #multiplier-value {
+            animation: multiplier-warning 0.3s ease infinite alternate;
+        }
+        @keyframes multiplier-warning {
+            0% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        /* Multiplier lost animation */
+        #multiplier-container.lost {
+            animation: multiplier-lost 0.5s ease forwards;
+        }
+        @keyframes multiplier-lost {
+            0% { transform: translateY(-50%) scale(1); opacity: 1; }
+            100% { transform: translateY(-50%) scale(0.5); opacity: 0; }
+        }
+        @keyframes multiplier-score-float {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(0.8); }
         }
         #health-container {
             position: absolute; bottom: 20px; left: 20px;
@@ -156,6 +334,50 @@
         }
         #health-text.critical {
             color: #f00; text-shadow: 0 0 8px #f00;
+        }
+        #health-fill.regenerating {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.3);
+            animation: health-regen-pulse 0.8s ease-in-out infinite;
+        }
+        @keyframes health-regen-pulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+        #health-text.regenerating {
+            color: #00ff88;
+            text-shadow: 0 0 8px #00ff88, 0 0 15px #00ff88;
+            animation: health-text-pulse 0.5s ease-in-out infinite;
+        }
+        @keyframes health-text-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        #health-bar.regenerating {
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        /* Health regen indicator */
+        #regen-indicator {
+            position: absolute;
+            bottom: 45px;
+            left: 20px;
+            font-size: 14px;
+            color: #00ff88;
+            text-shadow: 0 0 5px #00ff88;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #regen-indicator.active {
+            opacity: 1;
+            animation: regen-text-glow 1s ease-in-out infinite;
+        }
+        @keyframes regen-text-glow {
+            0%, 100% { text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88; }
+            50% { text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88, 0 0 30px #00ff88; }
         }
         #damage-flash {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -384,6 +606,33 @@
         @keyframes bolt-pulse {
             0% { box-shadow: 0 0 5px rgba(255, 150, 0, 0.3); }
             100% { box-shadow: 0 0 15px rgba(255, 150, 0, 0.6); }
+        }
+        /* === PUMP ACTION INDICATOR === */
+        #pump-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 100px);
+            padding: 5px 12px;
+            background: rgba(255, 50, 50, 0.2);
+            border: 1px solid rgba(255, 50, 50, 0.6);
+            color: #ff4444;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 5px #ff4444;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+        #pump-indicator.show {
+            opacity: 1;
+            animation: pump-pulse 0.4s ease-in-out infinite alternate;
+        }
+        @keyframes pump-pulse {
+            0% { box-shadow: 0 0 5px rgba(255, 50, 50, 0.3); }
+            100% { box-shadow: 0 0 15px rgba(255, 50, 50, 0.6); }
         }
 
         /* ============ MAIN MENU - SUBJECT-0 ============ */
@@ -895,6 +1144,63 @@
             50% { transform: translate(-50%, -50%) scale(1.1); }
             100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
+
+        /* ============ PAUSE MENU ============ */
+        #pause-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #pause-overlay.active {
+            display: flex;
+        }
+        #pause-title {
+            font-size: 72px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(255, 100, 0, 0.8), 0 4px 8px rgba(0,0,0,0.8);
+            letter-spacing: 10px;
+            margin-bottom: 40px;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+        }
+        .pause-menu-btn {
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+            padding: 15px 60px;
+            margin: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            min-width: 280px;
+        }
+        .pause-menu-btn:hover {
+            background: linear-gradient(180deg, rgba(255,150,0,0.3) 0%, rgba(255,100,0,0.2) 100%);
+            border-color: rgba(255, 150, 0, 0.8);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 100, 0, 0.4);
+        }
+        .pause-menu-btn:active {
+            transform: scale(0.98);
+        }
+        #pause-hint {
+            position: absolute;
+            bottom: 40px;
+            color: rgba(255,255,255,0.5);
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
     </style>
 </head>
 <body>
@@ -1012,6 +1318,14 @@
 
 <!-- Slow-Motion Effect Overlay -->
 <div id="slowmo-overlay"></div>
+
+<!-- Pause Menu -->
+<div id="pause-overlay">
+    <div id="pause-title">PAUSED</div>
+    <button class="pause-menu-btn" id="resume-btn">Resume</button>
+    <button class="pause-menu-btn" id="restart-btn">Restart</button>
+    <div id="pause-hint">Press ESC to resume</div>
+</div>
 <div id="slowmo-text">BREACH CLEARED</div>
 
 <!-- Damage Direction Indicator -->
@@ -1036,6 +1350,15 @@
     <div id="score-display">00000000</div>
 </div>
 
+<!-- Kill Multiplier Display -->
+<div id="multiplier-container" data-tier="1">
+    <div id="multiplier-value">1x</div>
+    <div id="multiplier-label">COMBO</div>
+    <div id="multiplier-timer">
+        <div id="multiplier-timer-fill"></div>
+    </div>
+</div>
+
 <!-- In-Game Audio Toggle -->
 <div id="audio-toggle">
     <button class="audio-btn" id="toggle-music" title="Toggle Music">&#9835;</button>
@@ -1043,6 +1366,7 @@
 </div>
 
 <!-- Bottom Left - Health -->
+<div id="regen-indicator">+ REGENERATING</div>
 <div id="health-container">
     <div id="health-bar">
         <div id="health-fill"></div>
@@ -1057,6 +1381,7 @@
 <div id="weapon-indicator">
     <div class="weapon-slot active" data-weapon="ak">1: AK-47</div>
     <div class="weapon-slot" data-weapon="sniper">2: SNIPER</div>
+    <div class="weapon-slot" data-weapon="shotgun">3: SHOTGUN</div>
 </div>
 
 <!-- Scope Overlay (for sniper ADS) -->
@@ -1075,6 +1400,8 @@
 
 <!-- Bolt Action Indicator -->
 <div id="bolt-indicator">CYCLE BOLT [LMB]</div>
+<!-- Pump Action Indicator -->
+<div id="pump-indicator">PUMP [R]</div>
 
 <!-- Three.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -2603,6 +2930,13 @@ const SLOWMO_DURATION = 1.5; // How long slowmo lasts
 const SLOWMO_MIN = 0.15; // Minimum time scale (0.15 = 15% speed)
 const SLOWMO_RAMP_SPEED = 3.0; // How fast to return to normal
 
+// Music pitch control for slowmo
+let currentMusicPitch = 1.0;
+let targetMusicPitch = 1.0;
+const MUSIC_PITCH_MIN = 0.5; // Drop to 50% pitch in slowmo (one octave down-ish)
+const MUSIC_PITCH_DOWN_SPEED = 8.0; // Fast drop into slowmo
+const MUSIC_PITCH_UP_SPEED = 2.5; // Slower recovery for dramatic effect
+
 function triggerSlowmo() {
     if (slowmoActive) return;
     slowmoActive = true;
@@ -2616,16 +2950,32 @@ function triggerSlowmo() {
     if (overlay) overlay.classList.add('active');
     if (text) text.classList.add('show');
 
-    // Slow down music for effect
-    const bgMusic = document.getElementById('bg-music');
-    if (bgMusic) {
-        bgMusic.playbackRate = 0.7;
-    }
+    // Set target music pitch for smooth transition
+    targetMusicPitch = MUSIC_PITCH_MIN;
 
     playSound('waveComplete');
 }
 
 function updateSlowmo(realDt) {
+    // Always update music pitch smoothly (even when not in slowmo for recovery)
+    const bgMusic = document.getElementById('bg-music');
+    if (bgMusic) {
+        if (currentMusicPitch !== targetMusicPitch) {
+            const pitchSpeed = targetMusicPitch < currentMusicPitch ? MUSIC_PITCH_DOWN_SPEED : MUSIC_PITCH_UP_SPEED;
+            const pitchDiff = targetMusicPitch - currentMusicPitch;
+            const pitchStep = pitchSpeed * realDt;
+
+            if (Math.abs(pitchDiff) <= pitchStep) {
+                currentMusicPitch = targetMusicPitch;
+            } else {
+                currentMusicPitch += Math.sign(pitchDiff) * pitchStep;
+            }
+
+            // Apply with slight smoothing to avoid audio artifacts
+            bgMusic.playbackRate = currentMusicPitch;
+        }
+    }
+
     if (!slowmoActive) return;
 
     slowmoTimer -= realDt;
@@ -2634,6 +2984,9 @@ function updateSlowmo(realDt) {
         // Ramp back to normal speed
         targetTimeScale = 1.0;
         timeScale += SLOWMO_RAMP_SPEED * realDt;
+
+        // Start ramping music pitch back up
+        targetMusicPitch = 1.0;
 
         if (timeScale >= 1.0) {
             timeScale = 1.0;
@@ -2644,12 +2997,6 @@ function updateSlowmo(realDt) {
             const text = document.getElementById('slowmo-text');
             if (overlay) overlay.classList.remove('active');
             if (text) text.classList.remove('show');
-
-            // Restore music speed
-            const bgMusic = document.getElementById('bg-music');
-            if (bgMusic) {
-                bgMusic.playbackRate = 1.0;
-            }
         }
     }
 }
@@ -3587,6 +3934,242 @@ function playSound(type) {
         hissSrc.start(now);
 
         return;
+
+    } else if (type === 'shotgunShoot') {
+        // === DEVASTATING 12-GAUGE PUMP SHOTGUN BLAST ===
+        // Wide, punchy, room-filling explosion with that iconic shotgun "thump"
+
+        // LAYER 1: DEEP BODY SLAM - The chest-punch low end
+        const bodyOsc = actx.createOscillator();
+        const bodyGain = actx.createGain();
+        const bodyFilter = actx.createBiquadFilter();
+        bodyOsc.connect(bodyFilter);
+        bodyFilter.connect(bodyGain);
+        bodyGain.connect(dryGain);
+        bodyGain.connect(convolver);
+        bodyOsc.type = 'sine';
+        bodyOsc.frequency.setValueAtTime(60, now);
+        bodyOsc.frequency.exponentialRampToValueAtTime(25, now + 0.25);
+        bodyFilter.type = 'lowpass';
+        bodyFilter.frequency.value = 120;
+        bodyGain.gain.setValueAtTime(1.4, now);
+        bodyGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        bodyOsc.start(now); bodyOsc.stop(now + 0.35);
+
+        // LAYER 2: MID PUNCH - The "thump" signature
+        const thumpOsc = actx.createOscillator();
+        const thumpGain = actx.createGain();
+        thumpOsc.connect(thumpGain);
+        thumpGain.connect(dryGain);
+        thumpGain.connect(convolver);
+        thumpOsc.type = 'triangle';
+        thumpOsc.frequency.setValueAtTime(120, now);
+        thumpOsc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+        thumpGain.gain.setValueAtTime(1.2, now);
+        thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        thumpOsc.start(now); thumpOsc.stop(now + 0.25);
+
+        // LAYER 3: EXPLOSIVE CRACK - Sharp initial transient
+        const crackBuf = actx.createBuffer(1, actx.sampleRate * 0.04, actx.sampleRate);
+        const crackData = crackBuf.getChannelData(0);
+        for (let i = 0; i < crackBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            crackData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 100) * 2.0;
+        }
+        const crackSrc = actx.createBufferSource();
+        crackSrc.buffer = crackBuf;
+        const crackFilter = actx.createBiquadFilter();
+        crackFilter.type = 'bandpass';
+        crackFilter.frequency.value = 3000;
+        crackFilter.Q.value = 0.5;
+        const crackGain = actx.createGain();
+        crackGain.gain.value = 1.0;
+        crackSrc.connect(crackFilter);
+        crackFilter.connect(crackGain);
+        crackGain.connect(dryGain);
+        crackSrc.start(now);
+
+        // LAYER 4: PELLET SPREAD NOISE - Wide frequency scatter
+        const spreadBuf = actx.createBuffer(1, actx.sampleRate * 0.08, actx.sampleRate);
+        const spreadData = spreadBuf.getChannelData(0);
+        for (let i = 0; i < spreadBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            // Multiple frequency components for pellet scatter feel
+            spreadData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 40) * 0.8 +
+                           Math.sin(i * 0.3) * Math.exp(-t * 60) * 0.3;
+        }
+        const spreadSrc = actx.createBufferSource();
+        spreadSrc.buffer = spreadBuf;
+        const spreadFilter = actx.createBiquadFilter();
+        spreadFilter.type = 'bandpass';
+        spreadFilter.frequency.value = 2000;
+        spreadFilter.Q.value = 0.3;
+        const spreadGain = actx.createGain();
+        spreadGain.gain.setValueAtTime(0.9, now);
+        spreadGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        spreadSrc.connect(spreadFilter);
+        spreadFilter.connect(spreadGain);
+        spreadGain.connect(dryGain);
+        spreadSrc.start(now);
+
+        // LAYER 5: BARREL RESONANCE - Hollow tube sound
+        const barrelOsc = actx.createOscillator();
+        const barrelGain = actx.createGain();
+        const barrelFilter = actx.createBiquadFilter();
+        barrelOsc.connect(barrelFilter);
+        barrelFilter.connect(barrelGain);
+        barrelGain.connect(dryGain);
+        barrelOsc.type = 'sawtooth';
+        barrelOsc.frequency.setValueAtTime(180, now);
+        barrelOsc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+        barrelFilter.type = 'bandpass';
+        barrelFilter.frequency.setValueAtTime(600, now);
+        barrelFilter.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+        barrelFilter.Q.value = 2;
+        barrelGain.gain.setValueAtTime(0.6, now);
+        barrelGain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        barrelOsc.start(now); barrelOsc.stop(now + 0.2);
+
+        // LAYER 6: GAS EXPULSION - Wide "whoosh"
+        const gasBuf = actx.createBuffer(1, actx.sampleRate * 0.12, actx.sampleRate);
+        const gasData = gasBuf.getChannelData(0);
+        for (let i = 0; i < gasBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            gasData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 25) * 0.5;
+        }
+        const gasSrc = actx.createBufferSource();
+        gasSrc.buffer = gasBuf;
+        const gasFilter = actx.createBiquadFilter();
+        gasFilter.type = 'lowpass';
+        gasFilter.frequency.setValueAtTime(4000, now);
+        gasFilter.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+        const gasGain = actx.createGain();
+        gasGain.gain.setValueAtTime(0.7, now);
+        gasGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        gasSrc.connect(gasFilter);
+        gasFilter.connect(gasGain);
+        gasGain.connect(dryGain);
+        gasGain.connect(convolver);
+        gasSrc.start(now);
+
+        // LAYER 7: REVERB TAIL - Room echo
+        const tailBuf = actx.createBuffer(1, actx.sampleRate * 0.5, actx.sampleRate);
+        const tailData = tailBuf.getChannelData(0);
+        for (let i = 0; i < tailBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            tailData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 5) * 0.5;
+        }
+        const tailSrc = actx.createBufferSource();
+        tailSrc.buffer = tailBuf;
+        const tailFilter = actx.createBiquadFilter();
+        tailFilter.type = 'lowpass';
+        tailFilter.frequency.setValueAtTime(800, now);
+        tailFilter.frequency.exponentialRampToValueAtTime(200, now + 0.4);
+        const tailGain = actx.createGain();
+        tailGain.gain.setValueAtTime(0.5, now);
+        tailGain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+        tailSrc.connect(tailFilter);
+        tailFilter.connect(tailGain);
+        tailGain.connect(convolver);
+        tailSrc.start(now);
+
+        return;
+
+    } else if (type === 'pumpPull') {
+        // Pump pull back - distinctive "chk" sound
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+        filter.type = 'bandpass';
+        filter.frequency.value = 1500;
+        filter.Q.value = 2;
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.15);
+
+        // Metal slide scrape
+        const scrapeBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
+        const scrapeOut = scrapeBuf.getChannelData(0);
+        for (let i = 0; i < scrapeBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            scrapeOut[i] = (Math.random() * 2 - 1) * (0.4 + 0.6 * Math.sin(i * 0.15)) * (1 - t * 8);
+        }
+        const scrapeN = actx.createBufferSource(); scrapeN.buffer = scrapeBuf;
+        const scrapeFilter = actx.createBiquadFilter();
+        scrapeFilter.type = 'bandpass'; scrapeFilter.frequency.value = 3000; scrapeFilter.Q.value = 1.5;
+        const scrapeG = actx.createGain();
+        scrapeG.gain.value = 0.45;
+        scrapeN.connect(scrapeFilter); scrapeFilter.connect(scrapeG);
+        scrapeG.connect(dryGain);
+        scrapeN.start(now);
+
+        // Shell eject clatter
+        const shellOsc = actx.createOscillator();
+        const shellGain = actx.createGain();
+        shellOsc.connect(shellGain); shellGain.connect(dryGain);
+        shellOsc.type = 'sine';
+        shellOsc.frequency.setValueAtTime(2000, now + 0.05);
+        shellOsc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+        shellGain.gain.setValueAtTime(0.25, now + 0.05);
+        shellGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        shellOsc.start(now + 0.05); shellOsc.stop(now + 0.15);
+
+    } else if (type === 'pumpPush') {
+        // Pump push forward - "chak" chambering sound
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(300, now + 0.08);
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+        filter.Q.value = 1.5;
+        gain.gain.setValueAtTime(0.55, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.12);
+
+        // Heavy slam at end - shell locks in
+        const slamOsc = actx.createOscillator();
+        const slamGain = actx.createGain();
+        slamOsc.connect(slamGain); slamGain.connect(dryGain); slamGain.connect(convolver);
+        slamOsc.type = 'sine';
+        slamOsc.frequency.setValueAtTime(150, now + 0.06);
+        slamOsc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
+        slamGain.gain.setValueAtTime(0.7, now + 0.06);
+        slamGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        slamOsc.start(now + 0.06); slamOsc.stop(now + 0.18);
+
+        // Metallic click lock
+        const lockOsc = actx.createOscillator();
+        const lockGain = actx.createGain();
+        lockOsc.connect(lockGain); lockGain.connect(dryGain);
+        lockOsc.type = 'square';
+        lockOsc.frequency.setValueAtTime(2200, now + 0.08);
+        lockOsc.frequency.exponentialRampToValueAtTime(1600, now + 0.1);
+        lockGain.gain.setValueAtTime(0.35, now + 0.08);
+        lockGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        lockOsc.start(now + 0.08); lockOsc.stop(now + 0.14);
+
+    } else if (type === 'shellLoad') {
+        // Single shell being loaded into tube
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.04);
+        filter.type = 'bandpass';
+        filter.frequency.value = 2000;
+        filter.Q.value = 2;
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now); osc.stop(now + 0.1);
+
+        // Click of shell seating
+        const clickOsc = actx.createOscillator();
+        const clickGain = actx.createGain();
+        clickOsc.connect(clickGain); clickGain.connect(dryGain);
+        clickOsc.type = 'square';
+        clickOsc.frequency.setValueAtTime(1800, now + 0.03);
+        clickOsc.frequency.exponentialRampToValueAtTime(1200, now + 0.06);
+        clickGain.gain.setValueAtTime(0.3, now + 0.03);
+        clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        clickOsc.start(now + 0.03); clickOsc.stop(now + 0.1);
 
     } else if (type === 'boltLift') {
         // Bolt handle lift - metallic click up
@@ -4582,47 +5165,129 @@ function checkCollision(x, z, radius, excludeObj = null) {
     if (Math.abs(x) + radius > MAP_HALF || Math.abs(z) + radius > MAP_HALF) {
         return true;
     }
-    
+
     // Check obstacles
     for (const obstacle of obstacles) {
         if (obstacle === excludeObj) continue;
-        
+
         const box = getBoundingBox(obstacle);
         const centerX = (box.min.x + box.max.x) / 2;
         const centerZ = (box.min.z + box.max.z) / 2;
         const sizeX = box.max.x - box.min.x;
         const sizeZ = box.max.z - box.min.z;
         const obstacleRadius = Math.max(sizeX, sizeZ) / 2;
-        
+
         const dx = x - centerX;
         const dz = z - centerZ;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        
+
         if (dist < radius + obstacleRadius) {
             return true;
         }
     }
-    
+
     return false;
 }
 
-// Resolve collision by sliding along walls/obstacles
+// Enhanced collision detection that returns obstacle info for better avoidance
+function checkCollisionAdvanced(x, z, radius, excludeObj = null) {
+    // Check walls (map boundaries)
+    if (Math.abs(x) + radius > MAP_HALF || Math.abs(z) + radius > MAP_HALF) {
+        // Calculate normal from nearest wall
+        let normalX = 0, normalZ = 0;
+        if (x + radius > MAP_HALF) normalX = -1;
+        else if (x - radius < -MAP_HALF) normalX = 1;
+        if (z + radius > MAP_HALF) normalZ = -1;
+        else if (z - radius < -MAP_HALF) normalZ = 1;
+
+        // Normalize
+        const mag = Math.sqrt(normalX * normalX + normalZ * normalZ);
+        if (mag > 0) {
+            normalX /= mag;
+            normalZ /= mag;
+        }
+
+        return { collided: true, normalX, normalZ, isWall: true };
+    }
+
+    // Check obstacles
+    for (const obstacle of obstacles) {
+        if (obstacle === excludeObj) continue;
+
+        const box = getBoundingBox(obstacle);
+        const centerX = (box.min.x + box.max.x) / 2;
+        const centerZ = (box.min.z + box.max.z) / 2;
+        const sizeX = box.max.x - box.min.x;
+        const sizeZ = box.max.z - box.min.z;
+        const obstacleRadius = Math.max(sizeX, sizeZ) / 2;
+
+        const dx = x - centerX;
+        const dz = z - centerZ;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist < radius + obstacleRadius) {
+            // Calculate normal (direction from obstacle to entity)
+            let normalX = dx;
+            let normalZ = dz;
+            if (dist > 0.01) {
+                normalX /= dist;
+                normalZ /= dist;
+            } else {
+                // Directly on top - push in random direction
+                const angle = Math.random() * Math.PI * 2;
+                normalX = Math.cos(angle);
+                normalZ = Math.sin(angle);
+            }
+
+            return { collided: true, normalX, normalZ, isWall: false, obstacle };
+        }
+    }
+
+    return { collided: false, normalX: 0, normalZ: 0 };
+}
+
+// Resolve collision by sliding along walls/obstacles with improved physics
 function resolveCollision(oldX, oldZ, newX, newZ, radius, excludeObj = null) {
     // Try new position
-    if (!checkCollision(newX, newZ, radius, excludeObj)) {
+    const collision = checkCollisionAdvanced(newX, newZ, radius, excludeObj);
+    if (!collision.collided) {
         return { x: newX, z: newZ, collided: false };
     }
-    
+
+    // Calculate movement vector
+    const moveX = newX - oldX;
+    const moveZ = newZ - oldZ;
+    const moveMag = Math.sqrt(moveX * moveX + moveZ * moveZ);
+
+    if (moveMag < 0.001) {
+        return { x: oldX, z: oldZ, collided: true };
+    }
+
+    // Project movement onto surface (slide along obstacle)
+    // Slide direction = movement - (movement dot normal) * normal
+    const dotProduct = moveX * collision.normalX + moveZ * collision.normalZ;
+    const slideX = moveX - dotProduct * collision.normalX;
+    const slideZ = moveZ - dotProduct * collision.normalZ;
+
+    // Try sliding position
+    const slideNewX = oldX + slideX;
+    const slideNewZ = oldZ + slideZ;
+
+    if (!checkCollision(slideNewX, slideNewZ, radius, excludeObj)) {
+        return { x: slideNewX, z: slideNewZ, collided: true };
+    }
+
+    // If slide failed, try axis-aligned movement (legacy fallback)
     // Try sliding along X axis only
     if (!checkCollision(newX, oldZ, radius, excludeObj)) {
         return { x: newX, z: oldZ, collided: true };
     }
-    
+
     // Try sliding along Z axis only
     if (!checkCollision(oldX, newZ, radius, excludeObj)) {
         return { x: oldX, z: newZ, collided: true };
     }
-    
+
     // Can't move, stay at old position
     return { x: oldX, z: oldZ, collided: true };
 }
@@ -5283,34 +5948,143 @@ class Zombie {
         return { x: finalX, z: finalZ };
     }
     
-    // Detect if zombie is stuck
+    // Detect if zombie is stuck with faster detection and better escape strategies
     checkStuck() {
         this.lastPositions.push({ x: this.mesh.position.x, z: this.mesh.position.z });
-        if (this.lastPositions.length > 10) {
+        if (this.lastPositions.length > 8) {
             this.lastPositions.shift();
         }
-        
+
+        // Faster stuck detection - only need 5 frames instead of 10
         if (this.lastPositions.length >= 5) {
             const first = this.lastPositions[0];
             const last = this.lastPositions[this.lastPositions.length - 1];
             const dx = last.x - first.x;
             const dz = last.z - first.z;
             const moved = Math.sqrt(dx * dx + dz * dz);
-            
-            if (moved < 0.5) {
+
+            // Check if barely moved (stuck threshold)
+            if (moved < 0.3) {
                 this.stuckTimer += 0.016; // Assume ~60fps
-                if (this.stuckTimer > 1.0) {
-                    // Stuck - try random movement
+                if (this.stuckTimer > 0.5) { // Reduced from 1.0 to 0.5 for faster response
                     this.stuckTimer = 0;
                     this.lastPositions = [];
+                    this.stuckCounter = (this.stuckCounter || 0) + 1; // Track how many times stuck
                     return true;
                 }
             } else {
                 this.stuckTimer = 0;
+                this.stuckCounter = 0; // Reset if moving
             }
         }
-        
+
         return false;
+    }
+
+    // Predictive obstacle avoidance - cast rays ahead to detect obstacles before collision
+    calculateObstacleAvoidance(dirX, dirZ, playerPos) {
+        const avoidanceForce = { x: 0, z: 0 };
+        const lookAheadDist = 2.5; // How far ahead to look
+        const zombieRadius = 0.6;
+
+        // Cast 5 rays: center, left30, right30, left60, right60
+        const angles = [0, -0.52, 0.52, -1.05, 1.05]; // 0, ±30°, ±60° in radians
+        const weights = [1.0, 0.8, 0.8, 0.5, 0.5]; // Center ray has most weight
+
+        for (let i = 0; i < angles.length; i++) {
+            const angle = Math.atan2(dirX, dirZ) + angles[i];
+            const rayDirX = Math.sin(angle);
+            const rayDirZ = Math.cos(angle);
+
+            // Check collision at lookahead distance
+            const checkX = this.mesh.position.x + rayDirX * lookAheadDist;
+            const checkZ = this.mesh.position.z + rayDirZ * lookAheadDist;
+
+            const collision = checkCollisionAdvanced(checkX, checkZ, zombieRadius, this.mesh);
+            if (collision.collided) {
+                // Add avoidance force perpendicular to obstacle normal
+                // Steer away from the obstacle
+                avoidanceForce.x += collision.normalX * weights[i];
+                avoidanceForce.z += collision.normalZ * weights[i];
+            }
+        }
+
+        // Also check for obstacles very close (immediate repulsion)
+        for (const obstacle of obstacles) {
+            const box = getBoundingBox(obstacle);
+            const centerX = (box.min.x + box.max.x) / 2;
+            const centerZ = (box.min.z + box.max.z) / 2;
+            const sizeX = box.max.x - box.min.x;
+            const sizeZ = box.max.z - box.min.z;
+            const obstacleRadius = Math.max(sizeX, sizeZ) / 2;
+
+            const dx = this.mesh.position.x - centerX;
+            const dz = this.mesh.position.z - centerZ;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+
+            // If very close to obstacle, add strong repulsion
+            const dangerDist = zombieRadius + obstacleRadius + 1.5;
+            if (dist < dangerDist && dist > 0.01) {
+                const repulsionStrength = (dangerDist - dist) / dangerDist;
+                avoidanceForce.x += (dx / dist) * repulsionStrength * 1.5;
+                avoidanceForce.z += (dz / dist) * repulsionStrength * 1.5;
+            }
+        }
+
+        // Normalize avoidance force
+        const mag = Math.sqrt(avoidanceForce.x * avoidanceForce.x + avoidanceForce.z * avoidanceForce.z);
+        if (mag > 0.01) {
+            avoidanceForce.x /= mag;
+            avoidanceForce.z /= mag;
+        }
+
+        return avoidanceForce;
+    }
+
+    // Enhanced stuck escape with multiple strategies
+    getStuckEscapeVector(playerPos, dt) {
+        const escapeForce = { x: 0, z: 0 };
+        const stuckLevel = Math.min(this.stuckCounter || 0, 3);
+
+        if (stuckLevel === 0) {
+            return escapeForce; // Not stuck
+        }
+
+        // Strategy 1: Try perpendicular movement (first attempt)
+        if (stuckLevel === 1) {
+            const toPlayerX = playerPos.x - this.mesh.position.x;
+            const toPlayerZ = playerPos.z - this.mesh.position.z;
+            const mag = Math.sqrt(toPlayerX * toPlayerX + toPlayerZ * toPlayerZ);
+            if (mag > 0.01) {
+                // Move perpendicular to player direction
+                escapeForce.x = -toPlayerZ / mag;
+                escapeForce.z = toPlayerX / mag;
+                // Randomly choose left or right
+                if (Math.random() < 0.5) {
+                    escapeForce.x *= -1;
+                    escapeForce.z *= -1;
+                }
+            }
+        }
+        // Strategy 2: Backstep (second attempt)
+        else if (stuckLevel === 2) {
+            const toPlayerX = playerPos.x - this.mesh.position.x;
+            const toPlayerZ = playerPos.z - this.mesh.position.z;
+            const mag = Math.sqrt(toPlayerX * toPlayerX + toPlayerZ * toPlayerZ);
+            if (mag > 0.01) {
+                // Move away from player temporarily
+                escapeForce.x = -toPlayerX / mag;
+                escapeForce.z = -toPlayerZ / mag;
+            }
+        }
+        // Strategy 3: Random direction (third attempt)
+        else {
+            const randomAngle = Math.random() * Math.PI * 2;
+            escapeForce.x = Math.cos(randomAngle);
+            escapeForce.z = Math.sin(randomAngle);
+        }
+
+        return escapeForce;
     }
 
     hit(hitPoint, weaponDamageMultiplier = 1.0) {
@@ -5372,7 +6146,7 @@ class Zombie {
         // Only play death sound if not headshot (headshot has its own sound)
         if (!this.headExploded) {
             playSound('zombieDeath');
-            addScore(100);
+            addKillScore(100); // Body kill - applies multiplier
         }
         // Headshot score is already added in shoot()
         zombiesKilledThisWave++;
@@ -5590,43 +6364,86 @@ class Zombie {
         // Move with intelligent steering
         if (dist > 1.5) {
             this.updateCounter++;
-            
+
             // Staggered updates for performance (separation every 6 frames)
             if (this.updateCounter % 6 === 0) {
                 this.calculateSeparation(zombies, dt); // zombies is global array
             }
-            
+
             // Check if stuck
             const isStuck = this.checkStuck();
-            
-            // Calculate steering forces
+
+            // Calculate base steering forces
             const steering = this.calculateSteering(playerPos, dt);
-            
-            // Apply movement
-            let moveX = steering.x * this.speed * dt;
-            let moveZ = steering.z * this.speed * dt;
-            
-            // If stuck, add random movement
-            if (isStuck) {
-                const randomAngle = Math.random() * Math.PI * 2;
-                moveX += Math.cos(randomAngle) * this.speed * dt * 0.5;
-                moveZ += Math.sin(randomAngle) * this.speed * dt * 0.5;
+
+            // Add predictive obstacle avoidance (staggered for performance)
+            let avoidance = { x: 0, z: 0 };
+            if (this.updateCounter % 4 === 0) {
+                avoidance = this.calculateObstacleAvoidance(steering.x, steering.z, playerPos);
+            } else if (this.lastAvoidance) {
+                avoidance = this.lastAvoidance; // Reuse last calculation
             }
-            
+            this.lastAvoidance = avoidance;
+
+            // Get stuck escape vector if needed
+            const escapeVector = isStuck ? this.getStuckEscapeVector(playerPos, dt) : { x: 0, z: 0 };
+
+            // Blend all forces together
+            // Base steering: primary direction
+            // Obstacle avoidance: prevent collisions (moderate weight)
+            // Escape: override when stuck (high weight)
+            let finalX = steering.x;
+            let finalZ = steering.z;
+
+            if (isStuck) {
+                // When stuck, heavily prioritize escape
+                const escapeWeight = 0.8;
+                const seekWeight = 0.2;
+                finalX = escapeVector.x * escapeWeight + steering.x * seekWeight;
+                finalZ = escapeVector.z * escapeWeight + steering.z * seekWeight;
+
+                // Release flank slot when stuck
+                if (this.flankSlot) {
+                    HiveMind.releaseFlankSlot(this);
+                    this.flankSlot = null;
+                }
+            } else {
+                // Normal movement with obstacle avoidance
+                const avoidanceMag = Math.sqrt(avoidance.x * avoidance.x + avoidance.z * avoidance.z);
+                if (avoidanceMag > 0.1) {
+                    // Obstacle detected ahead - blend avoidance with steering
+                    const avoidWeight = Math.min(avoidanceMag * 0.6, 0.7);
+                    const seekWeight = 1.0 - avoidWeight;
+                    finalX = steering.x * seekWeight + avoidance.x * avoidWeight;
+                    finalZ = steering.z * seekWeight + avoidance.z * avoidWeight;
+                }
+            }
+
+            // Normalize final direction
+            const finalMag = Math.sqrt(finalX * finalX + finalZ * finalZ);
+            if (finalMag > 0.01) {
+                finalX /= finalMag;
+                finalZ /= finalMag;
+            }
+
+            // Apply movement with speed
+            const moveX = finalX * this.speed * dt;
+            const moveZ = finalZ * this.speed * dt;
+
             // Store old position for collision resolution
             const oldX = this.mesh.position.x;
             const oldZ = this.mesh.position.z;
-            
+
             // Calculate new position
             const newX = oldX + moveX;
             const newZ = oldZ + moveZ;
-            
+
             // Apply collision detection and resolution (zombie radius ~0.6)
             const zombieRadius = 0.6;
             const resolved = resolveCollision(oldX, oldZ, newX, newZ, zombieRadius, this.mesh);
             this.mesh.position.x = resolved.x;
             this.mesh.position.z = resolved.z;
-            
+
             // If collision occurred, release flank slot (might be blocked)
             if (resolved.collided && this.flankSlot) {
                 HiveMind.releaseFlankSlot(this);
@@ -7125,6 +7942,259 @@ sniperRecoilGroup.rotation.y = Math.PI;
 sniperRecoilGroup.visible = false;
 camera.add(sniperRecoilGroup);
 
+/**
+ * SHOTGUN CONSTRUCTION - Aggressive Pump-Action Beauty
+ * Inspired by tactical shotguns with polymer furniture and aggressive lines
+ */
+const shotgunGroup = new THREE.Group();
+const shotgunRecoilGroup = new THREE.Group();
+shotgunRecoilGroup.add(shotgunGroup);
+
+// Materials for shotgun - matte black tactical look with wood accents
+const shotgunMetalDark = new THREE.MeshStandardMaterial({
+    color: 0x0a0a0a,
+    roughness: 0.45,
+    metalness: 0.7,
+    envMap: envMapTex,
+    envMapIntensity: 0.4
+});
+const shotgunMetalLight = new THREE.MeshStandardMaterial({
+    color: 0x222222,
+    roughness: 0.35,
+    metalness: 0.8,
+    envMap: envMapTex,
+    envMapIntensity: 0.5
+});
+const shotgunWood = new THREE.MeshStandardMaterial({
+    map: woodTex,
+    color: 0x3a2010,
+    roughness: 0.5,
+    metalness: 0.05,
+    bumpMap: woodTex,
+    bumpScale: 0.02,
+    envMap: envMapTex,
+    envMapIntensity: 0.1
+});
+const shotgunPolymer = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.7,
+    metalness: 0.1,
+    envMap: envMapTex,
+    envMapIntensity: 0.15
+});
+
+// Helper functions for shotgun geometry
+function createShotgunBox(w, h, d, mat, x, y, z, rotX=0, rotY=0, rotZ=0) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y, z);
+    mesh.rotation.set(rotX, rotY, rotZ);
+    mesh.castShadow = true;
+    return mesh;
+}
+function createShotgunCylinder(rt, rb, h, seg, mat, x, y, z, rotX=0, rotZ=0) {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
+    mesh.position.set(x, y, z);
+    mesh.rotation.x = rotX;
+    mesh.rotation.z = rotZ;
+    mesh.castShadow = true;
+    return mesh;
+}
+
+// === RECEIVER (main body) ===
+const sgReceiver = createShotgunBox(1.0, 1.4, 5.0, shotgunMetalDark, 0, 0, 0);
+shotgunGroup.add(sgReceiver);
+
+// Receiver top rail (flat top for tactical look)
+const sgRail = createShotgunBox(0.85, 0.2, 4.5, shotgunMetalLight, 0, 0.8, 0.2);
+shotgunGroup.add(sgRail);
+
+// Picatinny rail grooves (decorative)
+for (let i = 0; i < 8; i++) {
+    const groove = createShotgunBox(0.9, 0.05, 0.15, shotgunMetalDark, 0, 0.92, -1.5 + i * 0.5);
+    shotgunGroup.add(groove);
+}
+
+// Ejection port
+const sgEjectionPort = createShotgunBox(0.6, 0.4, 1.2, shotgunMetalLight, 0.35, 0.3, -0.5);
+shotgunGroup.add(sgEjectionPort);
+
+// === BARREL - 18" tactical barrel ===
+const sgBarrel = createShotgunCylinder(0.22, 0.22, 8.0, 16, shotgunMetalDark, 0, 0.35, -6.5, Math.PI/2);
+shotgunGroup.add(sgBarrel);
+
+// Barrel extension/heat shield vents
+const sgHeatShield = createShotgunCylinder(0.28, 0.28, 6.0, 16, shotgunMetalLight, 0, 0.35, -5.5, Math.PI/2);
+shotgunGroup.add(sgHeatShield);
+
+// Heat shield vent holes
+for (let i = 0; i < 5; i++) {
+    const ventHole = createShotgunCylinder(0.08, 0.08, 0.4, 8, shotgunMetalDark, 0.25, 0.35, -3.5 - i * 0.9, 0, Math.PI/2);
+    shotgunGroup.add(ventHole);
+    const ventHole2 = createShotgunCylinder(0.08, 0.08, 0.4, 8, shotgunMetalDark, -0.25, 0.35, -3.5 - i * 0.9, 0, Math.PI/2);
+    shotgunGroup.add(ventHole2);
+}
+
+// Muzzle
+const sgMuzzle = createShotgunCylinder(0.25, 0.22, 0.4, 16, shotgunMetalDark, 0, 0.35, -10.7, Math.PI/2);
+shotgunGroup.add(sgMuzzle);
+
+// Muzzle inner bore (dark)
+const sgBore = createShotgunCylinder(0.18, 0.18, 0.3, 12, new THREE.MeshBasicMaterial({color: 0x000000}), 0, 0.35, -10.9, Math.PI/2);
+shotgunGroup.add(sgBore);
+
+// === MAGAZINE TUBE (under barrel) ===
+const sgMagTube = createShotgunCylinder(0.18, 0.18, 7.0, 12, shotgunMetalLight, 0, -0.15, -5.8, Math.PI/2);
+shotgunGroup.add(sgMagTube);
+
+// Magazine tube cap
+const sgMagCap = createShotgunCylinder(0.22, 0.22, 0.3, 12, shotgunMetalDark, 0, -0.15, -9.5, Math.PI/2);
+shotgunGroup.add(sgMagCap);
+
+// === PUMP/FORE-END (sliding grip) ===
+const sgPumpPivot = new THREE.Group();
+sgPumpPivot.position.set(0, -0.15, -4.0);
+shotgunGroup.add(sgPumpPivot);
+
+// Main pump grip body
+const sgPump = createShotgunBox(1.1, 0.9, 2.2, shotgunWood, 0, 0, 0);
+sgPumpPivot.add(sgPump);
+
+// Pump grip texture ridges
+for (let i = 0; i < 6; i++) {
+    const ridge = createShotgunBox(1.15, 0.08, 0.12, shotgunMetalDark, 0, -0.35 + i * 0.12, 0.8 - i * 0.25);
+    sgPumpPivot.add(ridge);
+}
+
+// Pump action bars (connect pump to bolt)
+const sgActionBarL = createShotgunCylinder(0.05, 0.05, 3.5, 6, shotgunMetalLight, -0.35, 0.3, 1.0, Math.PI/2);
+sgPumpPivot.add(sgActionBarL);
+const sgActionBarR = createShotgunCylinder(0.05, 0.05, 3.5, 6, shotgunMetalLight, 0.35, 0.3, 1.0, Math.PI/2);
+sgPumpPivot.add(sgActionBarR);
+
+// === STOCK (tactical polymer with rubber pad) ===
+const sgStock = createShotgunBox(0.9, 1.6, 3.5, shotgunPolymer, 0, -0.3, 4.2, 0.15);
+shotgunGroup.add(sgStock);
+
+// Cheek rest
+const sgCheekRest = createShotgunBox(0.7, 0.5, 2.0, shotgunPolymer, 0, 0.65, 4.5);
+shotgunGroup.add(sgCheekRest);
+
+// Rubber butt pad
+const sgButtPad = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0, 1.8, 0.4),
+    new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.9,
+        metalness: 0.0
+    })
+);
+sgButtPad.position.set(0, -0.2, 6.1);
+sgButtPad.rotation.x = 0.15;
+sgButtPad.castShadow = true;
+shotgunGroup.add(sgButtPad);
+
+// Stock sling mount
+const sgSlingRear = createShotgunCylinder(0.06, 0.06, 0.3, 8, shotgunMetalLight, 0, -1.0, 5.5, 0, Math.PI/2);
+shotgunGroup.add(sgSlingRear);
+
+// === PISTOL GRIP (aggressive angle) ===
+const sgGrip = createShotgunBox(0.8, 2.2, 1.0, shotgunPolymer, 0, -1.7, 1.5, -0.35);
+shotgunGroup.add(sgGrip);
+
+// Grip texture
+for (let i = 0; i < 8; i++) {
+    const gripTex = createShotgunBox(0.85, 0.06, 0.08, shotgunMetalDark, 0, -1.2 - i * 0.18, 1.4 - i * 0.06, -0.35);
+    shotgunGroup.add(gripTex);
+}
+
+// Trigger guard
+const sgTriggerGuard = createShotgunBox(0.15, 0.8, 1.5, shotgunMetalLight, 0, -1.1, 0.5);
+shotgunGroup.add(sgTriggerGuard);
+const sgTriggerGuardFront = createShotgunBox(0.15, 0.3, 0.15, shotgunMetalLight, 0, -0.75, -0.15);
+shotgunGroup.add(sgTriggerGuardFront);
+
+// Trigger
+const sgTrigger = createShotgunBox(0.08, 0.4, 0.15, shotgunMetalDark, 0, -0.9, 0.1);
+shotgunGroup.add(sgTrigger);
+
+// === SIGHTS ===
+// Front sight (blade)
+const sgFrontSightBase = createShotgunBox(0.3, 0.3, 0.4, shotgunMetalLight, 0, 0.6, -9.5);
+shotgunGroup.add(sgFrontSightBase);
+const sgFrontSight = createShotgunBox(0.08, 0.4, 0.15, shotgunMetalLight, 0, 0.95, -9.5);
+shotgunGroup.add(sgFrontSight);
+
+// Rear sight (ghost ring)
+const sgRearSightBase = createShotgunBox(0.5, 0.25, 0.4, shotgunMetalLight, 0, 0.95, 0.5);
+shotgunGroup.add(sgRearSightBase);
+const sgRearSightRingL = createShotgunBox(0.08, 0.35, 0.1, shotgunMetalLight, -0.18, 1.2, 0.5);
+shotgunGroup.add(sgRearSightRingL);
+const sgRearSightRingR = createShotgunBox(0.08, 0.35, 0.1, shotgunMetalLight, 0.18, 1.2, 0.5);
+shotgunGroup.add(sgRearSightRingR);
+const sgRearSightRingTop = createShotgunBox(0.35, 0.08, 0.1, shotgunMetalLight, 0, 1.35, 0.5);
+shotgunGroup.add(sgRearSightRingTop);
+
+// === SHELL LIFTER (visible in loading port) ===
+const sgShellLifter = createShotgunBox(0.5, 0.15, 0.8, shotgunMetalLight, 0, -0.55, -0.2);
+shotgunGroup.add(sgShellLifter);
+
+// Loading port
+const sgLoadingPort = createShotgunBox(0.4, 0.25, 0.7, shotgunMetalDark, 0, -0.7, 0);
+shotgunGroup.add(sgLoadingPort);
+
+// === BOLT (visible through ejection port) ===
+const sgBolt = createShotgunBox(0.5, 0.3, 0.8, shotgunMetalLight, 0.1, 0.3, -0.3);
+shotgunGroup.add(sgBolt);
+
+// Safety button
+const sgSafety = createShotgunCylinder(0.06, 0.06, 0.15, 8, new THREE.MeshStandardMaterial({color: 0xff2222, roughness: 0.5, metalness: 0.3}), -0.4, 0.5, 0.8);
+shotgunGroup.add(sgSafety);
+
+// === SHELL HOLDER (side saddle) ===
+const sgShellHolder = createShotgunBox(0.2, 0.9, 2.5, shotgunPolymer, 0.6, 0.2, 2.0);
+shotgunGroup.add(sgShellHolder);
+
+// Individual shell slots
+for (let i = 0; i < 4; i++) {
+    const shellSlot = createShotgunCylinder(0.12, 0.12, 0.25, 8, shotgunMetalDark, 0.75, 0.2, 0.9 + i * 0.55, 0, Math.PI/2);
+    shotgunGroup.add(shellSlot);
+    // Shell rim visible in slot
+    const shellRim = createShotgunCylinder(0.14, 0.14, 0.05, 8, new THREE.MeshStandardMaterial({color: 0xcc9933, roughness: 0.4, metalness: 0.7}), 0.9, 0.2, 0.9 + i * 0.55, 0, Math.PI/2);
+    shotgunGroup.add(shellRim);
+}
+
+// === MUZZLE FLASH GROUP ===
+const shotgunFlashGroup = new THREE.Group();
+const shotgunFlashCore = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), flashCoreMat);
+shotgunFlashGroup.add(shotgunFlashCore);
+for(let i=0; i<4; i++) {
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), flashMidMat);
+    f.rotation.z = (Math.PI / 4) * i;
+    shotgunFlashGroup.add(f);
+}
+for(let i=0; i<8; i++) {
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 3.0), flashOuterMat);
+    f.rotation.z = (Math.PI / 4) * i;
+    shotgunFlashGroup.add(f);
+}
+// Extra wide spread flash for shotgun
+for(let i=0; i<6; i++) {
+    const streak = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 2.5), flashStreakMat);
+    streak.rotation.z = (Math.PI / 3) * i;
+    streak.position.z = -0.3;
+    shotgunFlashGroup.add(streak);
+}
+shotgunFlashGroup.position.set(0, 0.35, -11.0);
+shotgunGroup.add(shotgunFlashGroup);
+
+// Scale and position shotgun
+shotgunGroup.scale.setScalar(0.95);
+
+// Position shotgun (hidden by default)
+shotgunRecoilGroup.rotation.y = Math.PI;
+shotgunRecoilGroup.visible = false;
+camera.add(shotgunRecoilGroup);
+
 // Sniper springs for bolt action
 const SniperSprings = {
     // Bolt action springs
@@ -7167,11 +8237,57 @@ const SniperSprings = {
     recoveryX: new Spring(55, 11, 1.5),
 };
 
+// Shotgun springs - PUNCHY and AGGRESSIVE with satisfying pump action
+const ShotgunSprings = {
+    // === VIOLENT SHOTGUN RECOIL - Brutal snap, lightning recovery ===
+    // Pump shotgun: VIOLENT kick that snaps back FAST
+
+    // Primary recoil - BRUTAL backward slam with fast recovery
+    recoilZ: new Spring(650, 40, 0.5),     // Very stiff, high damping = violent snap, instant settle
+    recoilX: new Spring(600, 38, 0.55),    // Aggressive muzzle climb, quick return
+    recoilY: new Spring(550, 35, 0.6),     // Vertical jump, snappy
+
+    // Rotational violence - shotgun TWISTS hard then snaps back
+    recoilRoll: new Spring(550, 34, 0.6),  // Hard twist, fast recovery
+    recoilTilt: new Spring(520, 32, 0.65), // Aggressive tilt, quick settle
+
+    // Stock slam - PUNISHING shoulder impact
+    stockKick: new Spring(750, 45, 0.45),  // Ultra-fast compression and return
+    stockRotate: new Spring(650, 40, 0.5), // Barrel tip up hard, snap back
+
+    // Pump action springs - crisp mechanical feel
+    pumpPull: new Spring(550, 34, 0.6),    // Fast pump back
+    pumpPush: new Spring(600, 36, 0.5),    // Snappy pump forward
+    pumpRotate: new Spring(400, 26, 0.8),  // Slight rotation during pump
+
+    // Weapon sway - heavier than AK, lighter than sniper
+    swayX: new Spring(55, 8, 1.4),
+    swayY: new Spring(55, 8, 1.4),
+    momentumX: new Spring(45, 7, 1.6),
+    momentumZ: new Spring(45, 7, 1.6),
+
+    // Shell ejection physics
+    shellEject: new Spring(500, 30, 0.6),  // Fast shell kick
+
+    // Recovery - FAST return to ready
+    recoveryZ: new Spring(120, 22, 0.9),
+    recoveryX: new Spring(110, 20, 0.9),
+
+    // Barrel droop after shot
+    barrelDroop: new Spring(90, 14, 1.4),
+
+    // Fore-end (pump grip) independent motion
+    foreEndZ: new Spring(350, 22, 0.9),
+    foreEndRotate: new Spring(280, 18, 1.0),
+};
+
 // Camera Rig
 const hipPos = new THREE.Vector3(0.9, -1.1, -1.8);
 const aimPos = new THREE.Vector3(0.0, -1.22, -0.5);
 const sniperHipPos = new THREE.Vector3(0.5, -0.8, -1.1);
 const sniperAimPos = new THREE.Vector3(0.0, -0.62, -0.35); // Higher for scope alignment
+const shotgunHipPos = new THREE.Vector3(0.85, -1.15, -1.9);
+const shotgunAimPos = new THREE.Vector3(0.0, -1.1, -0.7); // Iron sights aim position
 
 // Position AK-47
 recoilGroup.position.copy(hipPos);
@@ -7505,7 +8621,7 @@ let lastShotTime = 0;
 const fireRate = 0.1;
 
 // === WEAPON SYSTEM ===
-let currentWeapon = 'ak'; // 'ak' or 'sniper'
+let currentWeapon = 'ak'; // 'ak', 'sniper', or 'shotgun'
 let isSwitchingWeapon = false;
 
 // Sniper-specific state
@@ -7514,6 +8630,20 @@ let sniperReserve = 20;
 const sniperMagSize = 5;
 const sniperFireRate = 0.4; // Semi-auto .50 cal fire rate
 const sniperDamageMultiplier = 3.0; // More damage per shot
+
+// Shotgun-specific state
+let shotgunAmmo = 8;
+let shotgunReserve = 32;
+const shotgunMagSize = 8;
+const shotgunFireRate = 0.85; // Pump action - slower but devastating
+const shotgunDamageMultiplier = 1.2; // Per pellet damage
+const shotgunPelletCount = 8; // Pellets per shot
+const shotgunSpread = 0.08; // Spread angle (radians)
+
+// Pump action state
+let needsPump = false;      // True after firing, must pump to chamber next round
+let isPumping = false;      // Currently in pump animation
+let pumpPhase = 0;          // Animation phase: 0=idle, 1=pull, 2=push
 
 // Bolt action state
 let needsBoltCycle = false;  // True after firing, must cycle bolt
@@ -7528,8 +8658,64 @@ let playerHealth = 100;
 let maxPlayerHealth = 100;
 let score = 0;
 let isGameOver = false;
+let isPaused = false;
+
+// PAUSE SYSTEM
+function pauseGame() {
+    if (isGameOver || isPaused) return;
+    isPaused = true;
+
+    // Show pause menu
+    const pauseOverlay = document.getElementById('pause-overlay');
+    if (pauseOverlay) pauseOverlay.classList.add('active');
+
+    // Release pointer lock
+    document.exitPointerLock();
+
+    // Pause music
+    const bgMusic = document.getElementById('bg-music');
+    if (bgMusic) bgMusic.pause();
+}
+
+function resumeGame() {
+    if (!isPaused) return;
+    isPaused = false;
+
+    // Hide pause menu
+    const pauseOverlay = document.getElementById('pause-overlay');
+    if (pauseOverlay) pauseOverlay.classList.remove('active');
+
+    // Request pointer lock again
+    document.body.requestPointerLock();
+
+    // Resume music
+    const bgMusic = document.getElementById('bg-music');
+    if (bgMusic) bgMusic.play();
+}
+
+function togglePause() {
+    if (isPaused) {
+        resumeGame();
+    } else {
+        pauseGame();
+    }
+}
+
+// KILL MULTIPLIER SYSTEM
+let killMultiplier = 1;
+let killMultiplierMax = 10;
+let killMultiplierDecayTime = 3.0; // Seconds before multiplier decays
+let killMultiplierTimer = 0;
+let lastMultiplierLevel = 1;
 let lastDamageTime = 0;
 let damageFlashIntensity = 0;
+
+// HEALTH REGENERATION SYSTEM
+const HEALTH_REGEN_DELAY = 5.0;    // Seconds without damage before regen starts
+const HEALTH_REGEN_RATE = 15;       // Health per second when regenerating
+let isRegenerating = false;
+let displayedScore = 0;             // For smooth score counting animation
+let scoreAnimationTarget = 0;
 
 function damagePlayer(amount, attackerPos = null) {
     if (isGameOver) return;
@@ -7592,15 +8778,369 @@ function damagePlayer(amount, attackerPos = null) {
 
 function addScore(points) {
     score += points;
+    scoreAnimationTarget = score;
     updateHUD();
 
-    // Micro-animation: score bump
+    // Enhanced score animation based on points
     const scoreEl = document.getElementById('score-display');
     if (scoreEl) {
-        scoreEl.classList.remove('score-bump');
+        scoreEl.classList.remove('score-bump', 'score-mega-bump');
         void scoreEl.offsetWidth; // Force reflow to restart animation
-        scoreEl.classList.add('score-bump');
+
+        if (points >= 500) {
+            scoreEl.classList.add('score-mega-bump');
+        } else {
+            scoreEl.classList.add('score-bump');
+        }
     }
+}
+
+// Animate score counting effect
+function updateScoreDisplay() {
+    const scoreEl = document.getElementById('score-display');
+    if (!scoreEl) return;
+
+    if (displayedScore < score) {
+        // Calculate increment - faster for bigger differences
+        const diff = score - displayedScore;
+        const increment = Math.max(1, Math.ceil(diff * 0.15));
+        displayedScore = Math.min(displayedScore + increment, score);
+
+        scoreEl.textContent = displayedScore.toString().padStart(8, '0');
+
+        // Add counting class for subtle flicker
+        if (!scoreEl.classList.contains('counting')) {
+            scoreEl.classList.add('counting');
+        }
+    } else {
+        displayedScore = score;
+        scoreEl.classList.remove('counting');
+        scoreEl.textContent = score.toString().padStart(8, '0');
+    }
+}
+
+// Show floating score bonus for big kills
+function showScoreBonusFloat(points, multiplier) {
+    const bonus = document.createElement('div');
+    bonus.className = 'score-bonus-float';
+
+    if (multiplier > 1) {
+        bonus.innerHTML = `+${points}<span style="font-size:28px;opacity:0.8;margin-left:8px;">(${multiplier}x)</span>`;
+    } else {
+        bonus.textContent = '+' + points;
+    }
+
+    // Color based on multiplier tier
+    if (multiplier >= 8) {
+        bonus.style.color = '#ff4444';
+        bonus.style.textShadow = '0 0 30px #ff0000, 0 0 60px #ff4400, 0 4px 8px rgba(0,0,0,0.8)';
+    } else if (multiplier >= 5) {
+        bonus.style.color = '#ff8800';
+    } else if (multiplier >= 3) {
+        bonus.style.color = '#ffcc00';
+    }
+
+    document.body.appendChild(bonus);
+
+    setTimeout(() => bonus.remove(), 1000);
+}
+
+// Add score for kills - applies multiplier and increases combo
+function addKillScore(basePoints, isHeadshot = false) {
+    // Apply multiplier
+    const multipliedPoints = Math.floor(basePoints * killMultiplier);
+    score += multipliedPoints;
+    scoreAnimationTarget = score;
+
+    // Increase multiplier (caps at max)
+    const oldMultiplier = killMultiplier;
+    killMultiplier = Math.min(killMultiplier + 1, killMultiplierMax);
+
+    // Reset decay timer
+    killMultiplierTimer = killMultiplierDecayTime;
+
+    // Update UI
+    updateMultiplierUI();
+    updateHUD();
+
+    // Play feedback if multiplier increased
+    if (killMultiplier > oldMultiplier) {
+        playMultiplierSound(killMultiplier);
+        bumpMultiplierUI();
+    }
+
+    // Show floating score with multiplier info
+    if (killMultiplier > 1) {
+        showMultiplierScore(multipliedPoints, killMultiplier);
+    }
+
+    // Show big floating bonus for high multiplier or headshots
+    if (killMultiplier >= 5 || (isHeadshot && killMultiplier >= 3)) {
+        showScoreBonusFloat(multipliedPoints, killMultiplier);
+    }
+
+    // Enhanced score animation - mega for high multipliers
+    const scoreEl = document.getElementById('score-display');
+    if (scoreEl) {
+        scoreEl.classList.remove('score-bump', 'score-mega-bump');
+        void scoreEl.offsetWidth;
+
+        if (killMultiplier >= 5 || multipliedPoints >= 500) {
+            scoreEl.classList.add('score-mega-bump');
+        } else {
+            scoreEl.classList.add('score-bump');
+        }
+    }
+}
+
+// Update multiplier UI display
+function updateMultiplierUI() {
+    const container = document.getElementById('multiplier-container');
+    const valueEl = document.getElementById('multiplier-value');
+    const timerFill = document.getElementById('multiplier-timer-fill');
+
+    if (!container || !valueEl || !timerFill) return;
+
+    // Show/hide based on multiplier
+    if (killMultiplier > 1) {
+        container.classList.add('active');
+        container.classList.remove('lost');
+    }
+
+    // Update value text
+    valueEl.textContent = killMultiplier + 'x';
+
+    // Update timer bar
+    const timerPercent = (killMultiplierTimer / killMultiplierDecayTime) * 100;
+    timerFill.style.width = timerPercent + '%';
+
+    // Update color tier (1-2: white, 3-4: yellow, 5-6: orange, 7-8: dark orange, 9-10: red)
+    let tier = 1;
+    if (killMultiplier >= 9) tier = 5;
+    else if (killMultiplier >= 7) tier = 4;
+    else if (killMultiplier >= 5) tier = 3;
+    else if (killMultiplier >= 3) tier = 2;
+    container.setAttribute('data-tier', tier);
+
+    // Warning pulse when timer is low
+    if (killMultiplierTimer < 1.0 && killMultiplier > 1) {
+        container.classList.add('warning');
+    } else {
+        container.classList.remove('warning');
+    }
+}
+
+// Bump animation for multiplier
+function bumpMultiplierUI() {
+    const valueEl = document.getElementById('multiplier-value');
+    if (!valueEl) return;
+
+    valueEl.classList.remove('bump');
+    void valueEl.offsetWidth;
+    valueEl.classList.add('bump');
+}
+
+// Reset multiplier with feedback
+function resetMultiplier() {
+    if (killMultiplier <= 1) return;
+
+    const container = document.getElementById('multiplier-container');
+    if (container) {
+        container.classList.add('lost');
+        container.classList.remove('active', 'warning');
+    }
+
+    // Play lost sound
+    playMultiplierLostSound();
+
+    // Reset state
+    killMultiplier = 1;
+    killMultiplierTimer = 0;
+    lastMultiplierLevel = 1;
+}
+
+// Procedural multiplier increase sound
+function playMultiplierSound(level) {
+    if (!actx) return;
+
+    const now = actx.currentTime;
+
+    // Rising pitch based on multiplier level
+    const baseFreq = 400 + (level - 1) * 80;
+
+    // Quick ascending tone
+    const osc = actx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq * 0.8, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.2, now + 0.08);
+
+    const gain = actx.createGain();
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    // Add harmonics for richness at higher levels
+    if (level >= 5) {
+        const osc2 = actx.createOscillator();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(baseFreq * 1.5, now);
+        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 2, now + 0.1);
+
+        const gain2 = actx.createGain();
+        gain2.gain.setValueAtTime(0.08, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc2.connect(gain2);
+        gain2.connect(actx.destination);
+        osc2.start(now);
+        osc2.stop(now + 0.15);
+    }
+
+    osc.connect(gain);
+    gain.connect(actx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+}
+
+// Procedural multiplier lost sound
+function playMultiplierLostSound() {
+    if (!actx) return;
+
+    const now = actx.currentTime;
+
+    // Descending sad tone
+    const osc = actx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+
+    const gain = actx.createGain();
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(actx.destination);
+    osc.start(now);
+    osc.stop(now + 0.4);
+}
+
+// === HEALTH REGENERATION SOUNDS & UI ===
+
+// Set regen visual state on UI elements
+function setRegenUI(active) {
+    const healthFill = document.getElementById('health-fill');
+    const healthText = document.getElementById('health-text');
+    const healthBar = document.getElementById('health-bar');
+    const regenIndicator = document.getElementById('regen-indicator');
+
+    if (healthFill) healthFill.classList.toggle('regenerating', active);
+    if (healthText) healthText.classList.toggle('regenerating', active);
+    if (healthBar) healthBar.classList.toggle('regenerating', active);
+    if (regenIndicator) regenIndicator.classList.toggle('active', active);
+}
+
+// Regen start sound - gentle ascending chime
+function playRegenStartSound() {
+    if (!actx) return;
+
+    const now = actx.currentTime;
+
+    // Soft chime
+    const osc = actx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
+
+    const gain = actx.createGain();
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(actx.destination);
+    osc.start(now);
+    osc.stop(now + 0.3);
+
+    // Second harmonic
+    const osc2 = actx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(1200, now + 0.05);
+    osc2.frequency.exponentialRampToValueAtTime(1600, now + 0.2);
+
+    const gain2 = actx.createGain();
+    gain2.gain.setValueAtTime(0.04, now + 0.05);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc2.connect(gain2);
+    gain2.connect(actx.destination);
+    osc2.start(now + 0.05);
+    osc2.stop(now + 0.3);
+}
+
+// Regen tick sound - soft pulse
+function playRegenTickSound() {
+    if (!actx) return;
+
+    const now = actx.currentTime;
+
+    const osc = actx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1000, now);
+
+    const gain = actx.createGain();
+    gain.gain.setValueAtTime(0.03, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(actx.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
+}
+
+// Regen complete sound - triumphant chord
+function playRegenCompleteSound() {
+    if (!actx) return;
+
+    const now = actx.currentTime;
+
+    // Major chord - C E G
+    const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+    frequencies.forEach((freq, i) => {
+        const osc = actx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        const gain = actx.createGain();
+        gain.gain.setValueAtTime(0.06, now + i * 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+        osc.connect(gain);
+        gain.connect(actx.destination);
+        osc.start(now + i * 0.03);
+        osc.stop(now + 0.5);
+    });
+}
+
+// Show floating multiplier score
+function showMultiplierScore(points, mult) {
+    const popup = document.createElement('div');
+    popup.className = 'multiplier-popup';
+    popup.innerHTML = `+${points} <span style="color: #ffcc00; font-size: 0.7em;">(${mult}x)</span>`;
+    popup.style.cssText = `
+        position: fixed;
+        top: 45%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 200, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+        pointer-events: none;
+        z-index: 150;
+        animation: multiplier-score-float 0.8s ease forwards;
+    `;
+
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 800);
 }
 
 function gameOver() {
@@ -7614,8 +9154,21 @@ function gameOver() {
 
 function restartGame() {
     // Reset all game state
+    isPaused = false;
     playerHealth = maxPlayerHealth;
     score = 0;
+    displayedScore = 0;
+    scoreAnimationTarget = 0;
+    killMultiplier = 1;
+    killMultiplierTimer = 0;
+    isRegenerating = false;
+    lastDamageTime = 0;
+    setRegenUI(false);
+    const multiplierContainer = document.getElementById('multiplier-container');
+    if (multiplierContainer) {
+        multiplierContainer.classList.remove('active', 'warning', 'lost');
+        multiplierContainer.setAttribute('data-tier', '1');
+    }
     ammo = 30;
     reserve = 90;
     currentWave = 0;
@@ -7635,9 +9188,18 @@ function restartGame() {
     boltCyclePhase = 0;
     document.getElementById('bolt-indicator').classList.remove('show');
 
+    // Reset shotgun state
+    shotgunAmmo = shotgunMagSize;
+    shotgunReserve = 32;
+    needsPump = false;
+    isPumping = false;
+    pumpPhase = 0;
+    document.getElementById('pump-indicator').classList.remove('show');
+
     // Reset to AK-47
     if (currentWeapon !== 'ak') {
         sniperRecoilGroup.visible = false;
+        shotgunRecoilGroup.visible = false;
         recoilGroup.visible = true;
         currentWeapon = 'ak';
         updateWeaponIndicator();
@@ -7716,10 +9278,12 @@ function showHitmarker(isHeadshot = false) {
  * PENETRATION EFFECT - Sparks and blood spray at penetration point
  */
 function spawnPenetrationEffect(position) {
+    if (!position) return; // Guard against undefined position
+
     // Bright sparks at penetration point
     for (let i = 0; i < 8; i++) {
         const spark = sparks.find(s => !s.active);
-        if (spark) {
+        if (spark && spark.mesh) {
             spark.active = true;
             spark.life = 0.3 + Math.random() * 0.2;
             spark.maxLife = spark.life;
@@ -7835,9 +9399,12 @@ function updateHUD(force = false) {
     const healthPercent = Math.ceil(playerHealth);
 
     // Get current weapon's ammo
-    const currentAmmo = currentWeapon === 'sniper' ? sniperAmmo : ammo;
-    const currentMagSize = currentWeapon === 'sniper' ? sniperMagSize : 30;
-    const lowAmmoThreshold = currentWeapon === 'sniper' ? 2 : 10;
+    const currentAmmo = currentWeapon === 'sniper' ? sniperAmmo :
+                        (currentWeapon === 'shotgun' ? shotgunAmmo : ammo);
+    const currentMagSize = currentWeapon === 'sniper' ? sniperMagSize :
+                           (currentWeapon === 'shotgun' ? shotgunMagSize : 30);
+    const lowAmmoThreshold = currentWeapon === 'sniper' ? 2 :
+                             (currentWeapon === 'shotgun' ? 3 : 10);
 
     // Only update if values changed (or forced)
     if (force || lastHUDValues.ammo !== currentAmmo || lastHUDValues.reserve !== reserve || lastHUDValues.isReloading !== isReloading || lastHUDValues.weapon !== currentWeapon) {
@@ -7871,21 +9438,25 @@ function updateHUD(force = false) {
         if (dom.healthFill) {
             dom.healthFill.style.width = pct + '%';
             dom.healthFill.classList.remove('damaged', 'critical');
-            if (pct <= 25) {
-                dom.healthFill.classList.add('critical');
-            } else if (pct <= 50) {
-                dom.healthFill.classList.add('damaged');
+            // Only show damage colors when NOT regenerating
+            if (!isRegenerating) {
+                if (pct <= 25) {
+                    dom.healthFill.classList.add('critical');
+                } else if (pct <= 50) {
+                    dom.healthFill.classList.add('damaged');
+                }
             }
         }
         if (dom.healthText) {
             dom.healthText.textContent = healthPercent;
-            dom.healthText.classList.toggle('critical', pct <= 25);
+            // Don't show critical during regen
+            dom.healthText.classList.toggle('critical', pct <= 25 && !isRegenerating);
         }
 
         // Health bar border animation
         const healthBar = document.getElementById('health-bar');
         if (healthBar) {
-            healthBar.classList.toggle('critical', pct <= 25);
+            healthBar.classList.toggle('critical', pct <= 25 && !isRegenerating);
         }
     }
 
@@ -7945,7 +9516,7 @@ function updateHUD(force = false) {
 }
 
 function shoot() {
-    if (isGameOver) return;
+    if (isGameOver || isPaused) return;
 
     // Handle sniper semi-auto .50 cal
     if (currentWeapon === 'sniper') {
@@ -7967,6 +9538,41 @@ function shoot() {
                 ejectSniperShell();
             }
         }, 50);
+    } else if (currentWeapon === 'shotgun') {
+        // PUMP-ACTION SHOTGUN - Devastating but slow, auto-pump
+        // Tactical reload: can cancel reload to fire if we have ammo
+        if (isReloading && shotgunAmmo > 0) {
+            // Cancel reload to fire - tactical interrupt
+            isReloading = false;
+            // Quick weapon snap back to ready
+            new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                .to({ z: 0, x: 0, y: Math.PI }, 100)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        }
+        if (isPumping || shotgunAmmo <= 0) {
+            if (shotgunAmmo <= 0 && !isReloading && !isPumping && shotgunReserve > 0) {
+                // Auto-reload when empty
+                setTimeout(() => reload(), 100);
+            } else if (shotgunAmmo <= 0 && !isReloading && !isPumping) {
+                playSound('empty');
+            }
+            return;
+        }
+        const now = performance.now() / 1000;
+        if (now - lastShotTime < shotgunFireRate) return;
+
+        lastShotTime = now;
+        shotgunAmmo--;
+        updateHUD();
+        playSound('shotgunShoot');
+
+        // Auto-pump after a short delay for recoil to register
+        setTimeout(() => {
+            if (currentWeapon === 'shotgun' && !isPumping) {
+                autoPumpShotgun();
+            }
+        }, 180);
     } else {
         // AK-47 behavior (unchanged)
         if (isReloading || ammo <= 0) {
@@ -7984,14 +9590,61 @@ function shoot() {
 
     // ORGANIC RECOIL IMPULSE PHYSICS
     const isSniper = currentWeapon === 'sniper';
-    const aimMod = isAiming ? (isSniper ? 0.12 : 0.35) : 1.0; // Sniper kicks HARD even when aimed
-    const recoilMult = isSniper ? 2.5 : 1.0; // Sniper has BRUTAL screen shake
+    const isShotgun = currentWeapon === 'shotgun';
+    const aimMod = isAiming ? (isSniper ? 0.12 : (isShotgun ? 0.45 : 0.35)) : 1.0;
+    const recoilMult = isSniper ? 2.5 : (isShotgun ? 1.8 : 1.0);
 
     // Randomize recoil slightly for organic feel (no two shots identical)
     const recoilVariance = 0.85 + Math.random() * 0.3;
-    const horizontalBias = (Math.random() - 0.5) * (isSniper ? 0.15 : 0.4);
+    const horizontalBias = (Math.random() - 0.5) * (isSniper ? 0.15 : (isShotgun ? 0.25 : 0.4));
 
-    if (isSniper) {
+    if (isShotgun) {
+        // === VIOLENT SHOTGUN RECOIL - Brutal snap, lightning recovery ===
+        // Pump shotgun: HITS HARD then snaps back instantly
+
+        // Primary kick - VIOLENT backward slam
+        ShotgunSprings.recoilZ.impulse(-85 * aimMod * recoilVariance);
+
+        // Muzzle climb - AGGRESSIVE
+        ShotgunSprings.recoilX.impulse(-28 * aimMod * recoilVariance);
+
+        // Vertical jump - whole gun RISES
+        ShotgunSprings.recoilY.impulse(12 * aimMod * recoilVariance);
+
+        // Rotational violence - shotgun TWISTS hard
+        ShotgunSprings.recoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.4) * 6 * aimMod);
+        ShotgunSprings.recoilTilt.impulse((Math.random() - 0.5) * 4 * aimMod);
+
+        // Stock slam into shoulder - PUNISHING
+        ShotgunSprings.stockKick.impulse(55 * aimMod * recoilVariance);
+        ShotgunSprings.stockRotate.impulse(-20 * aimMod * recoilVariance);
+
+        // Barrel droop after the kick
+        ShotgunSprings.barrelDroop.impulse(10 * recoilVariance);
+
+        // Momentum - weapon trails behind HARD
+        ShotgunSprings.momentumX.impulse(horizontalBias * 25);
+        ShotgunSprings.momentumZ.impulse(-35 * aimMod);
+
+        // Recovery - fast return
+        ShotgunSprings.recoveryZ.target = ShotgunSprings.recoilZ.position * 0.25;
+        ShotgunSprings.recoveryX.target = ShotgunSprings.recoilX.position * 0.25;
+
+        // Camera recoil - punchy snap
+        cameraRecoil += 0.12 * aimMod * recoilVariance;
+
+        // Screen shake - aggressive
+        Springs.shakeX.impulse((Math.random() - 0.5) * 10 * aimMod);
+        Springs.shakeY.impulse((Math.random() - 0.2) * 8 * aimMod);
+        Springs.shakeRoll.impulse((Math.random() - 0.5) * 5 * aimMod);
+
+        // Body rocks from the kick
+        Springs.bobZ.impulse(-5 * aimMod);
+        Springs.bobY.impulse(-2 * aimMod);
+        Springs.roll.impulse(horizontalBias * 1.5 * aimMod);
+        Springs.tilt.impulse(-2.5 * aimMod);
+
+    } else if (isSniper) {
         // === BRUTAL SNIPER RECOIL - VIOLENT JOLT ===
         // This thing KICKS. Hard. Like getting punched in the shoulder.
 
@@ -8067,22 +9720,24 @@ function shoot() {
     }
 
     // ENHANCED FLASH with variance
-    const flashIntensity = (isSniper ? 1.1 : 0.9) + Math.random() * 0.2;
+    const flashIntensity = (isSniper ? 1.1 : (isShotgun ? 1.2 : 0.9)) + Math.random() * 0.2;
     flashCoreMat.opacity = flashIntensity;
     flashMidMat.opacity = flashIntensity * 0.9;
     flashOuterMat.opacity = flashIntensity * 0.7;
     flashStreakMat.opacity = flashIntensity * 0.8;
 
     // Use correct weapon group for flash
-    const activeGunGroup = isSniper ? sniperGroup : gunGroup;
-    const activeFlashGroup = isSniper ? sniperFlashGroup : flashGroup;
+    const activeGunGroup = isSniper ? sniperGroup : (isShotgun ? shotgunGroup : gunGroup);
+    const activeFlashGroup = isSniper ? sniperFlashGroup : (isShotgun ? shotgunFlashGroup : flashGroup);
     activeFlashGroup.rotation.z = Math.random() * Math.PI;
-    activeFlashGroup.scale.setScalar((isSniper ? 0.9 : 0.75) + Math.random() * 0.5);
+    activeFlashGroup.scale.setScalar((isSniper ? 0.9 : (isShotgun ? 1.1 : 0.75)) + Math.random() * 0.5);
 
-    const muzzleOffset = isSniper ? new THREE.Vector3(0, 0.024, -2.1) : new THREE.Vector3(0, 0.3, -7.5);
+    const muzzleOffset = isSniper
+        ? new THREE.Vector3(0, 0.024, -2.1)
+        : (isShotgun ? new THREE.Vector3(0, 0.35, -11.0) : new THREE.Vector3(0, 0.3, -7.5));
     muzzleLight.position.copy(muzzleOffset.applyMatrix4(activeGunGroup.matrixWorld));
-    muzzleLight.intensity = (isSniper ? 35 : 25) + Math.random() * 10;
-    muzzleLight.color.setHex(0xffaa44);
+    muzzleLight.intensity = (isSniper ? 35 : (isShotgun ? 40 : 25)) + Math.random() * 10;
+    muzzleLight.color.setHex(isShotgun ? 0xffbb55 : 0xffaa44); // Slightly warmer for shotgun
 
     // Spawn muzzle sparks
     spawnMuzzleSparks();
@@ -8097,124 +9752,235 @@ function shoot() {
     Springs.shakeY.impulse((Math.random() - 0.3) * 2 * shakeIntensity); // Bias upward
     Springs.shakeRoll.impulse((Math.random() - 0.5) * 1.5 * shakeIntensity);
 
-    // Bolt snap - spring-driven for smooth return (AK only, sniper has manual bolt)
-    if (!isSniper) {
+    // Bolt snap - spring-driven for smooth return (AK only, sniper/shotgun have manual actions)
+    if (!isSniper && !isShotgun) {
         Springs.boltZ.impulse(8);
     }
     lastFireTime = performance.now();
     consecutiveShots++;
 
-    // Shell ejection (AK ejects immediately, sniper ejects during bolt cycle)
-    if (!isSniper) {
+    // Shell ejection (AK ejects immediately, sniper/shotgun eject during pump/bolt cycle)
+    if (!isSniper && !isShotgun) {
         ejectShell();
     }
     spawnSmoke();
     spawnMuzzleSmokeWisps();
 
-    // RAYCAST
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(targets);
+    // Extra smoke puffs for shotgun (wider spread)
+    if (isShotgun) {
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => spawnSmoke(), 20 * i);
+        }
+    }
+
+    // RAYCAST - Handle shotgun pellet spread
     const muzzlePos = isSniper
         ? new THREE.Vector3(0, 0.024, -2.0).applyMatrix4(sniperGroup.matrixWorld)
-        : new THREE.Vector3(0, 0.3, -6.5).applyMatrix4(gunGroup.matrixWorld);
+        : (isShotgun ? new THREE.Vector3(0, 0.35, -11.0).applyMatrix4(shotgunGroup.matrixWorld)
+            : new THREE.Vector3(0, 0.3, -6.5).applyMatrix4(gunGroup.matrixWorld));
     let hitPoint;
 
-    // SNIPER PENETRATION: Can pierce through multiple enemies
-    const maxPenetrations = isSniper ? 3 : 1; // Sniper goes through 3, AK stops at 1
-    let penetrationCount = 0;
-    let lastHitPoint = null;
-    const hitBots = new Set(); // Track already-hit bots to avoid double damage
+    // Track all hit bots for multi-pellet damage and collateral announcements
+    const hitBots = new Set();
+    const pelletHits = new Map(); // Track how many pellets hit each bot
 
-    if (intersects.length > 0) {
-        // Process hits - sniper can penetrate through multiple targets
-        for (let i = 0; i < intersects.length && penetrationCount < maxPenetrations; i++) {
-            const hit = intersects[i];
-            lastHitPoint = hit.point;
+    if (isShotgun) {
+        // === SHOTGUN PELLET SPREAD ===
+        // Fire multiple pellets in a cone pattern
+        const baseDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
 
-            // Check if we hit a shooting target
-            if (hit.object.userData.isTarget) {
-                const target = hit.object.userData.targetRef;
-                if (target && target.isUp) {
-                    target.knockDown();
-                    playSound('targetHit');
-                    penetrationCount++;
+        let furthestHitPoint = null;
+        let maxDist = 0;
 
-                    // Spawn penetration sparks/impact for sniper
-                    if (isSniper && penetrationCount < maxPenetrations) {
-                        spawnPenetrationEffect(hit.point);
+        for (let p = 0; p < shotgunPelletCount; p++) {
+            // Random spread within cone
+            const spreadX = (Math.random() - 0.5) * 2 * shotgunSpread;
+            const spreadY = (Math.random() - 0.5) * 2 * shotgunSpread;
+
+            const pelletDir = baseDir.clone()
+                .add(right.clone().multiplyScalar(spreadX))
+                .add(up.clone().multiplyScalar(spreadY))
+                .normalize();
+
+            raycaster.set(camera.position, pelletDir);
+            const pelletHitList = raycaster.intersectObjects(targets);
+
+            if (pelletHitList.length > 0) {
+                const hit = pelletHitList[0];
+
+                if (hit.object.userData.isTarget) {
+                    const target = hit.object.userData.targetRef;
+                    if (target && target.isUp) {
+                        target.knockDown();
+                        playSound('targetHit');
                     }
-                }
-            } else if (hit.object.userData.isBot) {
-                // Hit a bot (zombie)
-                const bot = hit.object.userData.botRef;
-
-                // Skip if already hit this bot or bot is dead
-                if (!bot || bot.isDead || hitBots.has(bot)) continue;
-                hitBots.add(bot);
-
-                const hitPointWorld = hit.point.clone();
-
-                // HEADSHOT DETECTION
-                const zombieBaseY = bot.mesh.position.y;
-                const hitLocalY = hitPointWorld.y - zombieBaseY;
-                const isHeadshot = hitLocalY > 2.9 && !bot.headExploded;
-
-                if (isHeadshot) {
-                    const hitDir = new THREE.Vector3();
-                    hitDir.subVectors(hitPointWorld, camera.position).normalize();
-
-                    explodeHead(bot, hitPointWorld, hitDir);
-                    showHitmarker(true);
-
-                    // Extra score for sniper headshots, bonus for collateral kills
-                    const collateralBonus = penetrationCount > 0 ? 50 * penetrationCount : 0;
-                    addScore((isSniper ? 200 : 150) + collateralBonus);
-                    bot.health = 0;
-                    bot.die();
-                } else {
-                    bot.hit(hitPointWorld, isSniper ? sniperDamageMultiplier : 1.0);
-                    showHitmarker(false);
-
-                    // Collateral bonus
-                    if (penetrationCount > 0 && isSniper) {
-                        addScore(25 * penetrationCount);
+                } else if (hit.object.userData.isBot) {
+                    const bot = hit.object.userData.botRef;
+                    if (bot && !bot.isDead) {
+                        // Track pellet hits per bot
+                        if (!pelletHits.has(bot)) pelletHits.set(bot, 0);
+                        pelletHits.set(bot, pelletHits.get(bot) + 1);
+                        hitBots.add(bot);
                     }
+                } else if (hit.face) {
+                    spawnDecal(hit.point, hit.face.normal);
                 }
 
-                penetrationCount++;
-
-                // Show penetration effect if bullet continues
-                if (isSniper && penetrationCount < maxPenetrations) {
-                    spawnPenetrationEffect(hitPointWorld);
+                // Track furthest hit for tracer
+                const dist = hit.distance;
+                if (dist > maxDist) {
+                    maxDist = dist;
+                    furthestHitPoint = hit.point;
                 }
+            }
 
-            } else if (hit.face) {
-                // Hit world geometry - stops AK, but sniper can punch through thin walls once
-                spawnDecal(hit.point, hit.face.normal);
+            // Spawn individual pellet tracer (thinner than normal)
+            const pelletEnd = furthestHitPoint || camera.position.clone().add(pelletDir.multiplyScalar(50));
+            spawnShotgunPelletTracer(muzzlePos.clone(), pelletEnd);
+        }
 
-                if (!isSniper) {
-                    // AK stops at walls
-                    break;
-                } else {
-                    // Sniper can penetrate one wall/obstacle
-                    penetrationCount++;
-                    if (penetrationCount < maxPenetrations) {
-                        spawnPenetrationEffect(hit.point);
-                    }
-                }
+        // Apply damage to all hit bots based on pellet count
+        for (const [bot, pelletCount] of pelletHits) {
+            const hitPointWorld = bot.mesh.position.clone();
+            hitPointWorld.y += 1.5; // Approximate hit point
+
+            // HEADSHOT: If pellets hit upper body/head zone
+            // Brutes are immune to headshots (thick skull)
+            const isHeadshot = !bot.headExploded && bot.type !== 'brute' && Math.random() < pelletCount * 0.12;
+
+            if (isHeadshot) {
+                const hitDir = new THREE.Vector3();
+                hitDir.subVectors(hitPointWorld, camera.position).normalize();
+                explodeHead(bot, hitPointWorld, hitDir);
+                showHitmarker(true);
+                addKillScore(100 + pelletCount * 15, true); // Headshot - applies multiplier
+                bot.health = 0;
+                bot.die();
+            } else {
+                // Cumulative damage from pellets
+                const totalDamage = shotgunDamageMultiplier * pelletCount;
+                bot.hit(hitPointWorld, totalDamage);
+                showHitmarker(false);
             }
         }
 
-        hitPoint = lastHitPoint;
+        hitPoint = furthestHitPoint || camera.position.clone().add(baseDir.multiplyScalar(50));
 
-        // Collateral kill announcement
-        if (isSniper && hitBots.size > 1) {
+        // Multi-kill announcement
+        if (hitBots.size > 1) {
             showCollateralNotification(hitBots.size);
         }
+
     } else {
-        hitPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(100));
+        // === SINGLE PROJECTILE (AK / SNIPER) ===
+        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+        const intersects = raycaster.intersectObjects(targets);
+
+        // SNIPER PENETRATION: Can pierce through multiple enemies
+        const maxPenetrations = isSniper ? 3 : 1;
+        let penetrationCount = 0;
+        let lastHitPoint = null;
+
+        if (intersects.length > 0) {
+            for (let i = 0; i < intersects.length && penetrationCount < maxPenetrations; i++) {
+                const hit = intersects[i];
+                lastHitPoint = hit.point;
+
+                if (hit.object.userData.isTarget) {
+                    const target = hit.object.userData.targetRef;
+                    if (target && target.isUp) {
+                        target.knockDown();
+                        playSound('targetHit');
+                        penetrationCount++;
+                        if (isSniper && penetrationCount < maxPenetrations) {
+                            spawnPenetrationEffect(hit.point);
+                        }
+                    }
+                } else if (hit.object.userData.isBot) {
+                    const bot = hit.object.userData.botRef;
+                    if (!bot || bot.isDead || hitBots.has(bot)) continue;
+                    hitBots.add(bot);
+
+                    const hitPointWorld = hit.point.clone();
+                    const zombieBaseY = bot.mesh.position.y;
+                    const hitLocalY = hitPointWorld.y - zombieBaseY;
+                    // Brutes are immune to headshots (thick skull)
+                    const isHeadshot = hitLocalY > 2.9 && !bot.headExploded && bot.type !== 'brute';
+
+                    if (isHeadshot) {
+                        const hitDir = new THREE.Vector3();
+                        hitDir.subVectors(hitPointWorld, camera.position).normalize();
+                        explodeHead(bot, hitPointWorld, hitDir);
+                        showHitmarker(true);
+                        const collateralBonus = penetrationCount > 0 ? 50 * penetrationCount : 0;
+                        addKillScore((isSniper ? 200 : 150) + collateralBonus, true); // Headshot - applies multiplier
+                        bot.health = 0;
+                        bot.die();
+                    } else {
+                        bot.hit(hitPointWorld, isSniper ? sniperDamageMultiplier : 1.0);
+                        showHitmarker(false);
+                        if (penetrationCount > 0 && isSniper) {
+                            addScore(25 * penetrationCount);
+                        }
+                    }
+
+                    penetrationCount++;
+                    if (isSniper && penetrationCount < maxPenetrations) {
+                        spawnPenetrationEffect(hitPointWorld);
+                    }
+
+                } else if (hit.face) {
+                    spawnDecal(hit.point, hit.face.normal);
+                    if (!isSniper) {
+                        break;
+                    } else {
+                        penetrationCount++;
+                        if (penetrationCount < maxPenetrations) {
+                            spawnPenetrationEffect(hit.point);
+                        }
+                    }
+                }
+            }
+
+            hitPoint = lastHitPoint;
+
+            if (isSniper && hitBots.size > 1) {
+                showCollateralNotification(hitBots.size);
+            }
+        } else {
+            hitPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(100));
+        }
+        spawnTracer(muzzlePos, hitPoint);
     }
-    spawnTracer(muzzlePos, hitPoint);
+}
+
+// Spawn individual shotgun pellet tracer (thinner, faster fade)
+function spawnShotgunPelletTracer(start, end) {
+    const dir = new THREE.Vector3().subVectors(end, start);
+    const dist = dir.length();
+    dir.normalize();
+
+    const tracerGeo = new THREE.CylinderGeometry(0.015, 0.015, Math.min(dist, 4), 4);
+    const tracerMat = new THREE.MeshBasicMaterial({
+        color: 0xffdd88,
+        transparent: true,
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
+    });
+    const tracer = new THREE.Mesh(tracerGeo, tracerMat);
+
+    // Position at midpoint
+    tracer.position.copy(start).add(dir.clone().multiplyScalar(dist / 2));
+    tracer.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+
+    scene.add(tracer);
+    tracers.push({
+        mesh: tracer,
+        velocity: dir.clone().multiplyScalar(250),
+        life: 0.08 // Very short life for pellet tracers
+    });
 }
 
 /**
@@ -8291,11 +10057,168 @@ function ejectSniperShell() {
     shells.push(shell);
 }
 
+// Shotgun shell ejection (red hull)
+function ejectShotgunShell() {
+    const shellGeo = new THREE.CylinderGeometry(0.04, 0.045, 0.35, 8);
+    const shellMaterial = new THREE.MeshStandardMaterial({
+        color: 0xcc2222, // Red hull
+        roughness: 0.6,
+        metalness: 0.2
+    });
+    const shell = new THREE.Mesh(shellGeo, shellMaterial);
+
+    // Add brass rim
+    const rimGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.06, 8);
+    const rim = new THREE.Mesh(rimGeo, new THREE.MeshStandardMaterial({
+        color: 0xccaa44, roughness: 0.3, metalness: 0.8
+    }));
+    rim.position.y = -0.15;
+    shell.add(rim);
+
+    shell.position.copy(new THREE.Vector3(0.35, 0.3, -0.5).applyMatrix4(shotgunGroup.matrixWorld));
+    shell.quaternion.copy(shotgunGroup.quaternion);
+    shell.rotation.z = Math.PI / 2;
+
+    // Eject to the right with spin
+    const velocity = new THREE.Vector3(
+        0.25 + Math.random() * 0.15,
+        0.2 + Math.random() * 0.15,
+        0.05 + Math.random() * 0.1
+    ).applyQuaternion(camera.quaternion);
+    shell.userData = { velocity: velocity, life: 3.0 };
+
+    scene.add(shell);
+    shells.push(shell);
+}
+
+/**
+ * PUMP ACTION CYCLE - Satisfying "chk-chk" after each shotgun shot
+ */
+function pumpShotgun() {
+    if (!needsPump || isPumping || currentWeapon !== 'shotgun') return;
+
+    isPumping = true;
+    pumpPhase = 1;
+
+    const origPumpZ = sgPumpPivot.position.z;
+
+    // Phase 1: Pull pump back (eject shell)
+    playSound('pumpPull');
+
+    // Pump slides back
+    new TWEEN.Tween(sgPumpPivot.position)
+        .to({ z: origPumpZ + 1.2 }, 140)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .onComplete(() => {
+            // Eject spent shell during pull
+            ejectShotgunShell();
+
+            // Weapon reacts to pump force
+            ShotgunSprings.recoilZ.impulse(-8);
+            ShotgunSprings.foreEndZ.impulse(-15);
+
+            pumpPhase = 2;
+
+            // Small pause at back of stroke
+            setTimeout(() => {
+                // Phase 2: Push pump forward (chamber new round)
+                playSound('pumpPush');
+
+                new TWEEN.Tween(sgPumpPivot.position)
+                    .to({ z: origPumpZ }, 120)
+                    .easing(TWEEN.Easing.Cubic.In)
+                    .onComplete(() => {
+                        pumpPhase = 0;
+                        isPumping = false;
+                        needsPump = false;
+                        document.getElementById('pump-indicator').classList.remove('show');
+
+                        // Satisfying thunk on close
+                        ShotgunSprings.recoilZ.impulse(-4);
+                        ShotgunSprings.stockKick.impulse(8);
+                        Springs.bobY.impulse(-0.5);
+                    })
+                    .start();
+            }, 60);
+        })
+        .start();
+}
+
+/**
+ * AUTO PUMP - Called automatically after each shot, triggers reload when empty
+ */
+function autoPumpShotgun() {
+    if (isPumping || currentWeapon !== 'shotgun') return;
+
+    isPumping = true;
+    pumpPhase = 1;
+
+    const origPumpZ = sgPumpPivot.position.z;
+
+    // Phase 1: Pull pump back (eject shell)
+    playSound('pumpPull');
+
+    // Pump slides back
+    new TWEEN.Tween(sgPumpPivot.position)
+        .to({ z: origPumpZ + 1.2 }, 140)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .onComplete(() => {
+            // Eject spent shell during pull
+            ejectShotgunShell();
+
+            // Weapon reacts to pump force
+            ShotgunSprings.recoilZ.impulse(-8);
+            ShotgunSprings.foreEndZ.impulse(-15);
+
+            pumpPhase = 2;
+
+            // Small pause at back of stroke
+            setTimeout(() => {
+                // Phase 2: Push pump forward (chamber new round)
+                playSound('pumpPush');
+
+                new TWEEN.Tween(sgPumpPivot.position)
+                    .to({ z: origPumpZ }, 120)
+                    .easing(TWEEN.Easing.Cubic.In)
+                    .onComplete(() => {
+                        pumpPhase = 0;
+                        isPumping = false;
+
+                        // Satisfying thunk on close
+                        ShotgunSprings.recoilZ.impulse(-4);
+                        ShotgunSprings.stockKick.impulse(8);
+                        Springs.bobY.impulse(-0.5);
+
+                        // Auto-reload when empty
+                        if (shotgunAmmo <= 0 && shotgunReserve > 0 && !isReloading) {
+                            setTimeout(() => reload(), 150);
+                        }
+                    })
+                    .start();
+            }, 60);
+        })
+        .start();
+}
+
 /**
  * WEAPON SWITCHING SYSTEM
  */
+function getWeaponRecoilGroup(weapon) {
+    if (weapon === 'ak') return recoilGroup;
+    if (weapon === 'sniper') return sniperRecoilGroup;
+    if (weapon === 'shotgun') return shotgunRecoilGroup;
+    return recoilGroup;
+}
+
+function getWeaponHipPos(weapon) {
+    if (weapon === 'ak') return hipPos;
+    if (weapon === 'sniper') return sniperHipPos;
+    if (weapon === 'shotgun') return shotgunHipPos;
+    return hipPos;
+}
+
 function switchWeapon(targetWeapon) {
-    if (isSwitchingWeapon || isReloading || isCyclingBolt) return;
+    if (isSwitchingWeapon || isReloading || isCyclingBolt || isPumping) return;
     if (targetWeapon === currentWeapon) return;
 
     isSwitchingWeapon = true;
@@ -8306,8 +10229,15 @@ function switchWeapon(targetWeapon) {
         document.getElementById('bolt-indicator').classList.remove('show');
     }
 
+    // Reset pump state if switching away from shotgun
+    if (currentWeapon === 'shotgun') {
+        needsPump = false;
+        isPumping = false;
+        document.getElementById('pump-indicator').classList.remove('show');
+    }
+
     // Lower current weapon
-    const currentRecoilGroup = currentWeapon === 'ak' ? recoilGroup : sniperRecoilGroup;
+    const currentRecoilGroup = getWeaponRecoilGroup(currentWeapon);
     new TWEEN.Tween(currentRecoilGroup.position)
         .to({ y: currentRecoilGroup.position.y - 2 }, 150)
         .easing(TWEEN.Easing.Cubic.In)
@@ -8319,8 +10249,8 @@ function switchWeapon(targetWeapon) {
             currentWeapon = targetWeapon;
 
             // Show and raise new weapon
-            const newRecoilGroup = currentWeapon === 'ak' ? recoilGroup : sniperRecoilGroup;
-            const newHipPos = currentWeapon === 'ak' ? hipPos : sniperHipPos;
+            const newRecoilGroup = getWeaponRecoilGroup(currentWeapon);
+            const newHipPos = getWeaponHipPos(currentWeapon);
 
             newRecoilGroup.visible = true;
             newRecoilGroup.position.copy(newHipPos);
@@ -8548,6 +10478,106 @@ function reload() {
         return;
     }
 
+    // Handle shotgun reload (shell-by-shell tactical reload)
+    if (currentWeapon === 'shotgun') {
+        // Can't reload if already full or currently pumping
+        if (shotgunAmmo >= shotgunMagSize || isPumping) return;
+        if (shotgunReserve <= 0) return;
+
+        // If already reloading, let it continue (don't restart)
+        if (isReloading) return;
+
+        if (isAiming) isAiming = false;
+        isReloading = true;
+        updateHUD();
+
+        const origPos = shotgunRecoilGroup.position.clone();
+        const origRot = shotgunRecoilGroup.rotation.clone();
+
+        // Calculate how many shells to load
+        const shellsToLoad = Math.min(shotgunMagSize - shotgunAmmo, shotgunReserve);
+        let shellsLoaded = 0;
+
+        // Shell loading animation loop
+        function loadNextShell() {
+            if (shellsLoaded >= shellsToLoad || !isReloading || currentWeapon !== 'shotgun') {
+                // Finish reload - return to ready position
+                new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                    .to({ z: 0, x: 0, y: Math.PI }, 250)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+
+                new TWEEN.Tween(shotgunRecoilGroup.position)
+                    .to({ x: origPos.x, y: origPos.y, z: origPos.z }, 250)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .onComplete(() => {
+                        isReloading = false;
+                        updateHUD();
+                    })
+                    .start();
+                return;
+            }
+
+            // === PHASE 1: Tilt weapon to expose loading port (0-200ms) ===
+            if (shellsLoaded === 0) {
+                new TWEEN.Tween(shotgunRecoilGroup.position)
+                    .to({ y: origPos.y + 0.1, x: origPos.x - 0.15, z: origPos.z + 0.1 }, 200)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+
+                new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                    .to({ z: 0.5, x: 0.2, y: Math.PI + 0.1 }, 200)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .onComplete(() => insertShell())
+                    .start();
+            } else {
+                insertShell();
+            }
+        }
+
+        function insertShell() {
+            // === PHASE 2: Insert shell animation (per shell) ===
+            // Quick upward motion as shell is pushed in
+            new TWEEN.Tween(shotgunRecoilGroup.position)
+                .to({ y: origPos.y + 0.12 }, 80)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            // Slight weapon rock from shell insertion
+            ShotgunSprings.recoilZ.impulse(-1.5);
+            ShotgunSprings.recoilTilt.impulse(0.8);
+
+            setTimeout(() => {
+                playSound('shellLoad');
+
+                // Shell click into tube
+                new TWEEN.Tween(shotgunRecoilGroup.position)
+                    .to({ y: origPos.y + 0.08 }, 60)
+                    .easing(TWEEN.Easing.Back.Out)
+                    .start();
+
+                ShotgunSprings.stockKick.impulse(-1);
+
+                // Update ammo
+                shotgunAmmo++;
+                shotgunReserve--;
+                shellsLoaded++;
+                updateHUD();
+
+                // Small delay then next shell or finish
+                setTimeout(() => {
+                    if (isReloading && currentWeapon === 'shotgun') {
+                        loadNextShell();
+                    }
+                }, 180);
+            }, 100);
+        }
+
+        // Start loading sequence
+        loadNextShell();
+        return;
+    }
+
     // AK-47 reload (original behavior)
     if (isReloading || ammo === 30) return;
     if (isAiming) isAiming = false;
@@ -8620,6 +10650,15 @@ function reload() {
 // Input
 const keys = {};
 document.addEventListener('keydown', (e) => {
+    // ESC to pause/unpause
+    if (e.code === 'Escape') {
+        if (!isGameOver) togglePause();
+        return;
+    }
+
+    // Don't process other keys when paused
+    if (isPaused) return;
+
     keys[e.code] = true;
     if (e.code === 'KeyR') reload();
     if (e.code === 'KeyW') moveState.f = true;
@@ -8637,17 +10676,29 @@ document.addEventListener('keydown', (e) => {
     // Weapon switching
     if (e.code === 'Digit1') switchWeapon('ak');
     if (e.code === 'Digit2') switchWeapon('sniper');
+    if (e.code === 'Digit3') switchWeapon('shotgun');
 });
 
-// Mouse wheel for weapon switching
+// Pause menu button handlers
+document.getElementById('resume-btn')?.addEventListener('click', resumeGame);
+document.getElementById('restart-btn')?.addEventListener('click', () => {
+    resumeGame();
+    restartGame();
+});
+
+// Mouse wheel for weapon switching (3-weapon cycle)
+const weaponOrder = ['ak', 'sniper', 'shotgun'];
 document.addEventListener('wheel', (e) => {
     if (document.pointerLockElement !== document.body) return;
+    const currentIdx = weaponOrder.indexOf(currentWeapon);
     if (e.deltaY > 0) {
         // Scroll down - next weapon
-        switchWeapon(currentWeapon === 'ak' ? 'sniper' : 'ak');
+        const nextIdx = (currentIdx + 1) % weaponOrder.length;
+        switchWeapon(weaponOrder[nextIdx]);
     } else if (e.deltaY < 0) {
         // Scroll up - previous weapon
-        switchWeapon(currentWeapon === 'ak' ? 'sniper' : 'ak');
+        const prevIdx = (currentIdx - 1 + weaponOrder.length) % weaponOrder.length;
+        switchWeapon(weaponOrder[prevIdx]);
     }
 });
 document.addEventListener('keyup', (e) => {
@@ -8728,10 +10779,19 @@ document.addEventListener('mousemove', (e) => {
 
 function animate(time) {
     requestAnimationFrame(animate);
-    TWEEN.update(time); // TWEEN uses real time for reliable reload/swap animations
+
+    // Track time even when paused to avoid dt spike on resume
     const realDt = Math.min((time - prevTime) / 1000, 0.1); // Cap dt
-    const dt = realDt * timeScale; // Apply slow-motion to physics
     prevTime = time;
+
+    // When paused, just render the scene and return
+    if (isPaused) {
+        composer.render();
+        return;
+    }
+
+    TWEEN.update(time); // TWEEN uses real time for reliable reload/swap animations
+    const dt = realDt * timeScale; // Apply slow-motion to physics
     frameCount++;
 
     // Update slow-motion system (uses real time, not scaled)
@@ -8744,18 +10804,20 @@ function animate(time) {
 
     // ADS Logic + Sprint FOV (weapon-specific)
     const isSniper = currentWeapon === 'sniper';
-    const activeRecoilGroup = isSniper ? sniperRecoilGroup : recoilGroup;
-    const activeHipPos = isSniper ? sniperHipPos : hipPos;
-    const activeAimPos = isSniper ? sniperAimPos : aimPos;
+    const isShotgun = currentWeapon === 'shotgun';
+    const activeRecoilGroup = isSniper ? sniperRecoilGroup : (isShotgun ? shotgunRecoilGroup : recoilGroup);
+    const activeHipPos = isSniper ? sniperHipPos : (isShotgun ? shotgunHipPos : hipPos);
+    const activeAimPos = isSniper ? sniperAimPos : (isShotgun ? shotgunAimPos : aimPos);
     const targetPos = isAiming ? activeAimPos : activeHipPos;
     const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
 
-    // Sniper has much higher zoom when scoped
+    // Weapon-specific FOV when scoped/aimed
     const baseFOV = 90;
     const sprintFOV = 100;
     const akAimFOV = 55;
     const sniperAimFOV = baseFOV / scopeZoomLevel; // 4x zoom = 22.5 FOV
-    const targetFOV = isAiming ? (isSniper ? sniperAimFOV : akAimFOV) : (isSprinting ? sprintFOV : baseFOV);
+    const shotgunAimFOV = 65; // Shotgun has less zoom - more situational awareness
+    const targetFOV = isAiming ? (isSniper ? sniperAimFOV : (isShotgun ? shotgunAimFOV : akAimFOV)) : (isSprinting ? sprintFOV : baseFOV);
 
     // Smooth transition for base position (Lerp is fine for macroscopic movements)
     activeRecoilGroup.position.lerp(targetPos, 15 * dt);
@@ -8858,6 +10920,28 @@ function animate(time) {
     const sniperBoltPull = SniperSprings.boltPull.update(dt);
     const sniperBoltPush = SniperSprings.boltPush.update(dt);
     const sniperBoltDown = SniperSprings.boltDown.update(dt);
+
+    // === SHOTGUN-SPECIFIC SPRING UPDATES ===
+    const shotgunRecoilZ = ShotgunSprings.recoilZ.update(dt);
+    const shotgunRecoilX = ShotgunSprings.recoilX.update(dt);
+    const shotgunRecoilY = ShotgunSprings.recoilY.update(dt);
+    const shotgunRecoilRoll = ShotgunSprings.recoilRoll.update(dt);
+    const shotgunRecoilTilt = ShotgunSprings.recoilTilt.update(dt);
+    const shotgunStockKick = ShotgunSprings.stockKick.update(dt);
+    const shotgunStockRotate = ShotgunSprings.stockRotate.update(dt);
+    const shotgunPumpPull = ShotgunSprings.pumpPull.update(dt);
+    const shotgunPumpPush = ShotgunSprings.pumpPush.update(dt);
+    const shotgunPumpRotate = ShotgunSprings.pumpRotate.update(dt);
+    const shotgunSwayX = ShotgunSprings.swayX.update(dt);
+    const shotgunSwayY = ShotgunSprings.swayY.update(dt);
+    const shotgunMomentumX = ShotgunSprings.momentumX.update(dt);
+    const shotgunMomentumZ = ShotgunSprings.momentumZ.update(dt);
+    const shotgunShellEject = ShotgunSprings.shellEject.update(dt);
+    const shotgunRecoveryZ = ShotgunSprings.recoveryZ.update(dt);
+    const shotgunRecoveryX = ShotgunSprings.recoveryX.update(dt);
+    const shotgunBarrelDroop = ShotgunSprings.barrelDroop.update(dt);
+    const shotgunForeEndZ = ShotgunSprings.foreEndZ.update(dt);
+    const shotgunForeEndRotate = ShotgunSprings.foreEndRotate.update(dt);
 
     // Organic idle animations using layered noise
     const idleAnimTime = time * 0.001;
@@ -9094,6 +11178,65 @@ function animate(time) {
         } else {
             SniperSprings.scopedBreath.target = 0;
         }
+    }
+
+    // === SHOTGUN-SPECIFIC TRANSFORMS - Punchy, aggressive, weighty ===
+    if (currentWeapon === 'shotgun') {
+        // Combine shotgun recoil with recovery
+        const sgCombinedRecoilZ = shotgunRecoilZ + shotgunRecoveryZ * 0.35 + shotgunStockKick * 0.4;
+        const sgCombinedRecoilX = shotgunRecoilX + shotgunRecoveryX * 0.35 + shotgunStockRotate * 0.35 + shotgunBarrelDroop;
+
+        // Shotgun sway - medium weight
+        const sgTotalSwayX = (shotgunSwayX + turnLagX * 1.2) * adsMultiplier;
+        const sgTotalSwayY = (shotgunSwayY + turnLagY * 1.2) * adsMultiplier;
+
+        // Position: VIOLENT recoil + momentum
+        shotgunGroup.position.z = sgCombinedRecoilZ * adsMultiplier * 0.35 +
+                                   shotgunMomentumZ * 0.3 +
+                                   bobZ * adsMultiplier * 0.7 +
+                                   shotgunForeEndZ * 0.08; // Pump motion affects whole gun slightly
+        shotgunGroup.position.y = shotgunRecoilY * adsMultiplier * 0.28 +
+                                   bobY * adsMultiplier * 0.6 +
+                                   breathe * 0.8 +
+                                   heartbeat * 0.4 +
+                                   microTremor * 0.4;
+        shotgunGroup.position.x = shotgunMomentumX * 0.25 +
+                                   bobX * adsMultiplier * 0.6 +
+                                   sgTotalSwayX * 0.35 +
+                                   idleSway * 0.25;
+
+        // Rotation: AGGRESSIVE muzzle snap + roll
+        shotgunGroup.rotation.x = sgCombinedRecoilX * adsMultiplier * 0.28 +
+                                   sgTotalSwayY * 0.7 +
+                                   tilt * 0.6 +
+                                   breathe * 0.2 +
+                                   landingTilt * 0.4 +
+                                   shotgunRecoilTilt * 0.18;
+        shotgunGroup.rotation.y = Math.PI + sgTotalSwayX +
+                                   idleSway * 0.25 +
+                                   strafeTilt * 0.8;
+        shotgunGroup.rotation.z = (roll * 0.8 + shotgunRecoilRoll * 0.25) * adsMultiplier +
+                                   sgTotalSwayX * 0.2 +
+                                   breathe * 0.08 +
+                                   sprintRoll * 0.8 +
+                                   microTremor +
+                                   strafeRoll * 0.9;
+
+        // Shotgun spring target resets
+        ShotgunSprings.recoilZ.target = 0;
+        ShotgunSprings.recoilX.target = 0;
+        ShotgunSprings.recoilY.target = 0;
+        ShotgunSprings.recoilRoll.target = 0;
+        ShotgunSprings.recoilTilt.target = 0;
+        ShotgunSprings.stockKick.target = 0;
+        ShotgunSprings.stockRotate.target = 0;
+        ShotgunSprings.barrelDroop.target = 0;
+        ShotgunSprings.momentumX.target = -moveVelX * 0.006;
+        ShotgunSprings.momentumZ.target = -moveVelZ * 0.005;
+        ShotgunSprings.swayX.target = -camVelX * 0.0006;
+        ShotgunSprings.swayY.target = -camVelY * 0.0005;
+        ShotgunSprings.foreEndZ.target = 0;
+        ShotgunSprings.foreEndRotate.target = 0;
     }
 
     // Reset Spring Targets (decay to neutral)
@@ -9522,6 +11665,61 @@ function animate(time) {
         damageFlashIntensity -= dt * 2;
         if (damageFlashIntensity < 0) damageFlashIntensity = 0;
         document.getElementById('damage-flash').style.opacity = damageFlashIntensity;
+    }
+
+    // Update kill multiplier decay
+    if (killMultiplierTimer > 0) {
+        killMultiplierTimer -= dt;
+        updateMultiplierUI();
+
+        if (killMultiplierTimer <= 0) {
+            resetMultiplier();
+        }
+    }
+
+    // Update score counting animation
+    updateScoreDisplay();
+
+    // Health regeneration system
+    if (!isGameOver && playerHealth < maxPlayerHealth) {
+        const timeSinceDamage = (performance.now() - lastDamageTime) / 1000;
+
+        if (timeSinceDamage >= HEALTH_REGEN_DELAY) {
+            // Start regenerating
+            if (!isRegenerating) {
+                isRegenerating = true;
+                playRegenStartSound();
+                setRegenUI(true);
+            }
+
+            // Regenerate health
+            const oldHealth = playerHealth;
+            playerHealth = Math.min(playerHealth + HEALTH_REGEN_RATE * dt, maxPlayerHealth);
+
+            // Play tick sound periodically during regen
+            if (Math.floor(oldHealth / 5) !== Math.floor(playerHealth / 5)) {
+                playRegenTickSound();
+            }
+
+            updateHUD();
+
+            // Stop regen when full
+            if (playerHealth >= maxPlayerHealth) {
+                isRegenerating = false;
+                setRegenUI(false);
+                playRegenCompleteSound();
+            }
+        } else {
+            // Not enough time has passed
+            if (isRegenerating) {
+                isRegenerating = false;
+                setRegenUI(false);
+            }
+        }
+    } else if (isRegenerating) {
+        // Player at max health or game over
+        isRegenerating = false;
+        setRegenUI(false);
     }
 
     // Animate dust particles (throttled to every 12 frames for better performance)
