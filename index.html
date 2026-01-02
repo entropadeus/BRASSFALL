@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZOMBIE SURVIVAL</title>
+    <title>SUBJECT-0</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Courier New', monospace; }
         #crosshair {
@@ -207,11 +207,14 @@
             border-color: rgba(0, 200, 255, 0.7);
         }
         #restart-btn {
-            transition: all 0.2s ease-out;
+            transition: all 0.3s ease-out;
         }
         #restart-btn:hover {
-            background: #500; box-shadow: 0 0 20px #f00;
-            transform: scale(1.05);
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #f00;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.4), inset 0 0 20px rgba(255, 0, 0, 0.1);
+            transform: scale(1.02);
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
         }
         #restart-btn:active {
             transform: scale(0.98);
@@ -382,23 +385,621 @@
             0% { box-shadow: 0 0 5px rgba(255, 150, 0, 0.3); }
             100% { box-shadow: 0 0 15px rgba(255, 150, 0, 0.6); }
         }
+
+        /* ============ MAIN MENU - SUBJECT-0 ============ */
+        #main-menu {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(180deg, #0a0a0a 0%, #050505 50%, #080505 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        /* Animated background grid */
+        .menu-grid {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(255, 0, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Floating particles */
+        .menu-particles {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: rgba(255, 50, 50, 0.6);
+            border-radius: 50%;
+            animation: floatUp 8s linear infinite;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(1); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(0.5); opacity: 0; }
+        }
+
+        /* Biohazard scanlines */
+        .menu-scanlines {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.15) 2px,
+                rgba(0, 0, 0, 0.15) 4px
+            );
+            pointer-events: none;
+            animation: scanlineMove 0.1s linear infinite;
+        }
+
+        @keyframes scanlineMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        /* Vignette overlay */
+        .menu-vignette {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+        }
+
+        /* Warning stripes */
+        .warning-stripe {
+            position: absolute;
+            height: 30px;
+            width: 150%;
+            left: -25%;
+            background: repeating-linear-gradient(
+                -45deg,
+                #1a1a00,
+                #1a1a00 20px,
+                #0a0a00 20px,
+                #0a0a00 40px
+            );
+            opacity: 0.4;
+        }
+        .warning-stripe.top { top: 60px; }
+        .warning-stripe.bottom { bottom: 60px; }
+
+        /* Title container */
+        .title-container {
+            position: relative;
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        /* Classification badge */
+        .classification {
+            font-size: 12px;
+            letter-spacing: 8px;
+            color: #f00;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            opacity: 0.8;
+            animation: blink 2s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Main title */
+        .menu-title {
+            font-size: 120px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow:
+                0 0 10px rgba(255, 0, 0, 0.8),
+                0 0 20px rgba(255, 0, 0, 0.6),
+                0 0 40px rgba(255, 0, 0, 0.4),
+                0 0 80px rgba(255, 0, 0, 0.2);
+            letter-spacing: 15px;
+            position: relative;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px rgba(255, 0, 0, 0.8),
+                    0 0 20px rgba(255, 0, 0, 0.6),
+                    0 0 40px rgba(255, 0, 0, 0.4),
+                    0 0 80px rgba(255, 0, 0, 0.2);
+            }
+            50% {
+                text-shadow:
+                    0 0 15px rgba(255, 50, 50, 1),
+                    0 0 30px rgba(255, 0, 0, 0.8),
+                    0 0 60px rgba(255, 0, 0, 0.5),
+                    0 0 100px rgba(255, 0, 0, 0.3);
+            }
+        }
+
+        /* Glitch effect layers */
+        .menu-title::before,
+        .menu-title::after {
+            content: 'SUBJECT-0';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .menu-title::before {
+            color: #0ff;
+            animation: glitch1 3s infinite linear alternate-reverse;
+            clip-path: inset(0 0 70% 0);
+        }
+
+        .menu-title::after {
+            color: #f0f;
+            animation: glitch2 2s infinite linear alternate-reverse;
+            clip-path: inset(70% 0 0 0);
+        }
+
+        @keyframes glitch1 {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-5px, 2px); }
+            94% { transform: translate(5px, -2px); }
+            96% { transform: translate(-3px, 0); }
+            98% { transform: translate(3px, 0); }
+        }
+
+        @keyframes glitch2 {
+            0%, 85%, 100% { transform: translate(0); }
+            87% { transform: translate(5px, -2px); }
+            89% { transform: translate(-5px, 2px); }
+            91% { transform: translate(2px, 0); }
+            93% { transform: translate(-2px, 0); }
+        }
+
+        /* Subtitle */
+        .menu-subtitle {
+            font-size: 14px;
+            letter-spacing: 12px;
+            color: #666;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+
+        /* Menu buttons container */
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 50px;
+        }
+
+        /* Play button */
+        .menu-btn {
+            position: relative;
+            padding: 20px 80px;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: #fff;
+            background: transparent;
+            border: 2px solid rgba(255, 0, 0, 0.6);
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .menu-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .menu-btn:hover {
+            border-color: #f00;
+            color: #f00;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+            box-shadow:
+                0 0 20px rgba(255, 0, 0, 0.3),
+                inset 0 0 20px rgba(255, 0, 0, 0.1);
+        }
+
+        .menu-btn:hover::before {
+            left: 100%;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.98);
+            box-shadow:
+                0 0 30px rgba(255, 0, 0, 0.5),
+                inset 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        /* Corner brackets on button */
+        .menu-btn .corner {
+            position: absolute;
+            width: 15px; height: 15px;
+            border-color: #f00;
+            border-style: solid;
+            transition: all 0.3s ease;
+        }
+        .menu-btn .corner.tl { top: 5px; left: 5px; border-width: 2px 0 0 2px; }
+        .menu-btn .corner.tr { top: 5px; right: 5px; border-width: 2px 2px 0 0; }
+        .menu-btn .corner.bl { bottom: 5px; left: 5px; border-width: 0 0 2px 2px; }
+        .menu-btn .corner.br { bottom: 5px; right: 5px; border-width: 0 2px 2px 0; }
+
+        .menu-btn:hover .corner {
+            width: 20px; height: 20px;
+        }
+
+        /* Controls panel */
+        .controls-panel {
+            position: relative;
+            padding: 25px 40px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .controls-title {
+            font-size: 12px;
+            letter-spacing: 6px;
+            color: #f00;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px 40px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .control-key {
+            color: #0f0;
+            font-weight: bold;
+        }
+
+        .control-action {
+            color: #666;
+        }
+
+        /* Weapons info */
+        .weapons-info {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 0, 0, 0.2);
+            font-size: 12px;
+            color: #f90;
+            letter-spacing: 2px;
+        }
+
+        /* Version/Credits */
+        .menu-footer {
+            position: absolute;
+            bottom: 20px;
+            font-size: 11px;
+            color: #333;
+            letter-spacing: 4px;
+        }
+
+        /* Hide old blocker, show new menu */
+        #blocker {
+            display: none !important;
+        }
+
+        /* ============ AUDIO SETTINGS ============ */
+        .audio-settings {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            z-index: 101;
+        }
+
+        .audio-settings-title {
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: #f00;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .audio-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .audio-label {
+            font-size: 11px;
+            color: #888;
+            width: 50px;
+            letter-spacing: 1px;
+        }
+
+        .audio-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .audio-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #f00;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .audio-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+        }
+
+        .audio-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #f00;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+        }
+
+        .audio-value {
+            font-size: 11px;
+            color: #0f0;
+            width: 35px;
+            text-align: right;
+        }
+
+        /* In-game audio toggle */
+        #audio-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+            z-index: 80;
+        }
+
+        .audio-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .audio-btn:hover {
+            border-color: #0f0;
+            color: #0f0;
+        }
+
+        .audio-btn.muted {
+            color: #f00;
+            border-color: rgba(255, 0, 0, 0.4);
+        }
+
+        .audio-btn.muted:hover {
+            border-color: #f00;
+        }
+
+        /* ============ SLOW-MOTION EFFECT ============ */
+        #slowmo-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 70;
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+            background: radial-gradient(ellipse at center,
+                transparent 0%,
+                transparent 30%,
+                rgba(0, 0, 0, 0.3) 100%
+            );
+            box-shadow: inset 0 0 100px rgba(255, 100, 0, 0.2);
+        }
+
+        #slowmo-overlay.active {
+            opacity: 1;
+        }
+
+        #slowmo-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow:
+                0 0 20px rgba(255, 50, 0, 0.8),
+                0 0 40px rgba(255, 50, 0, 0.5),
+                0 0 60px rgba(255, 50, 0, 0.3);
+            letter-spacing: 15px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 71;
+            transition: opacity 0.2s ease-out;
+        }
+
+        #slowmo-text.show {
+            opacity: 1;
+            animation: slowmoTextPulse 0.5s ease-out;
+        }
+
+        @keyframes slowmoTextPulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
-<div id="blocker">
-    <h1>ZOMBIE SURVIVAL</h1>
-    <p style="color: #0f0; font-size: 18px;">Survive the zombie horde!</p>
-    <p>Click to Start</p>
-    <p style="color: #888;">WASD: Move | SHIFT: Sprint | SPACE: Jump | LMB: Shoot | RMB: Aim | R: Reload</p>
-    <p style="color: #f90; font-size: 14px;">1: AK-47 | 2: SNIPER (Bolt Action) | SCROLL: Switch Weapons</p>
+<!-- Background Music -->
+<audio id="bg-music" loop preload="auto">
+    <source src="Tumor.mp3" type="audio/mpeg">
+</audio>
+
+<!-- ============ MAIN MENU - SUBJECT-0 ============ -->
+<div id="main-menu">
+    <!-- Atmospheric background layers -->
+    <div class="menu-grid"></div>
+    <div class="menu-particles" id="menu-particles"></div>
+    <div class="menu-scanlines"></div>
+    <div class="menu-vignette"></div>
+
+    <!-- Warning stripes -->
+    <div class="warning-stripe top"></div>
+    <div class="warning-stripe bottom"></div>
+
+    <!-- Audio Settings Panel -->
+    <div class="audio-settings" id="audio-settings">
+        <div class="audio-settings-title">// Audio //</div>
+        <div class="audio-control">
+            <span class="audio-label">MUSIC</span>
+            <input type="range" class="audio-slider" id="music-volume" min="0" max="100" value="50">
+            <span class="audio-value" id="music-value">50%</span>
+        </div>
+        <div class="audio-control">
+            <span class="audio-label">SFX</span>
+            <input type="range" class="audio-slider" id="sfx-volume" min="0" max="100" value="70">
+            <span class="audio-value" id="sfx-value">70%</span>
+        </div>
+    </div>
+
+    <!-- Title section -->
+    <div class="title-container">
+        <div class="classification">/// CLASSIFIED - CONTAINMENT BREACH ///</div>
+        <h1 class="menu-title">SUBJECT-0</h1>
+        <div class="menu-subtitle">Survival Protocol Initiated</div>
+    </div>
+
+    <!-- Play button -->
+    <div class="menu-buttons">
+        <button class="menu-btn" id="play-btn">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            ENGAGE
+        </button>
+    </div>
+
+    <!-- Controls panel -->
+    <div class="controls-panel">
+        <div class="controls-title">// Combat Systems //</div>
+        <div class="controls-grid">
+            <div class="control-item">
+                <span class="control-key">WASD</span>
+                <span class="control-action">Movement</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">SHIFT</span>
+                <span class="control-action">Sprint</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">SPACE</span>
+                <span class="control-action">Jump</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">R</span>
+                <span class="control-action">Reload</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">LMB</span>
+                <span class="control-action">Fire</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">RMB</span>
+                <span class="control-action">Aim</span>
+            </div>
+        </div>
+        <div class="weapons-info">
+            [1] AK-47 &nbsp;&nbsp;|&nbsp;&nbsp; [2] SNIPER &nbsp;&nbsp;|&nbsp;&nbsp; [SCROLL] Switch
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="menu-footer">v1.0 // CONTAINMENT FACILITY</div>
+</div>
+
+<!-- Legacy blocker (hidden, kept for pointer lock) -->
+<div id="blocker" style="display: none;">
+    <h1>SUBJECT-0</h1>
+    <p>Click to continue</p>
 </div>
 
 <div id="game-over" style="display: none;">
-    <h1 style="color: #f00; text-shadow: 0 0 20px #f00;">YOU DIED</h1>
-    <p style="font-size: 24px;">SCORE: <span id="final-score">0</span></p>
-    <p style="font-size: 18px;">Survived to Wave <span id="final-wave">1</span></p>
-    <button id="restart-btn" onclick="restartGame()" style="margin-top: 20px; padding: 15px 40px; font-size: 20px; background: #300; color: #f00; border: 2px solid #f00; cursor: pointer; font-family: inherit;">RESTART</button>
+    <div style="font-size: 12px; letter-spacing: 6px; color: #f00; margin-bottom: 10px; opacity: 0.8;">/// CONTAINMENT FAILURE ///</div>
+    <h1 style="color: #f00; text-shadow: 0 0 20px #f00, 0 0 40px #f00; font-size: 80px; letter-spacing: 10px; margin: 0;">TERMINATED</h1>
+    <div style="font-size: 14px; color: #666; letter-spacing: 4px; margin-top: 10px;">SUBJECT-0 STATUS: DECEASED</div>
+    <p style="font-size: 28px; color: #ff0; text-shadow: 0 0 10px #ff0; margin-top: 30px;">SCORE: <span id="final-score">0</span></p>
+    <p style="font-size: 16px; color: #888;">Survived to Wave <span id="final-wave" style="color: #f00;">1</span></p>
+    <button id="restart-btn" onclick="restartGame()" style="margin-top: 30px; padding: 18px 60px; font-size: 20px; background: transparent; color: #f00; border: 2px solid rgba(255,0,0,0.6); cursor: pointer; font-family: inherit; letter-spacing: 6px; transition: all 0.3s ease;">REINITIALIZE</button>
 </div>
 
 <div id="crosshair"></div>
@@ -408,6 +1009,10 @@
 </div>
 
 <div id="damage-flash"></div>
+
+<!-- Slow-Motion Effect Overlay -->
+<div id="slowmo-overlay"></div>
+<div id="slowmo-text">BREACH CLEARED</div>
 
 <!-- Damage Direction Indicator -->
 <div id="damage-direction">
@@ -426,9 +1031,15 @@
 
 <!-- Top HUD - Wave and Score -->
 <div id="top-hud">
-    <div id="wave-display">GET READY...</div>
-    <div id="zombie-count">0 ZOMBIES</div>
+    <div id="wave-display">INITIALIZING...</div>
+    <div id="zombie-count">0 HOSTILES</div>
     <div id="score-display">00000000</div>
+</div>
+
+<!-- In-Game Audio Toggle -->
+<div id="audio-toggle">
+    <button class="audio-btn" id="toggle-music" title="Toggle Music">&#9835;</button>
+    <button class="audio-btn" id="toggle-sfx" title="Toggle SFX">&#128266;</button>
 </div>
 
 <!-- Bottom Left - Health -->
@@ -479,6 +1090,296 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
 <script>
+/**
+ * MAIN MENU - SUBJECT-0
+ * Atmospheric menu system with audio controls
+ */
+(function initMainMenu() {
+    // Audio elements
+    const bgMusic = document.getElementById('bg-music');
+    const musicSlider = document.getElementById('music-volume');
+    const sfxSlider = document.getElementById('sfx-volume');
+    const musicValueDisplay = document.getElementById('music-value');
+    const sfxValueDisplay = document.getElementById('sfx-value');
+    const toggleMusicBtn = document.getElementById('toggle-music');
+    const toggleSfxBtn = document.getElementById('toggle-sfx');
+
+    // Audio state
+    let musicVol = 0.5;
+    let sfxVol = 0.7;
+    let isMusicMuted = false;
+    let isSfxMuted = false;
+
+    // Spatial audio context for "rooftop speaker" effect
+    let musicAudioCtx = null;
+    let musicGainNode = null;
+    let spatialInitialized = false;
+
+    function initSpatialAudio() {
+        if (spatialInitialized || !bgMusic) return;
+
+        // Skip spatial audio for file:// protocol (CORS restrictions)
+        if (window.location.protocol === 'file:') {
+            console.log('Running from file://, using simple audio (no spatial effects)');
+            spatialInitialized = false;
+            return;
+        }
+
+        try {
+            musicAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create source from audio element
+            const musicSource = musicAudioCtx.createMediaElementSource(bgMusic);
+
+            // Low-pass filter - muffles highs like distant speakers
+            const lowpass = musicAudioCtx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 3500; // Cut harsh highs
+            lowpass.Q.value = 0.5;
+
+            // High-pass filter - remove sub bass (small speakers)
+            const highpass = musicAudioCtx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 80; // Subtle tinny effect
+            highpass.Q.value = 0.5;
+
+            // Resonant mid boost - cheap speaker character
+            const midBoost = musicAudioCtx.createBiquadFilter();
+            midBoost.type = 'peaking';
+            midBoost.frequency.value = 800;
+            midBoost.Q.value = 1.0;
+            midBoost.gain.value = 2;
+
+            // Convolver for room reverb (large industrial space)
+            const convolver = musicAudioCtx.createConvolver();
+            const reverbLength = musicAudioCtx.sampleRate * 1.5; // 1.5 second reverb
+            const impulse = musicAudioCtx.createBuffer(2, reverbLength, musicAudioCtx.sampleRate);
+
+            for (let channel = 0; channel < 2; channel++) {
+                const data = impulse.getChannelData(channel);
+                for (let i = 0; i < reverbLength; i++) {
+                    const t = i / reverbLength;
+                    const decay = Math.pow(1 - t, 3);
+                    data[i] = (Math.random() * 2 - 1) * decay * 0.5;
+                }
+            }
+            convolver.buffer = impulse;
+
+            // Dry/wet mix for reverb
+            const dryGain = musicAudioCtx.createGain();
+            const wetGain = musicAudioCtx.createGain();
+            dryGain.gain.value = 0.7; // Direct sound
+            wetGain.gain.value = 0.3; // Reverb
+
+            // Master gain
+            musicGainNode = musicAudioCtx.createGain();
+            musicGainNode.gain.value = musicVol;
+
+            // Connect: Source -> highpass -> lowpass -> midBoost -> split to dry/wet -> master
+            musicSource.connect(highpass);
+            highpass.connect(lowpass);
+            lowpass.connect(midBoost);
+
+            // Dry path
+            midBoost.connect(dryGain);
+            dryGain.connect(musicGainNode);
+
+            // Wet path (reverb)
+            midBoost.connect(convolver);
+            convolver.connect(wetGain);
+            wetGain.connect(musicGainNode);
+
+            // Output
+            musicGainNode.connect(musicAudioCtx.destination);
+
+            spatialInitialized = true;
+            console.log('Spatial audio initialized for rooftop speaker effect');
+
+        } catch (e) {
+            console.error('Spatial audio init failed:', e);
+            // Fallback - just play normally
+            spatialInitialized = false;
+        }
+    }
+
+    // Initialize music - setup spatial audio BEFORE playing
+    if (bgMusic) {
+        let audioStarted = false;
+
+        // First click/interaction initializes everything
+        const startMusic = () => {
+            if (audioStarted) return;
+
+            // Try spatial audio first
+            if (!spatialInitialized) {
+                try {
+                    initSpatialAudio();
+                } catch (e) {
+                    console.error('Spatial audio failed:', e);
+                }
+            }
+
+            // Resume audio context if needed
+            if (musicAudioCtx && musicAudioCtx.state === 'suspended') {
+                musicAudioCtx.resume().catch(e => console.log('Resume failed:', e));
+            }
+
+            // Set volume based on whether spatial audio is active
+            if (spatialInitialized && musicGainNode) {
+                bgMusic.volume = 1.0; // Full volume to spatial processor
+                musicGainNode.gain.value = isMusicMuted ? 0 : musicVol;
+            } else {
+                bgMusic.volume = isMusicMuted ? 0 : musicVol;
+            }
+
+            // Play the music
+            bgMusic.play().then(() => {
+                audioStarted = true;
+                console.log('Music playing, spatial audio:', spatialInitialized);
+            }).catch(e => {
+                console.log('Music autoplay blocked, waiting for interaction');
+            });
+        };
+
+        // Initial volume (will be adjusted when spatial audio initializes)
+        bgMusic.volume = musicVol;
+
+        // Try to start immediately
+        startMusic();
+
+        // Also try on any user interaction
+        const onFirstInteraction = () => {
+            startMusic();
+        };
+        document.addEventListener('click', onFirstInteraction, { once: true });
+        document.addEventListener('keydown', onFirstInteraction, { once: true });
+
+        // Debug: log audio element state
+        bgMusic.addEventListener('error', (e) => {
+            console.error('Audio error:', bgMusic.error);
+        });
+        bgMusic.addEventListener('canplay', () => {
+            console.log('Audio can play');
+        });
+    }
+
+    // Function to update music volume (used by slider)
+    window.updateMusicVolume = function(vol, muted) {
+        if (spatialInitialized && musicGainNode) {
+            musicGainNode.gain.value = muted ? 0 : vol;
+        } else if (bgMusic) {
+            bgMusic.volume = muted ? 0 : vol;
+        }
+    };
+
+    // Music volume slider
+    if (musicSlider) {
+        musicSlider.addEventListener('input', (e) => {
+            e.stopPropagation();
+            musicVol = e.target.value / 100;
+            window.updateMusicVolume(musicVol, isMusicMuted);
+            if (musicValueDisplay) musicValueDisplay.textContent = e.target.value + '%';
+            // Store for global access
+            window.musicVolume = musicVol;
+        });
+        musicSlider.addEventListener('mousedown', (e) => e.stopPropagation());
+        musicSlider.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    // SFX volume slider
+    if (sfxSlider) {
+        sfxSlider.addEventListener('input', (e) => {
+            e.stopPropagation();
+            sfxVol = e.target.value / 100;
+            if (sfxValueDisplay) sfxValueDisplay.textContent = e.target.value + '%';
+            // Store for global access - will be picked up by audio engine
+            window.sfxVolume = sfxVol;
+            window.sfxMuted = isSfxMuted;
+        });
+        sfxSlider.addEventListener('mousedown', (e) => e.stopPropagation());
+        sfxSlider.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    // Stop propagation on entire audio settings panel
+    const audioSettings = document.getElementById('audio-settings');
+    if (audioSettings) {
+        audioSettings.addEventListener('mousedown', (e) => e.stopPropagation());
+        audioSettings.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    // In-game toggle buttons
+    if (toggleMusicBtn) {
+        toggleMusicBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMusicMuted = !isMusicMuted;
+            window.updateMusicVolume(musicVol, isMusicMuted);
+            toggleMusicBtn.classList.toggle('muted', isMusicMuted);
+            toggleMusicBtn.innerHTML = isMusicMuted ? '&#128263;' : '&#9835;';
+        });
+    }
+
+    if (toggleSfxBtn) {
+        toggleSfxBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isSfxMuted = !isSfxMuted;
+            window.sfxMuted = isSfxMuted;
+            toggleSfxBtn.classList.toggle('muted', isSfxMuted);
+            toggleSfxBtn.innerHTML = isSfxMuted ? '&#128263;' : '&#128266;';
+        });
+    }
+
+    // Store initial values globally
+    window.musicVolume = musicVol;
+    window.sfxVolume = sfxVol;
+    window.sfxMuted = false;
+
+    // Spawn floating particles
+    const particleContainer = document.getElementById('menu-particles');
+    if (particleContainer) {
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 8 + 's';
+            particle.style.animationDuration = (6 + Math.random() * 4) + 's';
+            particleContainer.appendChild(particle);
+        }
+    }
+
+    // Play button handler
+    const playBtn = document.getElementById('play-btn');
+    const mainMenu = document.getElementById('main-menu');
+
+    function startGame() {
+        if (mainMenu) {
+            mainMenu.style.opacity = '0';
+            mainMenu.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+                mainMenu.style.display = 'none';
+            }, 500);
+        }
+        // Make sure music is playing
+        if (bgMusic) bgMusic.play();
+        document.body.requestPointerLock();
+    }
+
+    if (playBtn) {
+        playBtn.addEventListener('click', startGame);
+    }
+
+    // Also start on any click when menu is visible (but not on controls)
+    if (mainMenu) {
+        mainMenu.addEventListener('click', (e) => {
+            // Don't start if clicking audio controls
+            if (e.target.closest('.audio-settings')) return;
+            if (e.target.closest('.menu-btn')) return;
+            if (e.target === mainMenu || e.target.closest('.menu-vignette') || e.target.closest('.menu-grid')) {
+                startGame();
+            }
+        });
+    }
+})();
+
 /**
  * MOTION DESIGN UTILS
  * Spring physics for procedural weight.
@@ -1671,13 +2572,92 @@ const TextureFactory = {
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const actx = new AudioContext();
 
+// Master SFX volume control
+const masterSfxGain = actx.createGain();
+masterSfxGain.gain.value = 0.7; // Default 70%
+masterSfxGain.connect(actx.destination);
+
 // Improved Reverb
 const convolver = actx.createConvolver();
 const dryGain = actx.createGain();
 const wetGain = actx.createGain();
-dryGain.connect(actx.destination);
-wetGain.connect(actx.destination);
+dryGain.connect(masterSfxGain);
+wetGain.connect(masterSfxGain);
 wetGain.gain.value = 0.3; // Tighter reverb
+
+// Global audio settings
+let sfxVolume = 0.7;
+let musicVolume = 0.5;
+let sfxMuted = false;
+let musicMuted = false;
+
+/**
+ * SLOW-MOTION SYSTEM
+ * Cinematic slowmo for last kills of each wave
+ */
+let timeScale = 1.0;
+let targetTimeScale = 1.0;
+let slowmoActive = false;
+let slowmoTimer = 0;
+const SLOWMO_DURATION = 1.5; // How long slowmo lasts
+const SLOWMO_MIN = 0.15; // Minimum time scale (0.15 = 15% speed)
+const SLOWMO_RAMP_SPEED = 3.0; // How fast to return to normal
+
+function triggerSlowmo() {
+    if (slowmoActive) return;
+    slowmoActive = true;
+    slowmoTimer = SLOWMO_DURATION;
+    targetTimeScale = SLOWMO_MIN;
+    timeScale = SLOWMO_MIN; // Instant slowdown for impact
+
+    // Visual effects
+    const overlay = document.getElementById('slowmo-overlay');
+    const text = document.getElementById('slowmo-text');
+    if (overlay) overlay.classList.add('active');
+    if (text) text.classList.add('show');
+
+    // Slow down music for effect
+    const bgMusic = document.getElementById('bg-music');
+    if (bgMusic) {
+        bgMusic.playbackRate = 0.7;
+    }
+
+    playSound('waveComplete');
+}
+
+function updateSlowmo(realDt) {
+    if (!slowmoActive) return;
+
+    slowmoTimer -= realDt;
+
+    if (slowmoTimer <= 0) {
+        // Ramp back to normal speed
+        targetTimeScale = 1.0;
+        timeScale += SLOWMO_RAMP_SPEED * realDt;
+
+        if (timeScale >= 1.0) {
+            timeScale = 1.0;
+            slowmoActive = false;
+
+            // Remove visual effects
+            const overlay = document.getElementById('slowmo-overlay');
+            const text = document.getElementById('slowmo-text');
+            if (overlay) overlay.classList.remove('active');
+            if (text) text.classList.remove('show');
+
+            // Restore music speed
+            const bgMusic = document.getElementById('bg-music');
+            if (bgMusic) {
+                bgMusic.playbackRate = 1.0;
+            }
+        }
+    }
+}
+
+function isLastZombieOfWave() {
+    // Check if we just killed the last zombie of the current wave
+    return zombiesKilledThisWave >= zombiesThisWave && zombiesThisWave > 0 && waveInProgress;
+}
 
 const sampleRate = actx.sampleRate;
 const length = sampleRate * 1.0; // Short, slap-back reverb
@@ -1693,6 +2673,14 @@ convolver.buffer = impulse;
 convolver.connect(wetGain);
 
 function playSound(type) {
+    // Check if SFX is muted
+    if (window.sfxMuted) return;
+
+    // Update master volume from global setting
+    if (typeof window.sfxVolume === 'number') {
+        masterSfxGain.gain.value = window.sfxVolume;
+    }
+
     if (actx.state === 'suspended') actx.resume();
     const osc = actx.createOscillator();
     const gain = actx.createGain();
@@ -4389,6 +5377,11 @@ class Zombie {
         // Headshot score is already added in shoot()
         zombiesKilledThisWave++;
 
+        // Check for last zombie of wave - trigger cinematic slowmo
+        if (isLastZombieOfWave()) {
+            triggerSlowmo();
+        }
+
         // Remove hitbox from targets
         const idx = targets.indexOf(this.hitbox);
         if (idx > -1) targets.splice(idx, 1);
@@ -5866,203 +6859,248 @@ gunGroup.add(flashGroup);
 const flashMat = flashMidMat;
 
 /**
- * SNIPER RIFLE CONSTRUCTION - Bolt Action
+ * SNIPER RIFLE CONSTRUCTION - Geometric Tactical Style
  */
 const sniperGroup = new THREE.Group();
 const sniperRecoilGroup = new THREE.Group();
 sniperRecoilGroup.add(sniperGroup);
 
-// Long heavy barrel
-const sniperBarrel = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08, 0.1, 12, 12),
-    metalMat
-);
-sniperBarrel.rotation.x = Math.PI / 2;
-sniperBarrel.position.set(0, 0.15, -5);
-sniperBarrel.castShadow = true;
-sniperGroup.add(sniperBarrel);
+// Materials for geometric sniper
+const gunMetalDark = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.3,
+    metalness: 0.8,
+    envMap: envMapTex,
+    envMapIntensity: 0.5
+});
+const gunMetalLight = new THREE.MeshStandardMaterial({
+    color: 0x333333,
+    roughness: 0.4,
+    metalness: 0.6,
+    envMap: envMapTex,
+    envMapIntensity: 0.4
+});
+const scopeLensMat = new THREE.MeshStandardMaterial({
+    color: 0x110022,
+    roughness: 0.1,
+    metalness: 0.9,
+    envMap: envMapTex,
+    envMapIntensity: 1.5,
+    transparent: true,
+    opacity: 0.9
+});
 
-// Barrel shroud/fluting
-const sniperShroud = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.14, 0.12, 8, 8),
-    darkMetalMat
-);
-sniperShroud.rotation.x = Math.PI / 2;
-sniperShroud.position.set(0, 0.15, -3);
-sniperGroup.add(sniperShroud);
+// Scale factor to match game scale (original model is larger)
+const geoScale = 0.12;
+const offsetZ = 0; // Center offset
 
-// Heavy receiver
-const sniperReceiver = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.8, 5),
-    darkMetalMat
-);
-sniperReceiver.position.set(0, 0, 1);
-sniperReceiver.castShadow = true;
+// Helper functions for geometric construction
+function createSniperBox(w, h, d, mat, x, y, z, rotX=0, rotY=0, rotZ=0) {
+    const geo = new THREE.BoxGeometry(w * geoScale, h * geoScale, d * geoScale);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x * geoScale, y * geoScale, z * geoScale + offsetZ);
+    mesh.rotation.set(rotX, rotY, rotZ);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+}
+
+function createSniperCylinder(rt, rb, h, seg, mat, x, y, z, rotX=0, rotZ=0) {
+    const geo = new THREE.CylinderGeometry(rt * geoScale, rb * geoScale, h * geoScale, seg);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x * geoScale, y * geoScale, z * geoScale + offsetZ);
+    mesh.rotation.x = rotX;
+    mesh.rotation.z = rotZ;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+}
+
+// 1. Lower Receiver (Main body)
+const sniperReceiver = createSniperBox(1.2, 1.8, 8, gunMetalDark, 0, 0, 0);
 sniperGroup.add(sniperReceiver);
 
-// Bolt handle (prominent for bolt-action)
+// Upper Rail (Picatinny)
+const sniperRail = createSniperBox(1.0, 0.4, 9, gunMetalLight, 0, 1.1, 0.5);
+sniperGroup.add(sniperRail);
+
+// 2. Barrel Assembly
+// Main Barrel - long and heavy
+const sniperBarrel = createSniperCylinder(0.25, 0.25, 12, 16, gunMetalLight, 0, 0.2, -10, Math.PI / 2);
+sniperGroup.add(sniperBarrel);
+
+// Barrel Base/Fluting (thicker near receiver)
+const sniperBarrelBase = createSniperCylinder(0.4, 0.4, 4, 16, gunMetalDark, 0, 0.2, -5, Math.PI / 2);
+sniperGroup.add(sniperBarrelBase);
+
+// Muzzle Brake (angular tactical design)
+const brakeMain = createSniperBox(1.2, 0.8, 1.5, gunMetalDark, 0, 0.2, -16);
+sniperGroup.add(brakeMain);
+
+// Muzzle brake side vents
+const brakeVentL = createSniperBox(0.3, 0.4, 1.0, gunMetalLight, -0.7, 0.2, -16);
+sniperGroup.add(brakeVentL);
+const brakeVentR = createSniperBox(0.3, 0.4, 1.0, gunMetalLight, 0.7, 0.2, -16);
+sniperGroup.add(brakeVentR);
+
+// 3. Bolt handle (prominent for bolt-action)
 const sniperBoltHandle = new THREE.Group();
 const boltBody = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8),
-    metalMat
+    new THREE.CylinderGeometry(0.06 * geoScale, 0.06 * geoScale, 1.5 * geoScale, 8),
+    gunMetalLight
 );
 boltBody.rotation.x = Math.PI / 2;
-boltBody.position.set(0.4, 0.3, 0.5);
+boltBody.position.set(0.5 * geoScale, 0.6 * geoScale, 0.5 * geoScale);
+boltBody.castShadow = true;
 sniperBoltHandle.add(boltBody);
 
 const boltKnob = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12, 8, 8),
-    metalMat
+    new THREE.SphereGeometry(0.15 * geoScale, 8, 8),
+    gunMetalDark
 );
-boltKnob.position.set(0.4, 0.3, 1.1);
+boltKnob.position.set(0.5 * geoScale, 0.6 * geoScale, 1.3 * geoScale);
+boltKnob.castShadow = true;
 sniperBoltHandle.add(boltKnob);
 
 const boltStem = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.06, 0.4, 6),
-    metalMat
+    new THREE.CylinderGeometry(0.05 * geoScale, 0.05 * geoScale, 0.5 * geoScale, 6),
+    gunMetalLight
 );
 boltStem.rotation.z = Math.PI / 2;
-boltStem.position.set(0.2, 0.3, 0.5);
+boltStem.position.set(0.25 * geoScale, 0.6 * geoScale, 0.5 * geoScale);
+boltStem.castShadow = true;
 sniperBoltHandle.add(boltStem);
 
 sniperGroup.add(sniperBoltHandle);
 
-// Scope rail
-const scopeRail = new THREE.Mesh(
-    new THREE.BoxGeometry(0.25, 0.15, 3),
-    darkMetalMat
-);
-scopeRail.position.set(0, 0.5, 0.5);
-sniperGroup.add(scopeRail);
+// 4. Grip & Trigger
+const sniperGrip = createSniperBox(0.8, 2, 1, gunMetalDark, 0, -1.5, 3.5, -0.3);
+sniperGroup.add(sniperGrip);
 
-// SCOPE - Main tube
-const scopeTube = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.18, 4, 12),
-    darkMetalMat
-);
-scopeTube.rotation.x = Math.PI / 2;
-scopeTube.position.set(0, 0.85, 0);
+// Trigger guard (angular)
+const sniperGuard = createSniperBox(0.4, 0.1, 1.5, gunMetalLight, 0, -1.2, 2.8);
+sniperGroup.add(sniperGuard);
+const sniperGuardFront = createSniperBox(0.4, 0.6, 0.1, gunMetalLight, 0, -0.95, 2.05);
+sniperGroup.add(sniperGuardFront);
+const sniperGuardBack = createSniperBox(0.4, 0.6, 0.1, gunMetalLight, 0, -0.95, 3.55);
+sniperGroup.add(sniperGuardBack);
+
+// 5. Stock (Shoulder rest) - tactical folding style
+const stockStrut = createSniperBox(1.2, 1.5, 3, gunMetalDark, 0, 0, 5.5);
+sniperGroup.add(stockStrut);
+
+// Stock tube (buffer tube style)
+const stockTube = createSniperCylinder(0.3, 0.3, 2.5, 12, gunMetalLight, 0, 0.2, 6.5, Math.PI / 2);
+sniperGroup.add(stockTube);
+
+const buttPad = createSniperBox(1.4, 2.5, 0.5, new THREE.MeshStandardMaterial({
+    color: 0x111111, roughness: 0.8, metalness: 0.1
+}), 0, -0.3, 7.5);
+sniperGroup.add(buttPad);
+
+// Cheek rest (adjustable style)
+const cheekRest = createSniperBox(0.8, 0.6, 2, gunMetalDark, 0, 1.0, 5);
+sniperGroup.add(cheekRest);
+
+// 6. Scope Assembly
+// Scope tube main
+const scopeTube = createSniperCylinder(0.35, 0.35, 5, 16, gunMetalDark, 0, 2.2, 1, Math.PI / 2);
 sniperGroup.add(scopeTube);
 
-// Scope objective lens (front, larger)
-const scopeObjective = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.25, 0.25, 0.4, 12),
-    darkMetalMat
-);
-scopeObjective.rotation.x = Math.PI / 2;
-scopeObjective.position.set(0, 0.85, -2);
-sniperGroup.add(scopeObjective);
+// Scope objective (front, larger)
+const scopeFront = createSniperCylinder(0.5, 0.5, 1, 16, gunMetalDark, 0, 2.2, -1.5, Math.PI / 2);
+sniperGroup.add(scopeFront);
 
-// Scope ocular (rear, smaller)
-const scopeOcular = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2, 0.2, 0.3, 12),
-    darkMetalMat
-);
-scopeOcular.rotation.x = Math.PI / 2;
-scopeOcular.position.set(0, 0.85, 2);
-sniperGroup.add(scopeOcular);
+// Scope ocular (rear)
+const scopeBack = createSniperCylinder(0.4, 0.4, 1, 16, gunMetalDark, 0, 2.2, 3.5, Math.PI / 2);
+sniperGroup.add(scopeBack);
 
-// Scope lens glass (reflective)
-const scopeLensMat = new THREE.MeshStandardMaterial({
-    color: 0x88aaff,
-    metalness: 0.9,
-    roughness: 0.1,
-    envMap: envMapTex,
-    envMapIntensity: 1.5,
-    transparent: true,
-    opacity: 0.6
-});
-const scopeLensFront = new THREE.Mesh(
-    new THREE.CircleGeometry(0.22, 16),
+// Scope lens (reflective)
+const lensMesh = createSniperCylinder(0.45, 0.45, 0.1, 16, scopeLensMat, 0, 2.2, -1.95, Math.PI / 2);
+sniperGroup.add(lensMesh);
+
+// Scope lens rear
+const lensRear = new THREE.Mesh(
+    new THREE.CircleGeometry(0.35 * geoScale, 16),
     scopeLensMat
 );
-scopeLensFront.position.set(0, 0.85, -2.2);
-sniperGroup.add(scopeLensFront);
+lensRear.position.set(0, 2.2 * geoScale, 4 * geoScale);
+sniperGroup.add(lensRear);
 
-// Scope adjustment turrets
-const turretMat = darkMetalMat;
-const elevationTurret = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.1, 0.3, 8),
-    turretMat
-);
-elevationTurret.position.set(0, 1.15, 0.5);
+// Scope mounts (tactical ring mounts)
+const mountFront = createSniperBox(0.8, 1, 0.5, gunMetalLight, 0, 1.5, 0);
+sniperGroup.add(mountFront);
+const mountBack = createSniperBox(0.8, 1, 0.5, gunMetalLight, 0, 1.5, 2);
+sniperGroup.add(mountBack);
+
+// Scope turrets
+const elevationTurret = createSniperCylinder(0.2, 0.2, 0.5, 8, gunMetalLight, 0, 2.8, 1);
 sniperGroup.add(elevationTurret);
 
 const windageTurret = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08, 0.08, 0.25, 8),
-    turretMat
+    new THREE.CylinderGeometry(0.15 * geoScale, 0.15 * geoScale, 0.4 * geoScale, 8),
+    gunMetalLight
 );
 windageTurret.rotation.z = Math.PI / 2;
-windageTurret.position.set(0.3, 0.85, 0.5);
+windageTurret.position.set(0.5 * geoScale, 2.2 * geoScale, 1 * geoScale);
+windageTurret.castShadow = true;
 sniperGroup.add(windageTurret);
 
-// Thumbhole stock (ergonomic sniper stock)
-const sniperStock = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 1.4, 4),
-    woodMat
-);
-sniperStock.position.set(0, -0.3, 4);
-sniperStock.rotation.x = 0.15;
-sniperStock.castShadow = true;
-sniperGroup.add(sniperStock);
+// 7. Bipod (deployed legs)
+// Bipod hub
+const bipodHub = createSniperCylinder(0.4, 0.4, 1.2, 12, gunMetalDark, 0, -0.3, -4, 0, Math.PI / 2);
+sniperGroup.add(bipodHub);
 
-// Cheek rest
-const cheekRest = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.4, 1.5),
-    woodMat
-);
-cheekRest.position.set(0, 0.4, 3.5);
-sniperGroup.add(cheekRest);
+// Left leg
+const legL = createSniperCylinder(0.1, 0.08, 3, 8, gunMetalLight, -0.6, -1.8, -4);
+legL.rotation.z = 0.25;
+sniperGroup.add(legL);
 
-// Pistol grip
-const sniperGrip = new THREE.Mesh(
-    new THREE.BoxGeometry(0.45, 1.4, 0.7),
-    woodMat
-);
-sniperGrip.position.set(0, -0.9, 1.8);
-sniperGrip.rotation.x = -0.4;
-sniperGrip.castShadow = true;
-sniperGroup.add(sniperGrip);
+// Left leg foot
+const footL = createSniperCylinder(0.15, 0.12, 0.3, 8, gunMetalDark, -0.85, -3.0, -4);
+sniperGroup.add(footL);
 
-// Trigger guard
-const triggerGuard = new THREE.Mesh(
-    new THREE.TorusGeometry(0.2, 0.04, 6, 12, Math.PI),
-    darkMetalMat
-);
-triggerGuard.rotation.x = Math.PI;
-triggerGuard.rotation.z = Math.PI / 2;
-triggerGuard.position.set(0, -0.7, 1.2);
-sniperGroup.add(triggerGuard);
+// Right leg
+const legR = createSniperCylinder(0.1, 0.08, 3, 8, gunMetalLight, 0.6, -1.8, -4);
+legR.rotation.z = -0.25;
+sniperGroup.add(legR);
 
-// Bipod (folded)
-const bipodLegL = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6),
-    darkMetalMat
-);
-bipodLegL.rotation.x = Math.PI / 2;
-bipodLegL.rotation.z = 0.3;
-bipodLegL.position.set(-0.15, -0.1, -6);
-sniperGroup.add(bipodLegL);
+// Right leg foot
+const footR = createSniperCylinder(0.15, 0.12, 0.3, 8, gunMetalDark, 0.85, -3.0, -4);
+sniperGroup.add(footR);
 
-const bipodLegR = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6),
-    darkMetalMat
-);
-bipodLegR.rotation.x = Math.PI / 2;
-bipodLegR.rotation.z = -0.3;
-bipodLegR.position.set(0.15, -0.1, -6);
-sniperGroup.add(bipodLegR);
+// 8. Magazine (box mag, angled)
+const sniperMagPivot = new THREE.Group();
+sniperMagPivot.position.set(0, -0.3 * geoScale, 1 * geoScale);
+sniperGroup.add(sniperMagPivot);
 
-// Muzzle brake
-const muzzleBrake = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.12, 0.1, 0.8, 8),
-    metalMat
+const sniperMag = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0 * geoScale, 2.5 * geoScale, 1.5 * geoScale),
+    gunMetalLight
 );
-muzzleBrake.rotation.x = Math.PI / 2;
-muzzleBrake.position.set(0, 0.15, -10.5);
-sniperGroup.add(muzzleBrake);
+sniperMag.position.y = -1.5 * geoScale;
+sniperMag.rotation.x = 0.15; // Slight angle
+sniperMag.castShadow = true;
+sniperMagPivot.add(sniperMag);
 
-// Sniper muzzle flash (same structure as AK but positioned differently)
+// Magazine ridges
+const magRidge1 = new THREE.Mesh(
+    new THREE.BoxGeometry(1.05 * geoScale, 0.15 * geoScale, 1.55 * geoScale),
+    gunMetalDark
+);
+magRidge1.position.set(0, -1.0 * geoScale, 0);
+magRidge1.rotation.x = 0.15;
+sniperMagPivot.add(magRidge1);
+
+const magRidge2 = new THREE.Mesh(
+    new THREE.BoxGeometry(1.05 * geoScale, 0.15 * geoScale, 1.55 * geoScale),
+    gunMetalDark
+);
+magRidge2.position.set(0, -2.0 * geoScale, 0);
+magRidge2.rotation.x = 0.15;
+sniperMagPivot.add(magRidge2);
+
+// 9. Muzzle flash (positioned at barrel tip)
 const sniperFlashGroup = new THREE.Group();
 const sniperFlashCore = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), flashCoreMat);
 sniperFlashGroup.add(sniperFlashCore);
@@ -6076,21 +7114,11 @@ for(let i=0; i<6; i++) {
     f.rotation.z = (Math.PI / 3) * i;
     sniperFlashGroup.add(f);
 }
-sniperFlashGroup.position.set(0, 0.15, -11);
+sniperFlashGroup.position.set(0, 0.2 * geoScale, -17 * geoScale);
 sniperGroup.add(sniperFlashGroup);
 
-// Sniper magazine (box mag)
-const sniperMagPivot = new THREE.Group();
-sniperMagPivot.position.set(0, -0.3, 0.5);
-sniperGroup.add(sniperMagPivot);
-
-const sniperMag = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 1.5, 1.0),
-    darkMetalMat
-);
-sniperMag.position.y = -0.7;
-sniperMag.castShadow = true;
-sniperMagPivot.add(sniperMag);
+// Position and scale the sniper for first-person view
+sniperGroup.scale.setScalar(2.3); // Scaled down for less screen coverage
 
 // Position sniper (hidden by default)
 sniperRecoilGroup.rotation.y = Math.PI;
@@ -6107,43 +7135,43 @@ const SniperSprings = {
 
     // === BRUTAL SNIPER RECOIL - Fast snap, slow recovery ===
     // High stiffness for INSTANT jolt, high mass for slow return
-    heavyRecoilZ: new Spring(350, 12, 2.5),    // SNAP back instantly, settle slowly
-    heavyRecoilX: new Spring(280, 10, 2.8),    // Fast muzzle snap up
-    heavyRecoilY: new Spring(200, 8, 3.0),     // Quick vertical jump
-    heavyRecoilRoll: new Spring(250, 10, 2.5), // Violent rotational snap
+    heavyRecoilZ: new Spring(400, 25, 1.0),    // SNAP back instantly, settle slowly
+    heavyRecoilX: new Spring(350, 22, 1.0),    // Fast muzzle snap up
+    heavyRecoilY: new Spring(300, 20, 1.0),     // Quick vertical jump
+    heavyRecoilRoll: new Spring(320, 22, 1.0), // Violent rotational snap
 
     // Stock compression - INSTANT slam into shoulder
-    stockCompress: new Spring(400, 15, 1.8),   // Fast compression, slow decompress
-    stockRotate: new Spring(300, 12, 2.2),     // Quick barrel tip
+    stockCompress: new Spring(450, 28, 0.8),   // Fast compression, slow decompress
+    stockRotate: new Spring(380, 24, 0.9),     // Quick barrel tip
 
     // Scope-specific shake (VIOLENT initial jitter)
-    scopeShakeX: new Spring(450, 18, 1.2),     // Very fast scope snap
-    scopeShakeY: new Spring(450, 18, 1.2),
-    scopeSettleX: new Spring(30, 3, 4.0),      // Very slow scope settle
-    scopeSettleY: new Spring(30, 3, 4.0),
+    scopeShakeX: new Spring(500, 30, 0.8),     // Very fast scope snap
+    scopeShakeY: new Spring(500, 30, 0.8),
+    scopeSettleX: new Spring(80, 12, 1.2),      // Very slow scope settle
+    scopeSettleY: new Spring(80, 12, 1.2),
 
     // Heavy weapon sway - more inertia when moving
-    heavySwayX: new Spring(35, 3, 2.5),        // Sluggish sway
-    heavySwayY: new Spring(35, 3, 2.5),
-    heavyMomentumX: new Spring(20, 2, 3.5),    // Weapon trails behind significantly
-    heavyMomentumZ: new Spring(20, 2, 3.5),
+    heavySwayX: new Spring(60, 10, 1.5),        // Sluggish sway
+    heavySwayY: new Spring(60, 10, 1.5),
+    heavyMomentumX: new Spring(50, 8, 1.8),    // Weapon trails behind significantly
+    heavyMomentumZ: new Spring(50, 8, 1.8),
 
     // Barrel droop - forward dip after recoil settles
-    barrelDroop: new Spring(40, 3, 4.0),       // Slow barrel settle after kick
+    barrelDroop: new Spring(80, 12, 1.5),       // Slow barrel settle after kick
 
     // Breathing amplification when scoped
-    scopedBreath: new Spring(10, 0.8, 4.0),    // Exaggerated breathing sway
+    scopedBreath: new Spring(25, 5, 2.0),    // Exaggerated breathing sway
 
     // Recovery springs - SLOW crawl back to neutral
-    recoveryZ: new Spring(15, 2, 5.0),
-    recoveryX: new Spring(12, 1.8, 5.5),
+    recoveryZ: new Spring(60, 12, 1.5),
+    recoveryX: new Spring(55, 11, 1.5),
 };
 
 // Camera Rig
 const hipPos = new THREE.Vector3(0.9, -1.1, -1.8);
 const aimPos = new THREE.Vector3(0.0, -1.22, -0.5);
-const sniperHipPos = new THREE.Vector3(0.8, -1.0, -1.5);
-const sniperAimPos = new THREE.Vector3(0.0, -0.75, -0.3); // Higher for scope alignment
+const sniperHipPos = new THREE.Vector3(0.5, -0.8, -1.1);
+const sniperAimPos = new THREE.Vector3(0.0, -0.62, -0.35); // Higher for scope alignment
 
 // Position AK-47
 recoilGroup.position.copy(hipPos);
@@ -6484,7 +7512,7 @@ let isSwitchingWeapon = false;
 let sniperAmmo = 5;
 let sniperReserve = 20;
 const sniperMagSize = 5;
-const sniperFireRate = 1.5; // Slower fire rate
+const sniperFireRate = 0.4; // Semi-auto .50 cal fire rate
 const sniperDamageMultiplier = 3.0; // More damage per shot
 
 // Bolt action state
@@ -6820,8 +7848,6 @@ function updateHUD(force = false) {
         if (dom.ammoDisplay) {
             if (isReloading) {
                 dom.ammoDisplay.innerText = 'RLD / ∞';
-            } else if (currentWeapon === 'sniper' && needsBoltCycle) {
-                dom.ammoDisplay.innerText = `${currentAmmo} / ∞ [CYCLE]`;
             } else {
                 dom.ammoDisplay.innerText = `${currentAmmo} / ∞`;
             }
@@ -6871,11 +7897,11 @@ function updateHUD(force = false) {
 
         if (dom.waveDisplay) {
             if (betweenWaves && currentWave > 0) {
-                dom.waveDisplay.textContent = `WAVE ${currentWave} COMPLETE`;
+                dom.waveDisplay.textContent = `BREACH ${currentWave} CONTAINED`;
             } else if (betweenWaves) {
-                dom.waveDisplay.textContent = `GET READY...`;
+                dom.waveDisplay.textContent = `BREACH INCOMING...`;
             } else {
-                dom.waveDisplay.textContent = `WAVE ${currentWave}`;
+                dom.waveDisplay.textContent = `BREACH ${currentWave}`;
             }
 
             // New wave animation
@@ -6886,7 +7912,7 @@ function updateHUD(force = false) {
             }
         }
         if (dom.zombieCount) {
-            dom.zombieCount.textContent = `${remaining} ZOMBIES`;
+            dom.zombieCount.textContent = `${remaining} HOSTILES`;
 
             // Kill flash animation
             if (remaining < prevRemaining && remaining >= 0) {
@@ -6921,16 +7947,8 @@ function updateHUD(force = false) {
 function shoot() {
     if (isGameOver) return;
 
-    // Handle sniper bolt action requirement
+    // Handle sniper semi-auto .50 cal
     if (currentWeapon === 'sniper') {
-        if (needsBoltCycle) {
-            // Must cycle bolt before firing again
-            if (!isCyclingBolt) {
-                cycleBolt();
-            }
-            return;
-        }
-        if (isCyclingBolt) return; // Can't fire while cycling
         if (isReloading || sniperAmmo <= 0) {
             if (sniperAmmo <= 0 && !isReloading) playSound('empty');
             return;
@@ -6940,16 +7958,15 @@ function shoot() {
 
         lastShotTime = now;
         sniperAmmo--;
-        needsBoltCycle = true; // Must cycle bolt after shot
         updateHUD();
         playSound('sniperShoot');
 
-        // Show bolt indicator after short delay
+        // Eject shell immediately for semi-auto
         setTimeout(() => {
-            if (needsBoltCycle && currentWeapon === 'sniper') {
-                document.getElementById('bolt-indicator').classList.add('show');
+            if (currentWeapon === 'sniper') {
+                ejectSniperShell();
             }
-        }, 300);
+        }, 50);
     } else {
         // AK-47 behavior (unchanged)
         if (isReloading || ammo <= 0) {
@@ -7062,7 +8079,7 @@ function shoot() {
     activeFlashGroup.rotation.z = Math.random() * Math.PI;
     activeFlashGroup.scale.setScalar((isSniper ? 0.9 : 0.75) + Math.random() * 0.5);
 
-    const muzzleOffset = isSniper ? new THREE.Vector3(0, 0.15, -11) : new THREE.Vector3(0, 0.3, -7.5);
+    const muzzleOffset = isSniper ? new THREE.Vector3(0, 0.024, -2.1) : new THREE.Vector3(0, 0.3, -7.5);
     muzzleLight.position.copy(muzzleOffset.applyMatrix4(activeGunGroup.matrixWorld));
     muzzleLight.intensity = (isSniper ? 35 : 25) + Math.random() * 10;
     muzzleLight.color.setHex(0xffaa44);
@@ -7098,7 +8115,7 @@ function shoot() {
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
     const intersects = raycaster.intersectObjects(targets);
     const muzzlePos = isSniper
-        ? new THREE.Vector3(0, 0.15, -10.5).applyMatrix4(sniperGroup.matrixWorld)
+        ? new THREE.Vector3(0, 0.024, -2.0).applyMatrix4(sniperGroup.matrixWorld)
         : new THREE.Vector3(0, 0.3, -6.5).applyMatrix4(gunGroup.matrixWorld);
     let hitPoint;
 
@@ -7265,7 +8282,7 @@ function cycleBolt() {
 function ejectSniperShell() {
     const shellGeoSniper = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8);
     const shell = new THREE.Mesh(shellGeoSniper, shellMat);
-    shell.position.copy(new THREE.Vector3(0.5, 0.35, 0.8).applyMatrix4(sniperGroup.matrixWorld));
+    shell.position.copy(new THREE.Vector3(0.08, 0.1, 0.08).applyMatrix4(sniperGroup.matrixWorld));
     shell.quaternion.copy(sniperGroup.quaternion);
     shell.rotation.z = Math.PI / 2;
     const velocity = new THREE.Vector3(0.15 + Math.random() * 0.1, 0.25 + Math.random() * 0.1, 0.1).applyQuaternion(camera.quaternion);
@@ -7316,11 +8333,6 @@ function switchWeapon(targetWeapon) {
                     isSwitchingWeapon = false;
                     updateHUD();
                     updateWeaponIndicator();
-
-                    // Show bolt indicator if sniper needs cycling
-                    if (currentWeapon === 'sniper' && needsBoltCycle) {
-                        document.getElementById('bolt-indicator').classList.add('show');
-                    }
                 })
                 .start();
         })
@@ -7349,63 +8361,189 @@ function dropMag() {
     mags.push(dMag);
 }
 
+function dropSniperMag() {
+    const dMag = sniperMagPivot.clone(); // Clone pivot to preserve rotation
+    scene.add(dMag);
+    const wp = new THREE.Vector3(); const wq = new THREE.Quaternion();
+    sniperMagPivot.getWorldPosition(wp); sniperMagPivot.getWorldQuaternion(wq);
+    dMag.position.copy(wp); dMag.quaternion.copy(wq);
+    // Tumbling fall with slight sideways velocity
+    dMag.userData = {
+        vel: new THREE.Vector3((Math.random() - 0.5) * 0.8, -1.5, (Math.random() - 0.5) * 0.5),
+        rot: new THREE.Vector3(2 + Math.random(), Math.random() * 2, Math.random()),
+        life: 250
+    };
+    mags.push(dMag);
+}
+
 /**
  * HIGH-END RELOAD SEQUENCE (Tween.js)
  */
 function reload() {
     if (isGameOver) return;
 
-    // Handle sniper reload
+    // Handle sniper reload (.50 cal semi-auto)
     if (currentWeapon === 'sniper') {
-        if (isReloading || sniperAmmo === sniperMagSize || isCyclingBolt) return;
+        if (isReloading || sniperAmmo === sniperMagSize) return;
         if (isAiming) isAiming = false;
         isReloading = true;
-        needsBoltCycle = false; // Reset bolt state on reload
-        document.getElementById('bolt-indicator').classList.remove('show');
         updateHUD();
 
-        // Sniper reload animation
-        new TWEEN.Tween(sniperRecoilGroup.rotation)
-            .to({ z: 0.6, x: 0.25 }, 350)
-            .easing(TWEEN.Easing.Cubic.Out)
+        // Store original positions
+        const origPos = sniperRecoilGroup.position.clone();
+        const magOrigY = sniperMagPivot.position.y;
+
+        // === PHASE 1: Weapon lift and inspect (0-250ms) ===
+        // Lift weapon up slightly, rotate to view mag well
+        new TWEEN.Tween(sniperRecoilGroup.position)
+            .to({ y: origPos.y + 0.15, x: origPos.x - 0.1 }, 250)
+            .easing(TWEEN.Easing.Quadratic.Out)
             .start();
 
+        new TWEEN.Tween(sniperRecoilGroup.rotation)
+            .to({ z: 0.35, x: 0.15, y: Math.PI + 0.1 }, 250)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+
+        // === PHASE 2: Roll weapon and release mag (250-500ms) ===
         setTimeout(() => {
-            playSound('mag_out');
+            // Deep roll to expose magazine
+            new TWEEN.Tween(sniperRecoilGroup.rotation)
+                .to({ z: 0.75, x: 0.35, y: Math.PI + 0.15 }, 280)
+                .easing(TWEEN.Easing.Cubic.Out)
+                .start();
+
+            new TWEEN.Tween(sniperRecoilGroup.position)
+                .to({ y: origPos.y + 0.08, x: origPos.x - 0.2, z: origPos.z + 0.1 }, 280)
+                .easing(TWEEN.Easing.Cubic.Out)
+                .start();
+
+            // Mag release click
+            setTimeout(() => {
+                playSound('mag_out');
+                Springs.recoilZ.impulse(2);
+
+                // Magazine swings out and drops
+                new TWEEN.Tween(sniperMagPivot.rotation)
+                    .to({ x: 1.8, z: 0.3 }, 200)
+                    .easing(TWEEN.Easing.Quadratic.In)
+                    .onComplete(() => {
+                        // Spawn falling magazine
+                        dropSniperMag();
+                        sniperMagPivot.visible = false;
+                        Springs.bobY.impulse(-2);
+                    })
+                    .start();
+            }, 120);
+        }, 250);
+
+        // === PHASE 3: Hand reaches for new mag (500-850ms) ===
+        setTimeout(() => {
+            // Weapon dips down as hand reaches for mag
+            new TWEEN.Tween(sniperRecoilGroup.position)
+                .to({ y: origPos.y - 0.25, x: origPos.x - 0.15, z: origPos.z + 0.2 }, 350)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .start();
+
+            new TWEEN.Tween(sniperRecoilGroup.rotation)
+                .to({ z: 0.5, x: 0.5, y: Math.PI + 0.08 }, 350)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .start();
+        }, 550);
+
+        // === PHASE 4: Bring up new mag (850-1150ms) ===
+        setTimeout(() => {
+            // Reset mag pivot and show new mag coming from below
+            sniperMagPivot.visible = true;
+            sniperMagPivot.rotation.set(-0.8, 0, -0.2);
+            sniperMagPivot.position.y = magOrigY - 0.4;
+
+            // Weapon lifts back up to receive mag
+            new TWEEN.Tween(sniperRecoilGroup.position)
+                .to({ y: origPos.y + 0.1, x: origPos.x - 0.12, z: origPos.z + 0.05 }, 300)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            new TWEEN.Tween(sniperRecoilGroup.rotation)
+                .to({ z: 0.6, x: 0.25, y: Math.PI + 0.05 }, 300)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            // Mag rotates into position
             new TWEEN.Tween(sniperMagPivot.rotation)
-                .to({ x: 1.2 }, 180)
-                .easing(TWEEN.Easing.Back.In)
+                .to({ x: -0.2, z: 0 }, 280)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            new TWEEN.Tween(sniperMagPivot.position)
+                .to({ y: magOrigY - 0.15 }, 280)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        }, 900);
+
+        // === PHASE 5: Seat magazine with satisfying click (1150-1400ms) ===
+        setTimeout(() => {
+            // Final mag insertion - quick and precise
+            new TWEEN.Tween(sniperMagPivot.position)
+                .to({ y: magOrigY }, 120)
+                .easing(TWEEN.Easing.Back.Out)
                 .onComplete(() => {
-                    sniperMagPivot.visible = false;
-                    Springs.bobY.impulse(-1.5);
+                    playSound('mag_in');
+                    Springs.recoilZ.impulse(-3);
+                    Springs.recoilX.impulse(-2);
+
+                    // Mag settles with slight bounce
+                    new TWEEN.Tween(sniperMagPivot.rotation)
+                        .to({ x: 0.15, z: 0 }, 80)
+                        .easing(TWEEN.Easing.Elastic.Out)
+                        .start();
                 })
                 .start();
 
-            setTimeout(() => {
-                sniperMagPivot.visible = true;
-                sniperMagPivot.rotation.x = 0;
-                sniperMagPivot.position.y = -3;
+            // Weapon reacts to mag insertion
+            new TWEEN.Tween(sniperRecoilGroup.position)
+                .to({ y: origPos.y + 0.05 }, 120)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        }, 1200);
 
-                new TWEEN.Tween(sniperMagPivot.position)
-                    .to({ y: -0.3 }, 280)
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .onComplete(() => {
-                        playSound('mag_in');
-                        Springs.recoilX.impulse(-1.5);
+        // === PHASE 6: Charging handle slap (1350-1550ms) ===
+        setTimeout(() => {
+            // Quick tap on weapon to chamber round
+            new TWEEN.Tween(sniperRecoilGroup.rotation)
+                .to({ z: 0.25, x: 0.08, y: Math.PI }, 100)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
 
-                        // Return to idle
-                        new TWEEN.Tween(sniperRecoilGroup.rotation)
-                            .to({ z: 0, x: 0 }, 350)
-                            .easing(TWEEN.Easing.Elastic.Out)
-                            .start();
+            new TWEEN.Tween(sniperRecoilGroup.position)
+                .to({ y: origPos.y + 0.02, z: origPos.z - 0.05 }, 100)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    playSound('rack');
+                    Springs.recoilZ.impulse(-2);
+                    Springs.recoilX.impulse(-1);
+                })
+                .start();
+        }, 1350);
 
-                        sniperAmmo = sniperMagSize;
-                        isReloading = false;
-                        updateHUD();
-                    })
-                    .start();
-            }, 350);
-        }, 280);
+        // === PHASE 7: Return to ready (1550-1900ms) ===
+        setTimeout(() => {
+            // Smooth return to idle with slight overshoot
+            new TWEEN.Tween(sniperRecoilGroup.rotation)
+                .to({ z: 0, x: 0, y: Math.PI }, 350)
+                .easing(TWEEN.Easing.Elastic.Out)
+                .start();
+
+            new TWEEN.Tween(sniperRecoilGroup.position)
+                .to({ x: origPos.x, y: origPos.y, z: origPos.z }, 350)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    sniperAmmo = sniperMagSize;
+                    isReloading = false;
+                    updateHUD();
+                })
+                .start();
+        }, 1500);
 
         return;
     }
@@ -7522,9 +8660,20 @@ document.addEventListener('keyup', (e) => {
     if (e.code === 'Space') canJump = true;
 });
 document.addEventListener('mousedown', (e) => {
+    // Don't start game if clicking on audio controls
+    if (e.target.closest('.audio-settings') || e.target.closest('.audio-slider')) {
+        return;
+    }
+
     if (document.pointerLockElement !== document.body) {
         document.body.requestPointerLock();
         document.getElementById('blocker').style.display = 'none';
+        const mainMenu = document.getElementById('main-menu');
+        if (mainMenu) {
+            mainMenu.style.opacity = '0';
+            mainMenu.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => { mainMenu.style.display = 'none'; }, 500);
+        }
     } else {
         if(e.button === 0) isFiring = true;
         if(e.button === 2) isAiming = true;
@@ -7579,10 +8728,14 @@ document.addEventListener('mousemove', (e) => {
 
 function animate(time) {
     requestAnimationFrame(animate);
-    TWEEN.update(time);
-    const dt = Math.min((time - prevTime) / 1000, 0.1); // Cap dt
+    TWEEN.update(time); // TWEEN uses real time for reliable reload/swap animations
+    const realDt = Math.min((time - prevTime) / 1000, 0.1); // Cap dt
+    const dt = realDt * timeScale; // Apply slow-motion to physics
     prevTime = time;
     frameCount++;
+
+    // Update slow-motion system (uses real time, not scaled)
+    updateSlowmo(realDt);
 
     // Throttled shadow updates (increased interval for performance)
     if (frameCount % (SHADOW_UPDATE_INTERVAL * 2) === 0) {
@@ -8394,7 +9547,6 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
     bloomPass.setSize(window.innerWidth / 2, window.innerHeight / 2); // Half resolution for performance
-    outlinePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
     // Update FXAA resolution
     const pr = renderer.getPixelRatio();
     fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
