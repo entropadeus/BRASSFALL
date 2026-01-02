@@ -5051,6 +5051,104 @@ function createSpawnDoor(x, z, rotationY, wallSide) {
     warningLight.position.set(0, DOOR_HEIGHT / 2 + 0.5, DOOR_DEPTH / 2);
     doorGroup.add(warningLight);
 
+    // ============ OBSERVATION WINDOW ============
+    // Large window above door where scientists observe
+    const WINDOW_WIDTH = DOOR_WIDTH + 2;
+    const WINDOW_HEIGHT = 3;
+    const WINDOW_Y = DOOR_HEIGHT / 2 + 3; // Above the door
+
+    // Window frame (dark metal)
+    const windowFrameMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.4,
+        metalness: 0.9
+    });
+    const windowFrame = new THREE.Mesh(
+        new THREE.BoxGeometry(WINDOW_WIDTH + 0.4, WINDOW_HEIGHT + 0.4, 0.3),
+        windowFrameMat
+    );
+    windowFrame.position.set(0, WINDOW_Y, DOOR_DEPTH / 2 - 0.1);
+    windowFrame.castShadow = true;
+    doorGroup.add(windowFrame);
+
+    // Glass pane (slightly reflective, dark tinted)
+    const glassMat = new THREE.MeshStandardMaterial({
+        color: 0x112233,
+        roughness: 0.1,
+        metalness: 0.3,
+        transparent: true,
+        opacity: 0.7,
+        emissive: 0x0a1520,
+        emissiveIntensity: 0.3
+    });
+    const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(WINDOW_WIDTH, WINDOW_HEIGHT, 0.1),
+        glassMat
+    );
+    glass.position.set(0, WINDOW_Y, DOOR_DEPTH / 2 + 0.05);
+    doorGroup.add(glass);
+
+    // Interior light (warm fluorescent glow behind glass)
+    const interiorLight = new THREE.Mesh(
+        new THREE.PlaneGeometry(WINDOW_WIDTH - 0.5, WINDOW_HEIGHT - 0.5),
+        new THREE.MeshBasicMaterial({
+            color: 0x556677,
+            transparent: true,
+            opacity: 0.4
+        })
+    );
+    interiorLight.position.set(0, WINDOW_Y, DOOR_DEPTH / 2 - 0.2);
+    doorGroup.add(interiorLight);
+
+    // Scientist silhouettes (dark figures watching)
+    const silhouetteMat = new THREE.MeshBasicMaterial({
+        color: 0x050505,
+        transparent: true,
+        opacity: 0.85
+    });
+
+    // Create 1-3 scientist silhouettes per window
+    const numScientists = 1 + Math.floor(Math.random() * 2);
+    for (let s = 0; s < numScientists; s++) {
+        const silhouetteGroup = new THREE.Group();
+
+        // Head (circle)
+        const head = new THREE.Mesh(
+            new THREE.CircleGeometry(0.25, 8),
+            silhouetteMat
+        );
+        head.position.y = 0.9;
+        silhouetteGroup.add(head);
+
+        // Body (torso shape)
+        const bodyShape = new THREE.Shape();
+        bodyShape.moveTo(-0.35, 0.6);
+        bodyShape.lineTo(0.35, 0.6);
+        bodyShape.lineTo(0.45, -0.8);
+        bodyShape.lineTo(-0.45, -0.8);
+        bodyShape.closePath();
+        const body = new THREE.Mesh(
+            new THREE.ShapeGeometry(bodyShape),
+            silhouetteMat
+        );
+        silhouetteGroup.add(body);
+
+        // Shoulders (wider at top)
+        const shoulders = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.9, 0.25),
+            silhouetteMat
+        );
+        shoulders.position.y = 0.55;
+        silhouetteGroup.add(shoulders);
+
+        // Position scientist in window
+        const spreadX = (numScientists === 1) ? 0 : (s - (numScientists - 1) / 2) * 1.8;
+        const offsetZ = Math.random() * 0.3; // Slight depth variation
+        silhouetteGroup.position.set(spreadX, WINDOW_Y - 0.3, DOOR_DEPTH / 2 - 0.15 - offsetZ);
+        silhouetteGroup.scale.setScalar(0.9 + Math.random() * 0.2);
+        doorGroup.add(silhouetteGroup);
+    }
+
     // Position the door group
     doorGroup.position.set(x, DOOR_HEIGHT / 2 - 5, z); // -5 is floor offset
     doorGroup.rotation.y = rotationY;
@@ -5315,8 +5413,18 @@ for(let i=0; i<30; i++) {
         mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 3, 16), drumMat);
         mesh.position.y = -3.5;
     }
-    mesh.position.x = (Math.random() - 0.5) * (MAP_SIZE - 10); // Keep obstacles away from walls
-    mesh.position.z = (Math.random() - 0.5) * (MAP_SIZE - 10);
+
+    // Find position that's NOT on the hill
+    let posX, posZ;
+    let attempts = 0;
+    do {
+        posX = (Math.random() - 0.5) * (MAP_SIZE - 10);
+        posZ = (Math.random() - 0.5) * (MAP_SIZE - 10);
+        attempts++;
+    } while (isOnHill(posX, posZ, 3) && attempts < 50); // margin of 3 to keep obstacles clear of hill edge
+
+    mesh.position.x = posX;
+    mesh.position.z = posZ;
     mesh.rotation.y = Math.random() * Math.PI;
     mesh.castShadow = true; mesh.receiveShadow = true;
     scene.add(mesh);
@@ -9774,6 +9882,14 @@ function shoot() {
     }
 
     // RAYCAST - Handle shotgun pellet spread
+    // Update world matrices for all zombies to ensure hitboxes are at correct positions
+    // This is critical for penetration/collateral detection
+    for (const zombie of zombies) {
+        if (!zombie.isDead) {
+            zombie.mesh.updateMatrixWorld(true);
+        }
+    }
+
     const muzzlePos = isSniper
         ? new THREE.Vector3(0, 0.024, -2.0).applyMatrix4(sniperGroup.matrixWorld)
         : (isShotgun ? new THREE.Vector3(0, 0.35, -11.0).applyMatrix4(shotgunGroup.matrixWorld)
@@ -9934,13 +10050,11 @@ function shoot() {
                 } else if (hit.face) {
                     spawnDecal(hit.point, hit.face.normal);
                     if (!isSniper) {
-                        break;
-                    } else {
-                        penetrationCount++;
-                        if (penetrationCount < maxPenetrations) {
-                            spawnPenetrationEffect(hit.point);
-                        }
+                        break; // Non-sniper stops at first surface
                     }
+                    // Sniper: continue through surfaces without counting toward penetration limit
+                    // Only enemies count as penetrations, not walls/floor/obstacles
+                    // No effect here - floor/wall hits are just pass-through
                 }
             }
 
@@ -10737,43 +10851,55 @@ document.addEventListener('mouseup', (e) => {
 
 document.addEventListener('mousemove', (e) => {
     if (document.pointerLockElement === document.body) {
+        // Reject abnormally large mouse deltas (prevents 180-flip glitch on focus/pointer lock changes)
+        const MAX_DELTA = 150;
+        let mx = e.movementX;
+        let my = e.movementY;
+        if (Math.abs(mx) > MAX_DELTA || Math.abs(my) > MAX_DELTA) {
+            return; // Skip this frame entirely - it's a glitched input
+        }
+
         const sens = isAiming ? 0.001 : 0.002;
-        cameraYaw -= e.movementX * sens;
-        cameraPitch -= e.movementY * sens;
+        cameraYaw -= mx * sens;
+        cameraPitch -= my * sens;
         cameraPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraPitch));
+
+        // Keep yaw in reasonable range to prevent floating point issues
+        if (cameraYaw > Math.PI * 4) cameraYaw -= Math.PI * 2;
+        if (cameraYaw < -Math.PI * 4) cameraYaw += Math.PI * 2;
 
         // ULTRA FLUID Procedural Sway - multi-layered organic response
         const adsReduction = isAiming ? 0.4 : 1.0;
 
         // Primary sway - immediate response
         const swayAmount = 0.0025 * adsReduction;
-        Springs.swayX.target = -e.movementX * swayAmount;
-        Springs.swayY.target = -e.movementY * swayAmount;
+        Springs.swayX.target = -mx * swayAmount;
+        Springs.swayY.target = -my * swayAmount;
 
         // Roll with horizontal look - weapon tilts into turns
         const rollAmount = 0.005 * adsReduction;
-        Springs.roll.target = -e.movementX * rollAmount;
+        Springs.roll.target = -mx * rollAmount;
 
         // Tilt on vertical look - weapon dips/rises with view
-        Springs.tilt.target += e.movementY * 0.0004 * adsReduction;
+        Springs.tilt.target += my * 0.0004 * adsReduction;
 
         // Secondary lag layers get impulses for organic trailing
-        const moveSpeed = Math.sqrt(e.movementX * e.movementX + e.movementY * e.movementY);
+        const moveSpeed = Math.sqrt(mx * mx + my * my);
         if (moveSpeed > 2) {
-            Springs.swayLagX.impulse(-e.movementX * 0.0008 * adsReduction);
-            Springs.swayLagY.impulse(-e.movementY * 0.0008 * adsReduction);
-            Springs.swayLag2X.impulse(-e.movementX * 0.0004 * adsReduction);
-            Springs.swayLag2Y.impulse(-e.movementY * 0.0004 * adsReduction);
+            Springs.swayLagX.impulse(-mx * 0.0008 * adsReduction);
+            Springs.swayLagY.impulse(-my * 0.0008 * adsReduction);
+            Springs.swayLag2X.impulse(-mx * 0.0004 * adsReduction);
+            Springs.swayLag2Y.impulse(-my * 0.0004 * adsReduction);
         }
 
         // Fast movements add extra roll momentum
-        if (Math.abs(e.movementX) > 8) {
-            Springs.roll.impulse(-e.movementX * 0.0003 * adsReduction);
+        if (Math.abs(mx) > 8) {
+            Springs.roll.impulse(-mx * 0.0003 * adsReduction);
         }
 
         // Motion blur from camera rotation - more subtle
-        motionBlurX = Math.min(0.012, Math.abs(e.movementX) * 0.0004) * Math.sign(e.movementX);
-        motionBlurY = Math.min(0.008, Math.abs(e.movementY) * 0.0004) * Math.sign(e.movementY);
+        motionBlurX = Math.min(0.012, Math.abs(mx) * 0.0004) * Math.sign(mx);
+        motionBlurY = Math.min(0.008, Math.abs(my) * 0.0004) * Math.sign(my);
     }
 });
 
