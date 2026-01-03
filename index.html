@@ -1834,6 +1834,9 @@ class DualSpring {
     }
 }
 
+// === PHYSICS CONSTANTS ===
+const GRAVITY = 6; // Moon gravity (~1/6th Earth, was 35)
+
 // Separate springs for different axes - ULTRA FLUID & ORGANIC feel
 const Springs = {
     // Gun sway - multi-layered for organic feel
@@ -5153,6 +5156,7 @@ const wall1 = new THREE.Mesh(wallGeo, wallMat); wall1.position.set(0, 20, -MAP_H
 const wall2 = new THREE.Mesh(wallGeo, wallMat); wall2.position.set(0, 20, MAP_HALF); wall2.rotation.y = Math.PI; wall2.receiveShadow = true; scene.add(wall2);
 const wall3 = new THREE.Mesh(wallGeo, wallMat); wall3.position.set(-MAP_HALF, 20, 0); wall3.rotation.y = Math.PI/2; wall3.receiveShadow = true; scene.add(wall3);
 const wall4 = new THREE.Mesh(wallGeo, wallMat); wall4.position.set(MAP_HALF, 20, 0); wall4.rotation.y = -Math.PI/2; wall4.receiveShadow = true; scene.add(wall4);
+const boundaryWalls = [wall1, wall2, wall3, wall4]; // For blood splatter raycasting
 
 // ============ SPAWN DOORS ============
 const DOOR_WIDTH = 4;
@@ -5433,8 +5437,9 @@ function getBoundingBox(obj) {
 }
 
 // Check if a circular entity at (x, z) with radius collides with walls or obstacles
-function checkCollision(x, z, radius, excludeObj = null) {
-    // Check walls (map boundaries)
+// playerY: if provided, skip obstacles the player is above (for jumping over)
+function checkCollision(x, z, radius, excludeObj = null, playerY = null) {
+    // Check walls (map boundaries) - always collide
     if (Math.abs(x) + radius > MAP_HALF || Math.abs(z) + radius > MAP_HALF) {
         return true;
     }
@@ -5444,6 +5449,12 @@ function checkCollision(x, z, radius, excludeObj = null) {
         if (obstacle === excludeObj) continue;
 
         const box = getBoundingBox(obstacle);
+
+        // Skip if player is above this obstacle (jumping over it)
+        if (playerY !== null && playerY > box.max.y + 0.3) {
+            continue;
+        }
+
         const centerX = (box.min.x + box.max.x) / 2;
         const centerZ = (box.min.z + box.max.z) / 2;
         const sizeX = box.max.x - box.min.x;
@@ -5463,8 +5474,9 @@ function checkCollision(x, z, radius, excludeObj = null) {
 }
 
 // Enhanced collision detection that returns obstacle info for better avoidance
-function checkCollisionAdvanced(x, z, radius, excludeObj = null) {
-    // Check walls (map boundaries)
+// playerY: if provided, skip obstacles the player is above (for jumping over)
+function checkCollisionAdvanced(x, z, radius, excludeObj = null, playerY = null) {
+    // Check walls (map boundaries) - always collide
     if (Math.abs(x) + radius > MAP_HALF || Math.abs(z) + radius > MAP_HALF) {
         // Calculate normal from nearest wall
         let normalX = 0, normalZ = 0;
@@ -5488,6 +5500,12 @@ function checkCollisionAdvanced(x, z, radius, excludeObj = null) {
         if (obstacle === excludeObj) continue;
 
         const box = getBoundingBox(obstacle);
+
+        // Skip if player is above this obstacle (jumping over it)
+        if (playerY !== null && playerY > box.max.y + 0.3) {
+            continue;
+        }
+
         const centerX = (box.min.x + box.max.x) / 2;
         const centerZ = (box.min.z + box.max.z) / 2;
         const sizeX = box.max.x - box.min.x;
@@ -5520,9 +5538,10 @@ function checkCollisionAdvanced(x, z, radius, excludeObj = null) {
 }
 
 // Resolve collision by sliding along walls/obstacles with improved physics
-function resolveCollision(oldX, oldZ, newX, newZ, radius, excludeObj = null) {
+// playerY: if provided, skip obstacles the player is above (for jumping over)
+function resolveCollision(oldX, oldZ, newX, newZ, radius, excludeObj = null, playerY = null) {
     // Try new position
-    const collision = checkCollisionAdvanced(newX, newZ, radius, excludeObj);
+    const collision = checkCollisionAdvanced(newX, newZ, radius, excludeObj, playerY);
     if (!collision.collided) {
         return { x: newX, z: newZ, collided: false };
     }
@@ -5546,18 +5565,18 @@ function resolveCollision(oldX, oldZ, newX, newZ, radius, excludeObj = null) {
     const slideNewX = oldX + slideX;
     const slideNewZ = oldZ + slideZ;
 
-    if (!checkCollision(slideNewX, slideNewZ, radius, excludeObj)) {
+    if (!checkCollision(slideNewX, slideNewZ, radius, excludeObj, playerY)) {
         return { x: slideNewX, z: slideNewZ, collided: true };
     }
 
     // If slide failed, try axis-aligned movement (legacy fallback)
     // Try sliding along X axis only
-    if (!checkCollision(newX, oldZ, radius, excludeObj)) {
+    if (!checkCollision(newX, oldZ, radius, excludeObj, playerY)) {
         return { x: newX, z: oldZ, collided: true };
     }
 
     // Try sliding along Z axis only
-    if (!checkCollision(oldX, newZ, radius, excludeObj)) {
+    if (!checkCollision(oldX, newZ, radius, excludeObj, playerY)) {
         return { x: oldX, z: newZ, collided: true };
     }
 
@@ -6528,7 +6547,7 @@ class Zombie {
             for (const part of this.ragdollParts) {
                 if (!part.grounded) {
                     // Apply gravity
-                    part.velocity.y -= 25 * dt;
+                    part.velocity.y -= GRAVITY * dt;
                     
                     // Store old position for collision resolution
                     const oldX = part.mesh.position.x;
@@ -6602,7 +6621,7 @@ class Zombie {
                                     (Math.random() - 0.5) * 0.5
                                 ),
                                 life: 0.8,
-                                gravity: 20,
+                                gravity: GRAVITY,
                                 type: 'droplet'
                             });
                         }
@@ -6645,8 +6664,12 @@ class Zombie {
             this.attackCooldown -= dt;
         }
 
-        // Attack if close enough
-        if (dist < this.attackRange && this.attackCooldown <= 0) {
+        // Attack if close enough AND player not too high above
+        const playerY = camera.position.y;
+        const zombieReachY = this.mesh.position.y + 2.5 * this.variantConfig.scale; // Zombie reach height
+        const heightDiff = playerY - zombieReachY;
+
+        if (dist < this.attackRange && this.attackCooldown <= 0 && heightDiff < 2.0) {
             this.attackCooldown = 1.0; // 1 second between attacks
             damagePlayer(this.attackDamage, this.mesh.position); // Pass attacker position for directional indicator
             playSound('zombieAttack');
@@ -7686,7 +7709,7 @@ function spawnBloodSpray(position, direction, intensity = 1) {
             mesh: sprite,
             velocity: _bloodVel.clone(),
             life: 1.0 + Math.random() * 0.5,
-            gravity: 15,
+            gravity: GRAVITY,
             type: 'droplet'
         });
     }
@@ -8063,7 +8086,7 @@ function checkBloodObstacleCollision(particle) {
     bloodRaycaster.set(particle.mesh.position, _bloodRayDir);
     bloodRaycaster.far = particle.velocity.length() * 0.1; // Check short distance
 
-    const hits = bloodRaycaster.intersectObjects(obstacles);
+    const hits = bloodRaycaster.intersectObjects([...obstacles, ...boundaryWalls]);
     if (hits.length > 0) {
         const hit = hits[0];
         // Spawn blood splat on obstacle surface
@@ -8162,7 +8185,7 @@ function updateBloodEffects(dt) {
         }
 
         if (!g.grounded) {
-            g.velocity.y -= 20 * dt;
+            g.velocity.y -= GRAVITY * dt;
             g.mesh.position.addScaledVector(g.velocity, dt);
             g.mesh.rotation.x += g.rotVelocity.x * dt;
             g.mesh.rotation.y += g.rotVelocity.y * dt;
@@ -8172,7 +8195,7 @@ function updateBloodEffects(dt) {
             _bloodRayDir.copy(g.velocity).normalize();
             bloodRaycaster.set(g.mesh.position, _bloodRayDir);
             bloodRaycaster.far = g.velocity.length() * dt * 2;
-            const goreHits = bloodRaycaster.intersectObjects(obstacles);
+            const goreHits = bloodRaycaster.intersectObjects([...obstacles, ...boundaryWalls]);
             if (goreHits.length > 0 && g.canBleed) {
                 const hit = goreHits[0];
                 // Splatter blood on obstacle
@@ -10691,7 +10714,7 @@ let prevTime = performance.now();
 let verticalVelocity = 0;
 let playerHeight = 0; // Height above current terrain
 let currentGroundLevel = 0; // Dynamic ground level (updated each frame)
-const gravity = 35;
+const gravity = GRAVITY; // References global physics constant
 const jumpForce = 12;
 let isGrounded = true;
 let canJump = true;
@@ -13147,9 +13170,9 @@ function animate(time) {
             const finalX = oldX + slideX + steerX;
             const finalZ = oldZ + slideZ + steerZ;
 
-            // Collision detection during slide
+            // Collision detection during slide (pass playerY for jumping over obstacles)
             const playerRadius = 0.5;
-            const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius);
+            const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius, null, camera.position.y);
             camera.position.x = resolved.x;
             camera.position.z = resolved.z;
 
@@ -13249,8 +13272,9 @@ function animate(time) {
             const finalZ = newZ + fwd.z * velocity.z * dt;
 
             // Apply collision detection and resolution (player radius ~0.5)
+            // Pass playerY to allow jumping over obstacles
             const playerRadius = 0.5;
-            const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius);
+            const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius, null, camera.position.y);
             camera.position.x = resolved.x;
             camera.position.z = resolved.z;
         }
@@ -13472,7 +13496,7 @@ function animate(time) {
     for(let i = shells.length - 1; i >= 0; i--) {
         const s = shells[i];
         s.position.addScaledVector(s.userData.velocity, dt); // Fixed: removed * 60 multiplier
-        s.userData.velocity.y -= 20 * dt; // Fixed: proper gravity (was 0.02 per frame, now 20 units/sec^2)
+        s.userData.velocity.y -= GRAVITY * dt; // Uses global gravity constant
         s.rotation.x += 2 * dt; // Fixed: proper rotation speed
         if(s.position.y < -5) { s.position.y = -5; s.userData.velocity.set(0,0,0); }
         if(--s.userData.life <= 0) {
@@ -13486,7 +13510,7 @@ function animate(time) {
         const m = mags[i];
         m.position.addScaledVector(m.userData.vel, dt); // Fixed: removed * 60 multiplier
         m.rotation.x += m.userData.rot.x * dt; // Fixed: proper rotation speed
-        m.userData.vel.y -= 20 * dt; // Fixed: proper gravity (was 0.02 per frame, now 20 units/sec^2)
+        m.userData.vel.y -= GRAVITY * dt; // Uses global gravity constant
         if(m.position.y < -5) { m.position.y = -5; m.userData.vel.set(0,0,0); }
         if(--m.userData.life <= 0) {
             scene.remove(m);
@@ -13533,7 +13557,7 @@ function animate(time) {
             continue;
         }
         sp.position.addScaledVector(sp.userData.velocity, dt);
-        sp.userData.velocity.y -= 20 * dt;
+        sp.userData.velocity.y -= GRAVITY * dt;
         sp.material.opacity = sp.userData.life * 3;
     }
 
@@ -13549,7 +13573,7 @@ function animate(time) {
             continue;
         }
         d.position.addScaledVector(d.userData.velocity, dt);
-        d.userData.velocity.y -= 15 * dt;
+        d.userData.velocity.y -= GRAVITY * dt;
         d.rotation.x += d.userData.rotVel.x * dt;
         d.rotation.y += d.userData.rotVel.y * dt;
         d.rotation.z += d.userData.rotVel.z * dt;
