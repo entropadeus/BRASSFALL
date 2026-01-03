@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BRASSFALL</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Courier New', monospace; }
         #crosshair {
@@ -1244,7 +1245,7 @@
 
 <!-- Background Music -->
 <audio id="bg-music" loop preload="auto">
-    <source src="Tumor.mp3" type="audio/mpeg">
+    <source src="assets/audio/Tumor.mp3" type="audio/mpeg">
 </audio>
 
 <!-- ============ MAIN MENU - BRASSFALL ============ -->
@@ -5979,6 +5980,11 @@ class Zombie {
         const baseDamage = 10 + Math.floor(waveNum / 2) * 5;
         this.attackDamage = Math.floor(baseDamage * this.variantConfig.damageMod);
         this.headExploded = false; // Tracks if head was blown off
+
+        // Knockback state (for kick)
+        this.isKnockedBack = false;
+        this.knockbackVel = null;
+        this.knockbackTime = 0;
         
         // AI STATE - Swarm Intelligence
         this.aiRole = this.assignRole(); // 'rusher', 'flanker', 'lurker'
@@ -6525,6 +6531,19 @@ class Zombie {
 
         // Recover from flinch
         this.mesh.rotation.x *= 0.9;
+
+        // Handle kick knockback
+        if (this.isKnockedBack && this.knockbackVel) {
+            this.mesh.position.x += this.knockbackVel.x * dt;
+            this.mesh.position.z += this.knockbackVel.z * dt;
+            this.knockbackVel.multiplyScalar(0.9); // Friction
+            this.knockbackTime -= dt;
+            if (this.knockbackTime <= 0) {
+                this.isKnockedBack = false;
+                this.knockbackVel = null;
+            }
+            return; // Skip normal movement while knocked back
+        }
 
         // INTELLIGENT CHASE WITH SWARM BEHAVIOR
         const playerPos = { x: HiveMind.playerPos.x, z: HiveMind.playerPos.z };
@@ -8553,225 +8572,575 @@ sniperRecoilGroup.visible = false;
 camera.add(sniperRecoilGroup);
 
 /**
- * SHOTGUN CONSTRUCTION - Aggressive Pump-Action Beauty
- * Inspired by tactical shotguns with polymer furniture and aggressive lines
+ * SHOTGUN CONSTRUCTION - Simplified Tactical Pump-Action
  */
 const shotgunGroup = new THREE.Group();
 const shotgunRecoilGroup = new THREE.Group();
 shotgunRecoilGroup.add(shotgunGroup);
 
-// Materials for shotgun - matte black tactical look with wood accents
-const shotgunMetalDark = new THREE.MeshStandardMaterial({
-    color: 0x0a0a0a,
-    roughness: 0.45,
-    metalness: 0.7,
-    envMap: envMapTex,
-    envMapIntensity: 0.4
-});
-const shotgunMetalLight = new THREE.MeshStandardMaterial({
-    color: 0x222222,
-    roughness: 0.35,
+// Materials for shotgun
+const sgMetalMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.3,
     metalness: 0.8,
     envMap: envMapTex,
     envMapIntensity: 0.5
 });
-const shotgunWood = new THREE.MeshStandardMaterial({
-    map: woodTex,
-    color: 0x3a2010,
-    roughness: 0.5,
-    metalness: 0.05,
-    bumpMap: woodTex,
-    bumpScale: 0.02,
+const sgPlasticMat = new THREE.MeshStandardMaterial({
+    color: 0x080808,
+    roughness: 0.9,
+    metalness: 0.1,
     envMap: envMapTex,
     envMapIntensity: 0.1
 });
-const shotgunPolymer = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a,
-    roughness: 0.7,
-    metalness: 0.1,
-    envMap: envMapTex,
-    envMapIntensity: 0.15
-});
 
-// Helper functions for shotgun geometry
-function createShotgunBox(w, h, d, mat, x, y, z, rotX=0, rotY=0, rotZ=0) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    mesh.position.set(x, y, z);
-    mesh.rotation.set(rotX, rotY, rotZ);
-    mesh.castShadow = true;
-    return mesh;
-}
-function createShotgunCylinder(rt, rb, h, seg, mat, x, y, z, rotX=0, rotZ=0) {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
-    mesh.position.set(x, y, z);
-    mesh.rotation.x = rotX;
-    mesh.rotation.z = rotZ;
-    mesh.castShadow = true;
-    return mesh;
-}
-
-// === RECEIVER (main body) ===
-const sgReceiver = createShotgunBox(1.0, 1.4, 5.0, shotgunMetalDark, 0, 0, 0);
+// === RECEIVER ===
+const sgReceiverGeo = new THREE.BoxGeometry(0.4 * 2.5, 0.6 * 2.5, 2.8 * 2.5);
+const sgReceiver = new THREE.Mesh(sgReceiverGeo, sgMetalMat);
+sgReceiver.position.z = -0.4 * 2.5;
+sgReceiver.castShadow = true;
 shotgunGroup.add(sgReceiver);
 
-// Receiver top rail (flat top for tactical look)
-const sgRail = createShotgunBox(0.85, 0.2, 4.5, shotgunMetalLight, 0, 0.8, 0.2);
-shotgunGroup.add(sgRail);
-
-// Picatinny rail grooves (decorative)
-for (let i = 0; i < 8; i++) {
-    const groove = createShotgunBox(0.9, 0.05, 0.15, shotgunMetalDark, 0, 0.92, -1.5 + i * 0.5);
-    shotgunGroup.add(groove);
-}
-
-// Ejection port
-const sgEjectionPort = createShotgunBox(0.6, 0.4, 1.2, shotgunMetalLight, 0.35, 0.3, -0.5);
-shotgunGroup.add(sgEjectionPort);
-
-// === BARREL - 18" tactical barrel ===
-const sgBarrel = createShotgunCylinder(0.22, 0.22, 8.0, 16, shotgunMetalDark, 0, 0.35, -6.5, Math.PI/2);
+// === BARREL & MAG TUBE ===
+const sgBarrelGeo = new THREE.CylinderGeometry(0.1 * 2.5, 0.1 * 2.5, 3.8 * 2.5, 16);
+const sgBarrel = new THREE.Mesh(sgBarrelGeo, sgMetalMat);
+sgBarrel.rotation.x = Math.PI / 2;
+sgBarrel.position.set(0, 0.15 * 2.5, -2.4 * 2.5);
+sgBarrel.castShadow = true;
 shotgunGroup.add(sgBarrel);
 
-// Barrel extension/heat shield vents
-const sgHeatShield = createShotgunCylinder(0.28, 0.28, 6.0, 16, shotgunMetalLight, 0, 0.35, -5.5, Math.PI/2);
-shotgunGroup.add(sgHeatShield);
-
-// Heat shield vent holes
-for (let i = 0; i < 5; i++) {
-    const ventHole = createShotgunCylinder(0.08, 0.08, 0.4, 8, shotgunMetalDark, 0.25, 0.35, -3.5 - i * 0.9, 0, Math.PI/2);
-    shotgunGroup.add(ventHole);
-    const ventHole2 = createShotgunCylinder(0.08, 0.08, 0.4, 8, shotgunMetalDark, -0.25, 0.35, -3.5 - i * 0.9, 0, Math.PI/2);
-    shotgunGroup.add(ventHole2);
-}
-
-// Muzzle
-const sgMuzzle = createShotgunCylinder(0.25, 0.22, 0.4, 16, shotgunMetalDark, 0, 0.35, -10.7, Math.PI/2);
-shotgunGroup.add(sgMuzzle);
-
-// Muzzle inner bore (dark)
-const sgBore = createShotgunCylinder(0.18, 0.18, 0.3, 12, new THREE.MeshBasicMaterial({color: 0x000000}), 0, 0.35, -10.9, Math.PI/2);
-shotgunGroup.add(sgBore);
-
-// === MAGAZINE TUBE (under barrel) ===
-const sgMagTube = createShotgunCylinder(0.18, 0.18, 7.0, 12, shotgunMetalLight, 0, -0.15, -5.8, Math.PI/2);
+const sgMagGeo = new THREE.CylinderGeometry(0.09 * 2.5, 0.09 * 2.5, 3.2 * 2.5, 16);
+const sgMagTube = new THREE.Mesh(sgMagGeo, sgMetalMat);
+sgMagTube.rotation.x = Math.PI / 2;
+sgMagTube.position.set(0, -0.12 * 2.5, -2.1 * 2.5);
+sgMagTube.castShadow = true;
 shotgunGroup.add(sgMagTube);
 
-// Magazine tube cap
-const sgMagCap = createShotgunCylinder(0.22, 0.22, 0.3, 12, shotgunMetalDark, 0, -0.15, -9.5, Math.PI/2);
-shotgunGroup.add(sgMagCap);
-
-// === PUMP/FORE-END (sliding grip) ===
+// === PUMP/HANDGUARD ===
 const sgPumpPivot = new THREE.Group();
-sgPumpPivot.position.set(0, -0.15, -4.0);
+sgPumpPivot.position.set(0, -0.1 * 2.5, -1.6 * 2.5);
 shotgunGroup.add(sgPumpPivot);
 
-// Main pump grip body
-const sgPump = createShotgunBox(1.1, 0.9, 2.2, shotgunWood, 0, 0, 0);
+const sgPumpGeo = new THREE.CylinderGeometry(0.22 * 2.5, 0.22 * 2.5, 1.1 * 2.5, 10);
+const sgPump = new THREE.Mesh(sgPumpGeo, sgPlasticMat);
+sgPump.rotation.x = Math.PI / 2;
+sgPump.castShadow = true;
 sgPumpPivot.add(sgPump);
 
-// Pump grip texture ridges
-for (let i = 0; i < 6; i++) {
-    const ridge = createShotgunBox(1.15, 0.08, 0.12, shotgunMetalDark, 0, -0.35 + i * 0.12, 0.8 - i * 0.25);
-    sgPumpPivot.add(ridge);
-}
+// === HEAT SHIELD ===
+const sgShieldGeo = new THREE.CylinderGeometry(0.16 * 2.5, 0.16 * 2.5, 2.0 * 2.5, 12, 1, true);
+const sgShield = new THREE.Mesh(sgShieldGeo, new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    side: THREE.DoubleSide,
+    envMap: envMapTex,
+    envMapIntensity: 0.3
+}));
+sgShield.rotation.x = Math.PI / 2;
+sgShield.position.set(0, 0.2 * 2.5, -2.3 * 2.5);
+const sgShieldWire = new THREE.Mesh(sgShieldGeo, new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true }));
+sgShield.add(sgShieldWire);
+shotgunGroup.add(sgShield);
 
-// Pump action bars (connect pump to bolt)
-const sgActionBarL = createShotgunCylinder(0.05, 0.05, 3.5, 6, shotgunMetalLight, -0.35, 0.3, 1.0, Math.PI/2);
-sgPumpPivot.add(sgActionBarL);
-const sgActionBarR = createShotgunCylinder(0.05, 0.05, 3.5, 6, shotgunMetalLight, 0.35, 0.3, 1.0, Math.PI/2);
-sgPumpPivot.add(sgActionBarR);
-
-// === STOCK (tactical polymer with rubber pad) ===
-const sgStock = createShotgunBox(0.9, 1.6, 3.5, shotgunPolymer, 0, -0.3, 4.2, 0.15);
-shotgunGroup.add(sgStock);
-
-// Cheek rest
-const sgCheekRest = createShotgunBox(0.7, 0.5, 2.0, shotgunPolymer, 0, 0.65, 4.5);
-shotgunGroup.add(sgCheekRest);
-
-// Rubber butt pad
-const sgButtPad = new THREE.Mesh(
-    new THREE.BoxGeometry(1.0, 1.8, 0.4),
-    new THREE.MeshStandardMaterial({
-        color: 0x1a1a1a,
-        roughness: 0.9,
-        metalness: 0.0
-    })
-);
-sgButtPad.position.set(0, -0.2, 6.1);
-sgButtPad.rotation.x = 0.15;
-sgButtPad.castShadow = true;
-shotgunGroup.add(sgButtPad);
-
-// Stock sling mount
-const sgSlingRear = createShotgunCylinder(0.06, 0.06, 0.3, 8, shotgunMetalLight, 0, -1.0, 5.5, 0, Math.PI/2);
-shotgunGroup.add(sgSlingRear);
-
-// === PISTOL GRIP (aggressive angle) ===
-const sgGrip = createShotgunBox(0.8, 2.2, 1.0, shotgunPolymer, 0, -1.7, 1.5, -0.35);
+// === GRIP ===
+const sgGripGeo = new THREE.BoxGeometry(0.25 * 2.5, 0.7 * 2.5, 0.4 * 2.5);
+const sgGrip = new THREE.Mesh(sgGripGeo, sgPlasticMat);
+sgGrip.rotation.x = -Math.PI / 6;
+sgGrip.position.set(0, -0.5 * 2.5, 0.7 * 2.5);
+sgGrip.castShadow = true;
 shotgunGroup.add(sgGrip);
 
-// Grip texture
-for (let i = 0; i < 8; i++) {
-    const gripTex = createShotgunBox(0.85, 0.06, 0.08, shotgunMetalDark, 0, -1.2 - i * 0.18, 1.4 - i * 0.06, -0.35);
-    shotgunGroup.add(gripTex);
+// === STOCK (skeleton style) ===
+const sgStockGroup = new THREE.Group();
+const sgArmGeo = new THREE.BoxGeometry(0.08 * 2.5, 0.08 * 2.5, 2.2 * 2.5);
+const sgArm = new THREE.Mesh(sgArmGeo, sgMetalMat);
+sgArm.position.z = 1.1 * 2.5;
+sgArm.castShadow = true;
+sgStockGroup.add(sgArm);
+
+const sgPadGeo = new THREE.BoxGeometry(0.12 * 2.5, 0.7 * 2.5, 0.1 * 2.5);
+const sgPad = new THREE.Mesh(sgPadGeo, sgMetalMat);
+sgPad.position.set(0, -0.3 * 2.5, 2.2 * 2.5);
+sgPad.castShadow = true;
+sgStockGroup.add(sgPad);
+
+sgStockGroup.position.set(0, 0.3 * 2.5, 0.4 * 2.5);
+shotgunGroup.add(sgStockGroup);
+
+// === HANDS - Blocky but detailed ===
+const skinMat = new THREE.MeshStandardMaterial({
+    color: 0xd4a574,
+    roughness: 0.7,
+    metalness: 0.0
+});
+const skinMatDark = new THREE.MeshStandardMaterial({
+    color: 0xc49464,
+    roughness: 0.75,
+    metalness: 0.0
+});
+const nailMat = new THREE.MeshStandardMaterial({
+    color: 0xf5deb3,
+    roughness: 0.4,
+    metalness: 0.1
+});
+const sleeveMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    roughness: 0.8,
+    metalness: 0.0
+});
+
+// Helper to create a finger segment
+function createFinger(length, thickness, mat) {
+    const group = new THREE.Group();
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(thickness, thickness, length), mat);
+    seg.position.z = length / 2;
+    seg.castShadow = true;
+    group.add(seg);
+    // Knuckle bump
+    const knuckle = new THREE.Mesh(new THREE.SphereGeometry(thickness * 0.6, 6, 6), mat);
+    knuckle.scale.set(1, 0.8, 0.8);
+    knuckle.castShadow = true;
+    group.add(knuckle);
+    return group;
 }
 
-// Trigger guard
-const sgTriggerGuard = createShotgunBox(0.15, 0.8, 1.5, shotgunMetalLight, 0, -1.1, 0.5);
-shotgunGroup.add(sgTriggerGuard);
-const sgTriggerGuardFront = createShotgunBox(0.15, 0.3, 0.15, shotgunMetalLight, 0, -0.75, -0.15);
-shotgunGroup.add(sgTriggerGuardFront);
+// === RIGHT HAND (Grip Hand) ===
+const rightHand = new THREE.Group();
 
-// Trigger
-const sgTrigger = createShotgunBox(0.08, 0.4, 0.15, shotgunMetalDark, 0, -0.9, 0.1);
-shotgunGroup.add(sgTrigger);
+// Wrist/Forearm
+const rightWrist = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 1.2), skinMat);
+rightWrist.position.set(0, 0, -0.6);
+rightWrist.castShadow = true;
+rightHand.add(rightWrist);
 
-// === SIGHTS ===
-// Front sight (blade)
-const sgFrontSightBase = createShotgunBox(0.3, 0.3, 0.4, shotgunMetalLight, 0, 0.6, -9.5);
-shotgunGroup.add(sgFrontSightBase);
-const sgFrontSight = createShotgunBox(0.08, 0.4, 0.15, shotgunMetalLight, 0, 0.95, -9.5);
-shotgunGroup.add(sgFrontSight);
+// Sleeve
+const rightSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 0.5), sleeveMat);
+rightSleeve.position.set(0, 0, -1.1);
+rightSleeve.castShadow = true;
+rightHand.add(rightSleeve);
 
-// Rear sight (ghost ring)
-const sgRearSightBase = createShotgunBox(0.5, 0.25, 0.4, shotgunMetalLight, 0, 0.95, 0.5);
-shotgunGroup.add(sgRearSightBase);
-const sgRearSightRingL = createShotgunBox(0.08, 0.35, 0.1, shotgunMetalLight, -0.18, 1.2, 0.5);
-shotgunGroup.add(sgRearSightRingL);
-const sgRearSightRingR = createShotgunBox(0.08, 0.35, 0.1, shotgunMetalLight, 0.18, 1.2, 0.5);
-shotgunGroup.add(sgRearSightRingR);
-const sgRearSightRingTop = createShotgunBox(0.35, 0.08, 0.1, shotgunMetalLight, 0, 1.35, 0.5);
-shotgunGroup.add(sgRearSightRingTop);
+// Palm
+const rightPalm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.6), skinMat);
+rightPalm.position.set(0, 0, 0);
+rightPalm.castShadow = true;
+rightHand.add(rightPalm);
 
-// === SHELL LIFTER (visible in loading port) ===
-const sgShellLifter = createShotgunBox(0.5, 0.15, 0.8, shotgunMetalLight, 0, -0.55, -0.2);
-shotgunGroup.add(sgShellLifter);
+// Thumb (wrapped around grip)
+const rightThumb = new THREE.Group();
+const thumbBase = createFinger(0.25, 0.14, skinMat);
+thumbBase.rotation.set(0, -0.4, Math.PI/2 + 0.3);
+thumbBase.position.set(0.3, 0.05, 0.1);
+rightThumb.add(thumbBase);
+const thumbTip = createFinger(0.2, 0.12, skinMat);
+thumbTip.rotation.x = 0.4;
+thumbTip.position.set(0, 0, 0.22);
+thumbBase.add(thumbTip);
+// Thumbnail
+const thumbNail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.06), nailMat);
+thumbNail.position.set(0, 0.07, 0.18);
+thumbTip.add(thumbNail);
+rightHand.add(rightThumb);
 
-// Loading port
-const sgLoadingPort = createShotgunBox(0.4, 0.25, 0.7, shotgunMetalDark, 0, -0.7, 0);
-shotgunGroup.add(sgLoadingPort);
+// Fingers (wrapped around grip - curled)
+const fingerOffsets = [
+    { x: -0.18, z: 0.28, curl: 2.2 },  // Index
+    { x: -0.06, z: 0.30, curl: 2.3 },  // Middle
+    { x: 0.06, z: 0.28, curl: 2.2 },   // Ring
+    { x: 0.17, z: 0.24, curl: 2.1 }    // Pinky
+];
+const fingerLengths = [0.28, 0.32, 0.30, 0.24];
+const fingerThickness = [0.11, 0.12, 0.11, 0.09];
 
-// === BOLT (visible through ejection port) ===
-const sgBolt = createShotgunBox(0.5, 0.3, 0.8, shotgunMetalLight, 0.1, 0.3, -0.3);
-shotgunGroup.add(sgBolt);
+fingerOffsets.forEach((offset, i) => {
+    const finger = new THREE.Group();
 
-// Safety button
-const sgSafety = createShotgunCylinder(0.06, 0.06, 0.15, 8, new THREE.MeshStandardMaterial({color: 0xff2222, roughness: 0.5, metalness: 0.3}), -0.4, 0.5, 0.8);
-shotgunGroup.add(sgSafety);
+    // Base segment
+    const base = createFinger(fingerLengths[i] * 0.4, fingerThickness[i], skinMat);
+    base.rotation.x = offset.curl * 0.4;
+    base.position.set(offset.x, -0.22, offset.z);
+    finger.add(base);
 
-// === SHELL HOLDER (side saddle) ===
-const sgShellHolder = createShotgunBox(0.2, 0.9, 2.5, shotgunPolymer, 0.6, 0.2, 2.0);
-shotgunGroup.add(sgShellHolder);
+    // Middle segment
+    const mid = createFinger(fingerLengths[i] * 0.35, fingerThickness[i] * 0.9, skinMat);
+    mid.rotation.x = offset.curl * 0.5;
+    mid.position.set(0, 0, fingerLengths[i] * 0.38);
+    base.add(mid);
 
-// Individual shell slots
+    // Tip segment
+    const tip = createFinger(fingerLengths[i] * 0.3, fingerThickness[i] * 0.8, skinMatDark);
+    tip.rotation.x = offset.curl * 0.4;
+    tip.position.set(0, 0, fingerLengths[i] * 0.32);
+    mid.add(tip);
+
+    // Fingernail
+    const nail = new THREE.Mesh(new THREE.BoxGeometry(fingerThickness[i] * 0.6, fingerThickness[i] * 0.8, 0.04), nailMat);
+    nail.position.set(0, fingerThickness[i] * 0.45, fingerLengths[i] * 0.28);
+    tip.add(nail);
+
+    rightHand.add(finger);
+});
+
+// Position right hand on grip
+rightHand.position.set(0, -0.5 * 2.5 - 0.4, 0.7 * 2.5 + 0.1);
+rightHand.rotation.set(-Math.PI/6 - 0.2, 0, 0);
+rightHand.scale.setScalar(1.8);
+// shotgunGroup.add(rightHand); // DISABLED - hands removed
+
+// === LEFT HAND (Pump Hand) - Attached to pump pivot ===
+const leftHand = new THREE.Group();
+
+// Wrist/Forearm
+const leftWrist = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 1.4), skinMat);
+leftWrist.position.set(0, 0, 0.7);
+leftWrist.castShadow = true;
+leftHand.add(leftWrist);
+
+// Sleeve
+const leftSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 0.5), sleeveMat);
+leftSleeve.position.set(0, 0, 1.35);
+leftSleeve.castShadow = true;
+leftHand.add(leftSleeve);
+
+// Palm (horizontal, gripping pump from below)
+const leftPalm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 0.55), skinMat);
+leftPalm.position.set(0, 0, 0.05);
+leftPalm.castShadow = true;
+leftHand.add(leftPalm);
+
+// Thumb (on top of pump)
+const leftThumb = new THREE.Group();
+const lThumbBase = createFinger(0.22, 0.13, skinMat);
+lThumbBase.rotation.set(-0.3, 0.3, -Math.PI/2 - 0.2);
+lThumbBase.position.set(-0.28, 0.22, -0.05);
+leftThumb.add(lThumbBase);
+const lThumbTip = createFinger(0.18, 0.11, skinMat);
+lThumbTip.rotation.x = 0.3;
+lThumbTip.position.set(0, 0, 0.2);
+lThumbBase.add(lThumbTip);
+// Thumbnail
+const lThumbNail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.05), nailMat);
+lThumbNail.position.set(0, 0.06, 0.16);
+lThumbTip.add(lThumbNail);
+leftHand.add(leftThumb);
+
+// Fingers (wrapped around pump from below - curled up)
+const lFingerOffsets = [
+    { x: 0.18, z: -0.22, curl: 2.4 },  // Index
+    { x: 0.06, z: -0.24, curl: 2.5 },  // Middle
+    { x: -0.06, z: -0.22, curl: 2.4 }, // Ring
+    { x: -0.17, z: -0.18, curl: 2.3 }  // Pinky
+];
+
+lFingerOffsets.forEach((offset, i) => {
+    const finger = new THREE.Group();
+
+    // Base segment (curling up around pump)
+    const base = createFinger(fingerLengths[i] * 0.4, fingerThickness[i], skinMat);
+    base.rotation.x = -offset.curl * 0.35;
+    base.position.set(offset.x, -0.18, offset.z);
+    finger.add(base);
+
+    // Middle segment
+    const mid = createFinger(fingerLengths[i] * 0.35, fingerThickness[i] * 0.9, skinMat);
+    mid.rotation.x = -offset.curl * 0.45;
+    mid.position.set(0, 0, fingerLengths[i] * 0.38);
+    base.add(mid);
+
+    // Tip segment
+    const tip = createFinger(fingerLengths[i] * 0.3, fingerThickness[i] * 0.8, skinMatDark);
+    tip.rotation.x = -offset.curl * 0.35;
+    tip.position.set(0, 0, fingerLengths[i] * 0.32);
+    mid.add(tip);
+
+    // Fingernail
+    const nail = new THREE.Mesh(new THREE.BoxGeometry(fingerThickness[i] * 0.6, fingerThickness[i] * 0.8, 0.04), nailMat);
+    nail.position.set(0, fingerThickness[i] * 0.45, fingerLengths[i] * 0.28);
+    tip.add(nail);
+
+    leftHand.add(finger);
+});
+
+// Position left hand on pump - attached to sgPumpPivot so it moves with pump
+leftHand.position.set(0, -0.35, 0);
+leftHand.rotation.set(Math.PI/2 + 0.1, 0, Math.PI);
+leftHand.scale.setScalar(1.7);
+// sgPumpPivot.add(leftHand); // DISABLED - hands removed
+
+// === CHARACTER BODY (No Head) ===
+// Materials for body
+const clothMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.85,
+    metalness: 0.0
+});
+const clothMatDark = new THREE.MeshStandardMaterial({
+    color: 0x0f0f0f,
+    roughness: 0.9,
+    metalness: 0.0
+});
+const vestMat = new THREE.MeshStandardMaterial({
+    color: 0x2d2d2d,
+    roughness: 0.7,
+    metalness: 0.1
+});
+const beltMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.6,
+    metalness: 0.2
+});
+const bootMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1410,
+    roughness: 0.8,
+    metalness: 0.1
+});
+const buckleMat = new THREE.MeshStandardMaterial({
+    color: 0x888888,
+    roughness: 0.3,
+    metalness: 0.8
+});
+
+// === ARMS (attached to shotgun - move with weapon) ===
+const armsGroup = new THREE.Group();
+
+// Right arm (connects to right hand on grip)
+const rightArmGroup = new THREE.Group();
+
+// Right upper arm
+const rightUpperArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.1), sleeveMat);
+rightUpperArm.castShadow = true;
+rightArmGroup.add(rightUpperArm);
+
+// Right elbow
+const rightElbow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), sleeveMat);
+rightElbow.position.set(0, 0, 0.55);
+rightElbow.castShadow = true;
+rightArmGroup.add(rightElbow);
+
+// Right forearm (connects to existing hand)
+const rightForearm = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.9), sleeveMat);
+rightForearm.position.set(0, 0, 1.0);
+rightForearm.castShadow = true;
+rightArmGroup.add(rightForearm);
+
+// Position right arm to connect to hand
+rightArmGroup.position.set(0.4, -0.5 * 2.5 + 0.8, 0.7 * 2.5 + 2.2);
+rightArmGroup.rotation.set(-0.6, 0.15, 0.1);
+rightArmGroup.scale.setScalar(1.6);
+// shotgunGroup.add(rightArmGroup); // DISABLED - arms removed
+
+// Left arm (connects to left hand on pump)
+const leftArmGroup = new THREE.Group();
+
+// Left upper arm
+const leftUpperArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.1), sleeveMat);
+leftUpperArm.castShadow = true;
+leftArmGroup.add(leftUpperArm);
+
+// Left elbow
+const leftElbow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), sleeveMat);
+leftElbow.position.set(0, 0, 0.55);
+leftElbow.castShadow = true;
+leftArmGroup.add(leftElbow);
+
+// Left forearm
+const leftForearm = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 1.0), sleeveMat);
+leftForearm.position.set(0, 0, 1.05);
+leftForearm.castShadow = true;
+leftArmGroup.add(leftForearm);
+
+// Position left arm to reach toward pump
+leftArmGroup.position.set(-0.5, -0.1 * 2.5 + 1.2, -1.6 * 2.5 + 4.5);
+leftArmGroup.rotation.set(-0.3, -0.3, -0.15);
+leftArmGroup.scale.setScalar(1.6);
+// shotgunGroup.add(leftArmGroup); // DISABLED - arms removed
+
+// === TORSO & LEGS (attached to camera - stable body) ===
+const bodyGroup = new THREE.Group();
+
+// === UPPER TORSO / CHEST ===
+const chest = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 0.7), clothMat);
+chest.position.set(0, -1.2, 0.1);
+chest.castShadow = true;
+bodyGroup.add(chest);
+
+// Tactical vest
+const vest = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.85, 0.75), vestMat);
+vest.position.set(0, -1.2, 0.12);
+vest.castShadow = true;
+bodyGroup.add(vest);
+
+// Vest pouches (front)
+for (let i = 0; i < 3; i++) {
+    const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.3, 0.15), vestMat);
+    pouch.position.set(-0.35 + i * 0.35, -1.1, 0.45);
+    pouch.castShadow = true;
+    bodyGroup.add(pouch);
+
+    // Pouch flap
+    const flap = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.16), clothMatDark);
+    flap.position.set(-0.35 + i * 0.35, -0.97, 0.45);
+    bodyGroup.add(flap);
+}
+
+// Shoulder straps
+const leftStrap = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.9, 0.08), vestMat);
+leftStrap.position.set(-0.45, -0.85, 0.35);
+leftStrap.rotation.x = 0.2;
+leftStrap.castShadow = true;
+bodyGroup.add(leftStrap);
+
+const rightStrap = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.9, 0.08), vestMat);
+rightStrap.position.set(0.45, -0.85, 0.35);
+rightStrap.rotation.x = 0.2;
+rightStrap.castShadow = true;
+bodyGroup.add(rightStrap);
+
+// === STOMACH / WAIST ===
+const stomach = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 0.6), clothMat);
+stomach.position.set(0, -1.9, 0.1);
+stomach.castShadow = true;
+bodyGroup.add(stomach);
+
+// Belt
+const belt = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.18, 0.65), beltMat);
+belt.position.set(0, -2.15, 0.1);
+belt.castShadow = true;
+bodyGroup.add(belt);
+
+// Belt buckle
+const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.08), buckleMat);
+buckle.position.set(0, -2.15, 0.45);
+bodyGroup.add(buckle);
+
+// Belt pouches/holster
+const holster = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.2), beltMat);
+holster.position.set(0.55, -2.3, 0.2);
+holster.rotation.z = 0.1;
+holster.castShadow = true;
+bodyGroup.add(holster);
+
+// === LEGS ===
+// Right leg
+const rightLegGroup = new THREE.Group();
+
+// Right thigh
+const rightThigh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.0, 0.45), clothMat);
+rightThigh.position.set(0, -0.5, 0);
+rightThigh.castShadow = true;
+rightLegGroup.add(rightThigh);
+
+// Right knee
+const rightKnee = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.5), clothMatDark);
+rightKnee.position.set(0, -1.05, 0.02);
+rightKnee.castShadow = true;
+rightLegGroup.add(rightKnee);
+
+// Knee pad
+const rightKneePad = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.12), vestMat);
+rightKneePad.position.set(0, -1.05, 0.28);
+rightLegGroup.add(rightKneePad);
+
+// Right shin
+const rightShin = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.0, 0.4), clothMat);
+rightShin.position.set(0, -1.6, 0);
+rightShin.castShadow = true;
+rightLegGroup.add(rightShin);
+
+// Right boot
+const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.7), bootMat);
+rightBoot.position.set(0, -2.25, 0.1);
+rightBoot.castShadow = true;
+rightLegGroup.add(rightBoot);
+
+// Boot sole
+const rightSole = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.1, 0.72), clothMatDark);
+rightSole.position.set(0, -2.5, 0.1);
+rightLegGroup.add(rightSole);
+
+// Boot toe cap
+const rightToeCap = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.25, 0.15), bootMat);
+rightToeCap.position.set(0, -2.35, 0.45);
+rightLegGroup.add(rightToeCap);
+
+// Boot laces detail
 for (let i = 0; i < 4; i++) {
-    const shellSlot = createShotgunCylinder(0.12, 0.12, 0.25, 8, shotgunMetalDark, 0.75, 0.2, 0.9 + i * 0.55, 0, Math.PI/2);
-    shotgunGroup.add(shellSlot);
-    // Shell rim visible in slot
-    const shellRim = createShotgunCylinder(0.14, 0.14, 0.05, 8, new THREE.MeshStandardMaterial({color: 0xcc9933, roughness: 0.4, metalness: 0.7}), 0.9, 0.2, 0.9 + i * 0.55, 0, Math.PI/2);
-    shotgunGroup.add(shellRim);
+    const lace = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.03, 0.03), clothMatDark);
+    lace.position.set(0, -2.0 - i * 0.1, 0.35);
+    rightLegGroup.add(lace);
 }
+
+rightLegGroup.position.set(0.35, -2.3, 0.15);
+bodyGroup.add(rightLegGroup);
+
+// Left leg (mirror of right)
+const leftLegGroup = new THREE.Group();
+
+// Left thigh
+const leftThigh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.0, 0.45), clothMat);
+leftThigh.position.set(0, -0.5, 0);
+leftThigh.castShadow = true;
+leftLegGroup.add(leftThigh);
+
+// Left knee
+const leftKnee = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.5), clothMatDark);
+leftKnee.position.set(0, -1.05, 0.02);
+leftKnee.castShadow = true;
+leftLegGroup.add(leftKnee);
+
+// Knee pad
+const leftKneePad = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.12), vestMat);
+leftKneePad.position.set(0, -1.05, 0.28);
+leftLegGroup.add(leftKneePad);
+
+// Left shin
+const leftShin = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.0, 0.4), clothMat);
+leftShin.position.set(0, -1.6, 0);
+leftShin.castShadow = true;
+leftLegGroup.add(leftShin);
+
+// Left boot
+const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.7), bootMat);
+leftBoot.position.set(0, -2.25, 0.1);
+leftBoot.castShadow = true;
+leftLegGroup.add(leftBoot);
+
+// Boot sole
+const leftSole = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.1, 0.72), clothMatDark);
+leftSole.position.set(0, -2.5, 0.1);
+leftLegGroup.add(leftSole);
+
+// Boot toe cap
+const leftToeCap = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.25, 0.15), bootMat);
+leftToeCap.position.set(0, -2.35, 0.45);
+leftLegGroup.add(leftToeCap);
+
+// Boot laces detail
+for (let i = 0; i < 4; i++) {
+    const lace = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.03, 0.03), clothMatDark);
+    lace.position.set(0, -2.0 - i * 0.1, 0.35);
+    leftLegGroup.add(lace);
+}
+
+leftLegGroup.position.set(-0.35, -2.3, 0.15);
+bodyGroup.add(leftLegGroup);
+
+// === NECK STUMP (no head, but need collar) ===
+const collar = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.4), clothMat);
+collar.position.set(0, -0.68, 0.1);
+collar.castShadow = true;
+bodyGroup.add(collar);
+
+// Neck base (skin showing)
+const neckBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.15, 8), skinMat);
+neckBase.position.set(0, -0.55, 0.1);
+neckBase.castShadow = true;
+bodyGroup.add(neckBase);
+
+// Position body - visible when looking down
+bodyGroup.position.set(0, 0.3, 0.3);
+bodyGroup.scale.setScalar(1.0);
+
+// Store reference for later (attached to camera after camera exists)
+window.playerBodyGroup = bodyGroup;
 
 // === MUZZLE FLASH GROUP ===
 const shotgunFlashGroup = new THREE.Group();
@@ -8794,16 +9163,302 @@ for(let i=0; i<6; i++) {
     streak.position.z = -0.3;
     shotgunFlashGroup.add(streak);
 }
-shotgunFlashGroup.position.set(0, 0.35, -11.0);
+shotgunFlashGroup.position.set(0, 0.15 * 2.5, -4.4 * 2.5);
 shotgunGroup.add(shotgunFlashGroup);
 
-// Scale and position shotgun
-shotgunGroup.scale.setScalar(0.95);
+// Scale shotgun
+shotgunGroup.scale.setScalar(0.65); // Scaled down from 0.95
 
 // Position shotgun (hidden by default)
 shotgunRecoilGroup.rotation.y = Math.PI;
 shotgunRecoilGroup.visible = false;
 camera.add(shotgunRecoilGroup);
+
+// Add player body to camera (visible when looking down with shotgun)
+// DISABLED - body removed
+// if (window.playerBodyGroup) {
+//     window.playerBodyGroup.visible = false;
+//     camera.add(window.playerBodyGroup);
+// }
+
+// === KICK SYSTEM ===
+let isKicking = false;
+let kickCooldown = 0;
+const KICK_COOLDOWN = 0.6; // seconds between kicks
+const KICK_DAMAGE = 2; // Takes 2 hits to kill most zombies
+const KICK_RANGE = 4.5;
+const KICK_KNOCKBACK = 15;
+const KICK_ANGLE = Math.PI / 3; // 60 degree cone in front
+
+// Kick leg mesh
+const kickLegGroup = new THREE.Group();
+const kickLegPivot = new THREE.Group(); // Pivot at hip for rotation
+
+// Thigh
+const kickThigh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.35, 0.9, 0.35),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.85 })
+);
+kickThigh.position.set(0, -0.45, 0);
+kickThigh.castShadow = true;
+kickLegPivot.add(kickThigh);
+
+// Knee
+const kickKnee = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0x0f0f0f, roughness: 0.9 })
+);
+kickKnee.position.set(0, -0.9, 0);
+kickKnee.castShadow = true;
+kickLegPivot.add(kickKnee);
+
+// Shin
+const kickShin = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.85, 0.3),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.85 })
+);
+kickShin.position.set(0, -1.35, 0);
+kickShin.castShadow = true;
+kickLegPivot.add(kickShin);
+
+// Boot
+const kickBoot = new THREE.Mesh(
+    new THREE.BoxGeometry(0.35, 0.35, 0.6),
+    new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.8 })
+);
+kickBoot.position.set(0, -1.85, 0.1);
+kickBoot.castShadow = true;
+kickLegPivot.add(kickBoot);
+
+// Boot toe (for that satisfying kick contact)
+const kickToe = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.25, 0.2),
+    new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.8 })
+);
+kickToe.position.set(0, -1.9, 0.35);
+kickToe.castShadow = true;
+kickLegPivot.add(kickToe);
+
+// Position pivot at hip level
+kickLegPivot.position.set(0.25, -0.8, -0.3);
+kickLegGroup.add(kickLegPivot);
+
+// Start with leg down/hidden
+kickLegPivot.rotation.x = 0.3; // Slightly back
+kickLegGroup.visible = false;
+camera.add(kickLegGroup);
+
+// Kick spring for smooth animation
+const kickSpring = new Spring(500, 25, 1);
+
+function kick() {
+    if (isKicking || kickCooldown > 0) return;
+    if (typeof isPaused !== 'undefined' && isPaused) return;
+    if (typeof isGameOver !== 'undefined' && isGameOver) return;
+
+    isKicking = true;
+    kickLegGroup.visible = true;
+
+    // Play kick sound
+    playKickSound();
+
+    // Animate leg up with spring
+    kickSpring.position = 0;
+    kickSpring.velocity = 0;
+    kickSpring.impulse(25);
+
+    // Check for zombie hits at peak of kick
+    setTimeout(() => {
+        performKickHit();
+    }, 100);
+
+    // Animate kick with tweens
+    // Phase 1: Kick UP (fast, aggressive)
+    new TWEEN.Tween(kickLegPivot.rotation)
+        .to({ x: -1.8 }, 120) // Kick up high (negative = forward/up)
+        .easing(TWEEN.Easing.Back.Out)
+        .onComplete(() => {
+            // Phase 2: Hold briefly at peak
+            new TWEEN.Tween(kickLegPivot.rotation)
+                .to({ x: -1.6 }, 80)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    // Phase 3: Return down
+                    new TWEEN.Tween(kickLegPivot.rotation)
+                        .to({ x: 0.3 }, 200)
+                        .easing(TWEEN.Easing.Quadratic.In)
+                        .onComplete(() => {
+                            kickLegGroup.visible = false;
+                            isKicking = false;
+                            kickCooldown = KICK_COOLDOWN;
+                        })
+                        .start();
+                })
+                .start();
+        })
+        .start();
+
+    // Screen shake on kick
+    Springs.recoilX.impulse((Math.random() - 0.5) * 2);
+    Springs.recoilY.impulse(-3);
+}
+
+function performKickHit() {
+    const playerPos = camera.position.clone();
+    const playerDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    playerDir.y = 0;
+    playerDir.normalize();
+
+    let hitCount = 0;
+
+    for (const zombie of zombies) {
+        if (zombie.isDead) continue;
+
+        const zombiePos = zombie.mesh.position.clone();
+        const toZombie = zombiePos.sub(playerPos);
+        toZombie.y = 0;
+        const dist = toZombie.length();
+
+        if (dist > KICK_RANGE) continue;
+
+        // Check if zombie is in front (within kick cone)
+        toZombie.normalize();
+        const dot = playerDir.dot(toZombie);
+
+        if (dot > Math.cos(KICK_ANGLE)) {
+            // HIT! Apply damage and knockback
+            hitCount++;
+
+            // Damage
+            zombie.health -= KICK_DAMAGE;
+
+            // Big knockback (kick them in the nuts!)
+            const knockDir = toZombie.clone();
+            knockDir.y = 0.3; // Slight upward
+            knockDir.normalize();
+
+            // Apply knockback velocity
+            zombie.knockbackVel = knockDir.multiplyScalar(KICK_KNOCKBACK);
+            zombie.isKnockedBack = true;
+            zombie.knockbackTime = 0.4;
+
+            // Stagger animation
+            zombie.mesh.rotation.x = -0.4;
+
+            // Hit feedback
+            if (typeof showHitmarker === 'function') showHitmarker(false);
+
+            // Check for kill
+            if (zombie.health <= 0 && !zombie.isDead) {
+                zombie.isDead = true;
+                zombie.deathTime = 0;
+                if (typeof addKillScore === 'function') addKillScore(50, false); // Kick kill bonus (higher!)
+                if (typeof zombiesKilledThisWave !== 'undefined') zombiesKilledThisWave++;
+
+                // EXPLODE ON KICK KILL - maximum violence
+                const zombiePos = zombie.mesh.position.clone();
+                zombiePos.y += 1; // Center mass
+
+                // Gore chunks flying everywhere
+                if (typeof spawnGoreChunks === 'function') {
+                    spawnGoreChunks(zombiePos, knockDir.clone());
+                    spawnGoreChunks(zombiePos.clone().add(new THREE.Vector3(0, 0.5, 0)), knockDir.clone());
+                }
+
+                // Blood spray
+                if (typeof spawnBloodSpray === 'function') {
+                    spawnBloodSpray(zombiePos, knockDir.clone(), 2.0);
+                }
+
+                // Blood pool
+                if (typeof spawnBloodPool === 'function') {
+                    spawnBloodPool(zombie.mesh.position);
+                }
+
+                // Hide the zombie mesh immediately (gibbed)
+                zombie.mesh.visible = false;
+            }
+        }
+    }
+
+    // Extra feedback if we hit something
+    if (hitCount > 0) {
+        Springs.recoilZ.impulse(-2);
+        // Meaty impact sound
+        playKickImpactSound();
+    }
+}
+
+function playKickSound() {
+    if (!actx) return;
+    if (actx.state === 'suspended') actx.resume();
+    const now = actx.currentTime;
+
+    // Whoosh sound
+    const noise = actx.createBufferSource();
+    const noiseBuffer = actx.createBuffer(1, 4410, actx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseData.length);
+    }
+    noise.buffer = noiseBuffer;
+
+    const whooshFilter = actx.createBiquadFilter();
+    whooshFilter.type = 'bandpass';
+    whooshFilter.frequency.setValueAtTime(800, now);
+    whooshFilter.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+    whooshFilter.Q.value = 1;
+
+    const whooshGain = actx.createGain();
+    whooshGain.gain.setValueAtTime(0.3, now);
+    whooshGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+    noise.connect(whooshFilter);
+    whooshFilter.connect(whooshGain);
+    whooshGain.connect(dryGain);
+
+    noise.start(now);
+    noise.stop(now + 0.15);
+}
+
+function playKickImpactSound() {
+    if (!actx) return;
+    if (actx.state === 'suspended') actx.resume();
+    const now = actx.currentTime;
+
+    // Meaty thud
+    const osc = actx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+
+    const thudGain = actx.createGain();
+    thudGain.gain.setValueAtTime(0.5, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+    // Noise burst for impact texture
+    const noise = actx.createBufferSource();
+    const noiseBuffer = actx.createBuffer(1, 2205, actx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / noiseData.length, 2);
+    }
+    noise.buffer = noiseBuffer;
+
+    const noiseGain = actx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+    osc.connect(thudGain);
+    thudGain.connect(dryGain);
+    noise.connect(noiseGain);
+    noiseGain.connect(dryGain);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+    noise.start(now);
+    noise.stop(now + 0.1);
+}
 
 // Sniper springs for bolt action
 const SniperSprings = {
@@ -8849,21 +9504,21 @@ const SniperSprings = {
 
 // Shotgun springs - PUNCHY and AGGRESSIVE with satisfying pump action
 const ShotgunSprings = {
-    // === VIOLENT SHOTGUN RECOIL - Brutal snap, lightning recovery ===
-    // Pump shotgun: VIOLENT kick that snaps back FAST
+    // === SHOTGUN RECOIL - Punchy but controlled ===
+    // Strong kick with fast recovery, won't accumulate off-screen
 
-    // Primary recoil - BRUTAL backward slam with fast recovery
-    recoilZ: new Spring(650, 40, 0.5),     // Very stiff, high damping = violent snap, instant settle
-    recoilX: new Spring(600, 38, 0.55),    // Aggressive muzzle climb, quick return
-    recoilY: new Spring(550, 35, 0.6),     // Vertical jump, snappy
+    // Primary recoil - punchy with high damping to prevent runaway
+    recoilZ: new Spring(500, 55, 0.6),     // Stiff + heavy damping = snappy settle
+    recoilX: new Spring(480, 52, 0.65),    // Muzzle climb, quick return
+    recoilY: new Spring(450, 48, 0.7),     // Vertical jump
 
-    // Rotational violence - shotgun TWISTS hard then snaps back
-    recoilRoll: new Spring(550, 34, 0.6),  // Hard twist, fast recovery
-    recoilTilt: new Spring(520, 32, 0.65), // Aggressive tilt, quick settle
+    // Rotational kick - controlled twist
+    recoilRoll: new Spring(450, 48, 0.7),  // Twist with fast recovery
+    recoilTilt: new Spring(420, 45, 0.75), // Tilt, quick settle
 
-    // Stock slam - PUNISHING shoulder impact
-    stockKick: new Spring(750, 45, 0.45),  // Ultra-fast compression and return
-    stockRotate: new Spring(650, 40, 0.5), // Barrel tip up hard, snap back
+    // Stock impact - satisfying but controlled
+    stockKick: new Spring(600, 60, 0.5),   // Fast compression and return
+    stockRotate: new Spring(550, 55, 0.55),// Barrel tip up, snap back
 
     // Pump action springs - crisp mechanical feel
     pumpPull: new Spring(550, 34, 0.6),    // Fast pump back
@@ -8871,24 +9526,24 @@ const ShotgunSprings = {
     pumpRotate: new Spring(400, 26, 0.8),  // Slight rotation during pump
 
     // Weapon sway - heavier than AK, lighter than sniper
-    swayX: new Spring(55, 8, 1.4),
-    swayY: new Spring(55, 8, 1.4),
-    momentumX: new Spring(45, 7, 1.6),
-    momentumZ: new Spring(45, 7, 1.6),
+    swayX: new Spring(55, 12, 1.2),
+    swayY: new Spring(55, 12, 1.2),
+    momentumX: new Spring(45, 14, 1.3),
+    momentumZ: new Spring(45, 14, 1.3),
 
     // Shell ejection physics
     shellEject: new Spring(500, 30, 0.6),  // Fast shell kick
 
     // Recovery - FAST return to ready
-    recoveryZ: new Spring(120, 22, 0.9),
-    recoveryX: new Spring(110, 20, 0.9),
+    recoveryZ: new Spring(150, 28, 0.8),
+    recoveryX: new Spring(140, 26, 0.8),
 
     // Barrel droop after shot
-    barrelDroop: new Spring(90, 14, 1.4),
+    barrelDroop: new Spring(90, 18, 1.2),
 
     // Fore-end (pump grip) independent motion
-    foreEndZ: new Spring(350, 22, 0.9),
-    foreEndRotate: new Spring(280, 18, 1.0),
+    foreEndZ: new Spring(350, 28, 0.8),
+    foreEndRotate: new Spring(280, 22, 0.9),
 };
 
 // Camera Rig
@@ -8896,8 +9551,8 @@ const hipPos = new THREE.Vector3(0.9, -1.1, -1.8);
 const aimPos = new THREE.Vector3(0.0, -1.22, -0.5);
 const sniperHipPos = new THREE.Vector3(0.5, -0.8, -1.1);
 const sniperAimPos = new THREE.Vector3(0.0, -0.62, -0.35); // Higher for scope alignment
-const shotgunHipPos = new THREE.Vector3(0.85, -1.15, -1.9);
-const shotgunAimPos = new THREE.Vector3(0.0, -1.1, -0.7); // Iron sights aim position
+const shotgunHipPos = new THREE.Vector3(0.75, -0.95, -2.8); // Zoomed out, down+right
+const shotgunAimPos = new THREE.Vector3(0.0, -0.65, -1.4); // Iron sights aim position (adjusted for new scale)
 
 // Position AK-47
 recoilGroup.position.copy(hipPos);
@@ -10249,44 +10904,44 @@ function shoot() {
     const horizontalBias = (Math.random() - 0.5) * (isSniper ? 0.15 : (isShotgun ? 0.25 : 0.4));
 
     if (isShotgun) {
-        // === VIOLENT SHOTGUN RECOIL - Brutal snap, lightning recovery ===
-        // Pump shotgun: HITS HARD then snaps back instantly
+        // === SHOTGUN RECOIL - Punchy but controlled ===
+        // Pump shotgun: Strong kick that recovers quickly
 
-        // Primary kick - VIOLENT backward slam
-        ShotgunSprings.recoilZ.impulse(-85 * aimMod * recoilVariance);
+        // Primary kick - backward slam (reduced from -85)
+        ShotgunSprings.recoilZ.impulse(-35 * aimMod * recoilVariance);
 
-        // Muzzle climb - AGGRESSIVE
-        ShotgunSprings.recoilX.impulse(-28 * aimMod * recoilVariance);
+        // Muzzle climb (reduced from -28)
+        ShotgunSprings.recoilX.impulse(-12 * aimMod * recoilVariance);
 
-        // Vertical jump - whole gun RISES
-        ShotgunSprings.recoilY.impulse(12 * aimMod * recoilVariance);
+        // Vertical jump (reduced from 12)
+        ShotgunSprings.recoilY.impulse(5 * aimMod * recoilVariance);
 
-        // Rotational violence - shotgun TWISTS hard
-        ShotgunSprings.recoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.4) * 6 * aimMod);
-        ShotgunSprings.recoilTilt.impulse((Math.random() - 0.5) * 4 * aimMod);
+        // Rotational kick (reduced from 6)
+        ShotgunSprings.recoilRoll.impulse((horizontalBias + (Math.random() - 0.5) * 0.4) * 3 * aimMod);
+        ShotgunSprings.recoilTilt.impulse((Math.random() - 0.5) * 2 * aimMod);
 
-        // Stock slam into shoulder - PUNISHING
-        ShotgunSprings.stockKick.impulse(55 * aimMod * recoilVariance);
-        ShotgunSprings.stockRotate.impulse(-20 * aimMod * recoilVariance);
+        // Stock slam into shoulder (reduced from 55)
+        ShotgunSprings.stockKick.impulse(22 * aimMod * recoilVariance);
+        ShotgunSprings.stockRotate.impulse(-8 * aimMod * recoilVariance);
 
         // Barrel droop after the kick
-        ShotgunSprings.barrelDroop.impulse(10 * recoilVariance);
+        ShotgunSprings.barrelDroop.impulse(5 * recoilVariance);
 
-        // Momentum - weapon trails behind HARD
-        ShotgunSprings.momentumX.impulse(horizontalBias * 25);
-        ShotgunSprings.momentumZ.impulse(-35 * aimMod);
+        // Momentum (reduced from 25/-35)
+        ShotgunSprings.momentumX.impulse(horizontalBias * 10);
+        ShotgunSprings.momentumZ.impulse(-15 * aimMod);
 
         // Recovery - fast return
         ShotgunSprings.recoveryZ.target = ShotgunSprings.recoilZ.position * 0.25;
         ShotgunSprings.recoveryX.target = ShotgunSprings.recoilX.position * 0.25;
 
         // Camera recoil - punchy snap
-        cameraRecoil += 0.12 * aimMod * recoilVariance;
+        cameraRecoil += 0.08 * aimMod * recoilVariance;
 
-        // Screen shake - aggressive
-        Springs.shakeX.impulse((Math.random() - 0.5) * 10 * aimMod);
-        Springs.shakeY.impulse((Math.random() - 0.2) * 8 * aimMod);
-        Springs.shakeRoll.impulse((Math.random() - 0.5) * 5 * aimMod);
+        // Screen shake (reduced from 10/8/5)
+        Springs.shakeX.impulse((Math.random() - 0.5) * 5 * aimMod);
+        Springs.shakeY.impulse((Math.random() - 0.2) * 4 * aimMod);
+        Springs.shakeRoll.impulse((Math.random() - 0.5) * 2.5 * aimMod);
 
         // Body rocks from the kick
         Springs.bobZ.impulse(-5 * aimMod);
@@ -10900,6 +11555,12 @@ function switchWeapon(targetWeapon) {
         document.getElementById('pump-indicator').classList.remove('show');
     }
 
+    // Hide body when switching away from shotgun
+    // DISABLED - body removed
+    // if (currentWeapon === 'shotgun' && window.playerBodyGroup) {
+    //     window.playerBodyGroup.visible = false;
+    // }
+
     // Lower current weapon
     const currentRecoilGroup = getWeaponRecoilGroup(currentWeapon);
     new TWEEN.Tween(currentRecoilGroup.position)
@@ -10911,6 +11572,12 @@ function switchWeapon(targetWeapon) {
 
             // Switch weapon
             currentWeapon = targetWeapon;
+
+            // Show body when switching to shotgun
+            // DISABLED - body removed
+            // if (targetWeapon === 'shotgun' && window.playerBodyGroup) {
+            //     window.playerBodyGroup.visible = true;
+            // }
 
             // Show and raise new weapon
             const newRecoilGroup = getWeaponRecoilGroup(currentWeapon);
@@ -11142,7 +11809,7 @@ function reload() {
         return;
     }
 
-    // Handle shotgun reload (shell-by-shell tactical reload)
+    // Handle shotgun reload (shell-by-shell tactical reload) - ULTRA SATISFYING VERSION
     if (currentWeapon === 'shotgun') {
         // Can't reload if already full or currently pumping
         if (shotgunAmmo >= shotgunMagSize || isPumping) return;
@@ -11157,88 +11824,324 @@ function reload() {
 
         const origPos = shotgunRecoilGroup.position.clone();
         const origRot = shotgunRecoilGroup.rotation.clone();
+        const origPumpZ = sgPumpPivot.position.z; // Store original pump position
+        const wasEmpty = shotgunAmmo === 0; // Track if we need to rack after reload
 
         // Calculate how many shells to load
         const shellsToLoad = Math.min(shotgunMagSize - shotgunAmmo, shotgunReserve);
         let shellsLoaded = 0;
 
-        // Shell loading animation loop
+        // Reload position constants (tilted to expose loading port)
+        const reloadPos = {
+            x: origPos.x - 0.25,
+            y: origPos.y + 0.15,
+            z: origPos.z + 0.2
+        };
+        const reloadRot = {
+            x: 0.35,
+            y: Math.PI + 0.15,
+            z: 0.65
+        };
+
+        // === PHASE 1: DRAMATIC WEAPON LIFT & TILT ===
+        function beginReload() {
+            // Quick snap up - feel the weight
+            ShotgunSprings.recoilZ.impulse(8);
+            ShotgunSprings.momentumX.impulse(-15);
+
+            // Bring weapon up and rotate to expose loading port
+            new TWEEN.Tween(shotgunRecoilGroup.position)
+                .to({
+                    x: origPos.x - 0.1,
+                    y: origPos.y + 0.25,
+                    z: origPos.z - 0.1
+                }, 180)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    // Settle into reload position with satisfying drop
+                    ShotgunSprings.stockKick.impulse(-5);
+                    new TWEEN.Tween(shotgunRecoilGroup.position)
+                        .to(reloadPos, 220)
+                        .easing(TWEEN.Easing.Back.Out)
+                        .start();
+                })
+                .start();
+
+            new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                .to({ z: 0.3, x: 0.15, y: Math.PI + 0.08 }, 180)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    // Final tilt with flourish
+                    new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                        .to(reloadRot, 220)
+                        .easing(TWEEN.Easing.Back.Out)
+                        .onComplete(() => {
+                            // Small settle bounce
+                            ShotgunSprings.recoilTilt.impulse(2);
+                            setTimeout(() => loadNextShell(), 80);
+                        })
+                        .start();
+                })
+                .start();
+        }
+
+        // === PHASE 2: SHELL LOADING LOOP ===
         function loadNextShell() {
             if (shellsLoaded >= shellsToLoad || !isReloading || currentWeapon !== 'shotgun') {
-                // Finish reload - return to ready position
-                new TWEEN.Tween(shotgunRecoilGroup.rotation)
-                    .to({ z: 0, x: 0, y: Math.PI }, 250)
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .start();
-
-                new TWEEN.Tween(shotgunRecoilGroup.position)
-                    .to({ x: origPos.x, y: origPos.y, z: origPos.z }, 250)
-                    .easing(TWEEN.Easing.Quadratic.Out)
-                    .onComplete(() => {
-                        isReloading = false;
-                        updateHUD();
-                    })
-                    .start();
+                finishReload();
                 return;
             }
 
-            // === PHASE 1: Tilt weapon to expose loading port (0-200ms) ===
-            if (shellsLoaded === 0) {
+            // Variation for natural feel
+            const variation = (Math.random() - 0.5) * 0.02;
+            const shellIndex = shellsLoaded;
+
+            // === REACH FOR SHELL (hand motion simulation) ===
+            // Weapon drops slightly as hand reaches for belt/shell holder
+            const dropAmount = 0.08 + Math.random() * 0.03;
+
+            new TWEEN.Tween(shotgunRecoilGroup.position)
+                .to({
+                    y: reloadPos.y - dropAmount,
+                    z: reloadPos.z + 0.05
+                }, 100)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            // Subtle rotation as hand moves
+            new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                .to({
+                    z: reloadRot.z + 0.08,
+                    x: reloadRot.x - 0.05
+                }, 100)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            ShotgunSprings.swayX.impulse(3 + Math.random() * 2);
+
+            // === BRING SHELL TO LOADING PORT ===
+            setTimeout(() => {
+                // Weapon rises as shell approaches
                 new TWEEN.Tween(shotgunRecoilGroup.position)
-                    .to({ y: origPos.y + 0.1, x: origPos.x - 0.15, z: origPos.z + 0.1 }, 200)
+                    .to({
+                        y: reloadPos.y + 0.02,
+                        x: reloadPos.x + 0.03,
+                        z: reloadPos.z
+                    }, 80)
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .start();
 
                 new TWEEN.Tween(shotgunRecoilGroup.rotation)
-                    .to({ z: 0.5, x: 0.2, y: Math.PI + 0.1 }, 200)
+                    .to({
+                        z: reloadRot.z - 0.05,
+                        x: reloadRot.x + 0.03
+                    }, 80)
                     .easing(TWEEN.Easing.Quadratic.Out)
-                    .onComplete(() => insertShell())
+                    .start();
+
+                // === INSERT SHELL - THE SATISFYING PART ===
+                setTimeout(() => {
+                    // Quick push motion
+                    new TWEEN.Tween(shotgunRecoilGroup.position)
+                        .to({
+                            y: reloadPos.y + 0.06,
+                            z: reloadPos.z - 0.04
+                        }, 50)
+                        .easing(TWEEN.Easing.Quadratic.In)
+                        .start();
+
+                    // Pump jiggles from impact
+                    new TWEEN.Tween(sgPumpPivot.position)
+                        .to({ z: origPumpZ + 0.15 }, 30)
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .chain(
+                            new TWEEN.Tween(sgPumpPivot.position)
+                                .to({ z: origPumpZ }, 40)
+                                .easing(TWEEN.Easing.Quadratic.In)
+                        )
+                        .start();
+
+                    // Shell click sound
+                    playSound('shellLoad');
+
+                    // Spring impulses for CHUNKY feel
+                    ShotgunSprings.recoilZ.impulse(-4);
+                    ShotgunSprings.stockKick.impulse(-8);
+                    ShotgunSprings.recoilTilt.impulse(3 + variation * 50);
+
+                    // === SHELL SEATS - SATISFYING CLICK ===
+                    setTimeout(() => {
+                        // Weapon settles back with bounce
+                        new TWEEN.Tween(shotgunRecoilGroup.position)
+                            .to({
+                                y: reloadPos.y,
+                                x: reloadPos.x,
+                                z: reloadPos.z
+                            }, 100)
+                            .easing(TWEEN.Easing.Elastic.Out)
+                            .start();
+
+                        new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                            .to(reloadRot, 100)
+                            .easing(TWEEN.Easing.Quadratic.Out)
+                            .start();
+
+                        // Subtle bounce springs
+                        ShotgunSprings.recoilY.impulse(-2);
+                        ShotgunSprings.foreEndZ.impulse(-3);
+
+                        // Update ammo
+                        shotgunAmmo++;
+                        shotgunReserve--;
+                        shellsLoaded++;
+                        updateHUD();
+
+                        // Rhythm pause - slightly longer on last shell for anticipation
+                        const isLastShell = shellsLoaded >= shellsToLoad;
+                        const pauseTime = isLastShell ? 150 : (120 + Math.random() * 40);
+
+                        setTimeout(() => {
+                            if (isReloading && currentWeapon === 'shotgun') {
+                                loadNextShell();
+                            }
+                        }, pauseTime);
+                    }, 45);
+                }, 70);
+            }, 90);
+        }
+
+        // === PHASE 3: FINISH RELOAD - RETURN TO READY ===
+        function finishReload() {
+            // If was empty, need to rack a shell into the chamber
+            if (wasEmpty && shotgunAmmo > 0) {
+                // === EPIC PUMP RACK FINISH ===
+                // First, return to more neutral position
+                new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                    .to({ z: 0.15, x: 0.1, y: Math.PI }, 200)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .start();
+
+                new TWEEN.Tween(shotgunRecoilGroup.position)
+                    .to({
+                        x: origPos.x - 0.1,
+                        y: origPos.y + 0.05,
+                        z: origPos.z + 0.15
+                    }, 200)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .onComplete(() => {
+                        // === PUMP PULL - AGGRESSIVE ===
+                        playSound('pumpPull');
+
+                        // Hand grabs pump and YANKS back
+                        new TWEEN.Tween(sgPumpPivot.position)
+                            .to({ z: origPumpZ + 1.4 }, 100)
+                            .easing(TWEEN.Easing.Cubic.Out)
+                            .start();
+
+                        // Weapon kicks back from pump force
+                        ShotgunSprings.recoilZ.impulse(-15);
+                        ShotgunSprings.stockKick.impulse(12);
+                        ShotgunSprings.foreEndZ.impulse(-25);
+
+                        // Screen shake on pump pull
+                        Springs.shakeX.impulse((Math.random() - 0.5) * 3);
+                        Springs.shakeY.impulse(-2);
+
+                        new TWEEN.Tween(shotgunRecoilGroup.position)
+                            .to({ z: origPos.z + 0.25 }, 100)
+                            .easing(TWEEN.Easing.Quadratic.Out)
+                            .start();
+
+                        new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                            .to({ x: -0.08 }, 100)
+                            .easing(TWEEN.Easing.Quadratic.Out)
+                            .start();
+
+                        // === PUMP PUSH - SLAM HOME ===
+                        setTimeout(() => {
+                            playSound('pumpPush');
+
+                            // SLAM pump forward
+                            new TWEEN.Tween(sgPumpPivot.position)
+                                .to({ z: origPumpZ }, 80)
+                                .easing(TWEEN.Easing.Cubic.In)
+                                .start();
+
+                            // Weapon snaps forward
+                            ShotgunSprings.recoilZ.impulse(-8);
+                            ShotgunSprings.stockKick.impulse(20);
+                            ShotgunSprings.foreEndZ.impulse(15);
+
+                            // SATISFYING screen shake on slam
+                            Springs.shakeX.impulse((Math.random() - 0.5) * 5);
+                            Springs.shakeY.impulse(3);
+                            Springs.shakeRoll.impulse((Math.random() - 0.5) * 2);
+
+                            new TWEEN.Tween(shotgunRecoilGroup.position)
+                                .to({ z: origPos.z - 0.05 }, 80)
+                                .easing(TWEEN.Easing.Quadratic.In)
+                                .start();
+
+                            new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                                .to({ x: 0.05 }, 80)
+                                .easing(TWEEN.Easing.Quadratic.In)
+                                .start();
+
+                            // === RETURN TO READY ===
+                            setTimeout(() => {
+                                returnToReady();
+                            }, 100);
+                        }, 130);
+                    })
                     .start();
             } else {
-                insertShell();
+                // No pump needed, just return smoothly
+                returnToReady();
             }
         }
 
-        function insertShell() {
-            // === PHASE 2: Insert shell animation (per shell) ===
-            // Quick upward motion as shell is pushed in
-            new TWEEN.Tween(shotgunRecoilGroup.position)
-                .to({ y: origPos.y + 0.12 }, 80)
+        function returnToReady() {
+            // Satisfying return with slight overshoot
+            ShotgunSprings.momentumZ.impulse(-8);
+            ShotgunSprings.swayX.impulse(-5);
+
+            new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                .to({ z: -0.05, x: -0.03, y: Math.PI }, 180)
                 .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    // Final settle
+                    new TWEEN.Tween(shotgunRecoilGroup.rotation)
+                        .to({ z: 0, x: 0, y: Math.PI }, 150)
+                        .easing(TWEEN.Easing.Quadratic.InOut)
+                        .start();
+                })
                 .start();
 
-            // Slight weapon rock from shell insertion
-            ShotgunSprings.recoilZ.impulse(-1.5);
-            ShotgunSprings.recoilTilt.impulse(0.8);
-
-            setTimeout(() => {
-                playSound('shellLoad');
-
-                // Shell click into tube
-                new TWEEN.Tween(shotgunRecoilGroup.position)
-                    .to({ y: origPos.y + 0.08 }, 60)
-                    .easing(TWEEN.Easing.Back.Out)
-                    .start();
-
-                ShotgunSprings.stockKick.impulse(-1);
-
-                // Update ammo
-                shotgunAmmo++;
-                shotgunReserve--;
-                shellsLoaded++;
-                updateHUD();
-
-                // Small delay then next shell or finish
-                setTimeout(() => {
-                    if (isReloading && currentWeapon === 'shotgun') {
-                        loadNextShell();
-                    }
-                }, 180);
-            }, 100);
+            new TWEEN.Tween(shotgunRecoilGroup.position)
+                .to({
+                    x: origPos.x,
+                    y: origPos.y - 0.03,
+                    z: origPos.z - 0.05
+                }, 180)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                    // Final position settle with bounce
+                    new TWEEN.Tween(shotgunRecoilGroup.position)
+                        .to({ x: origPos.x, y: origPos.y, z: origPos.z }, 150)
+                        .easing(TWEEN.Easing.Elastic.Out)
+                        .onComplete(() => {
+                            isReloading = false;
+                            updateHUD();
+                            // Final satisfying spring settle
+                            ShotgunSprings.recoilY.impulse(1);
+                        })
+                        .start();
+                })
+                .start();
         }
 
-        // Start loading sequence
-        loadNextShell();
+        // Start the reload sequence
+        beginReload();
         return;
     }
 
@@ -11341,6 +12244,8 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Digit1') switchWeapon('ak');
     if (e.code === 'Digit2') switchWeapon('sniper');
     if (e.code === 'Digit3') switchWeapon('shotgun');
+    // Kick
+    if (e.code === 'KeyV') kick();
 });
 
 // Pause menu button handlers
@@ -11472,6 +12377,9 @@ function animate(time) {
 
     // Update slow-motion system (uses real time, not scaled)
     updateSlowmo(realDt);
+
+    // Update kick cooldown
+    if (kickCooldown > 0) kickCooldown -= realDt;
 
     // Throttled shadow updates (increased interval for performance)
     if (frameCount % (SHADOW_UPDATE_INTERVAL * 2) === 0) {

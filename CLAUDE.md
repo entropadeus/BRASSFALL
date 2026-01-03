@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code Navigation
+
+**Use `CODE_MAP.md` for quick symbol lookup.** It contains line numbers for all classes, functions, shaders, and constants in `index.html`.
+
+Example: To edit `shoot()`, check CODE_MAP.md → `shoot` is at lines 10522-10978 → read `index.html:10522-10978`.
+
+Regenerate after major changes: `node scripts/generate-code-map.js`
+
 ## Project Overview
 
 **BRASSFALL** - a browser-based AK-47 shooting simulation built as a single-file HTML application. It uses Three.js (r128) for 3D rendering and TWEEN.js for animations, both loaded from CDN.
