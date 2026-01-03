@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRASSFALL</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/hud.css">
+    <link rel="stylesheet" href="styles/menu.css">
+    <link rel="stylesheet" href="styles/animations.css">
+</head>
+<body>
+
+<!-- Background Music -->
+<audio id="bg-music" loop preload="auto">
+    <source src="Tumor.mp3" type="audio/mpeg">
+</audio>
+
+<!-- ============ MAIN MENU - BRASSFALL ============ -->
+<div id="main-menu">
+    <!-- Atmospheric background layers -->
+    <div class="menu-grid"></div>
+    <div class="menu-particles" id="menu-particles"></div>
+    <div class="menu-scanlines"></div>
+    <div class="menu-vignette"></div>
+
+    <!-- Warning stripes -->
+    <div class="warning-stripe top"></div>
+    <div class="warning-stripe bottom"></div>
+
+    <!-- Audio Settings Panel -->
+    <div class="audio-settings" id="audio-settings">
+        <div class="audio-settings-title">// Audio //</div>
+        <div class="audio-control">
+            <span class="audio-label">MUSIC</span>
+            <input type="range" class="audio-slider" id="music-volume" min="0" max="100" value="50">
+            <span class="audio-value" id="music-value">50%</span>
+        </div>
+        <div class="audio-control">
+            <span class="audio-label">SFX</span>
+            <input type="range" class="audio-slider" id="sfx-volume" min="0" max="100" value="70">
+            <span class="audio-value" id="sfx-value">70%</span>
+        </div>
+    </div>
+
+    <!-- Title section -->
+    <div class="title-container">
+        <div class="classification">/// CLASSIFIED - CONTAINMENT BREACH ///</div>
+        <h1 class="menu-title">BRASSFALL</h1>
+        <div class="menu-subtitle">Survival Protocol Initiated</div>
+    </div>
+
+    <!-- Play button -->
+    <div class="menu-buttons">
+        <button class="menu-btn" id="play-btn">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            ENGAGE
+        </button>
+    </div>
+
+    <!-- Controls panel -->
+    <div class="controls-panel">
+        <div class="controls-title">// Combat Systems //</div>
+        <div class="controls-grid">
+            <div class="control-item">
+                <span class="control-key">WASD</span>
+                <span class="control-action">Movement</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">SHIFT</span>
+                <span class="control-action">Sprint</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">SPACE</span>
+                <span class="control-action">Jump</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">R</span>
+                <span class="control-action">Reload</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">LMB</span>
+                <span class="control-action">Fire</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">RMB</span>
+                <span class="control-action">Aim</span>
+            </div>
+        </div>
+        <div class="weapons-info">
+            [1] AK-47 &nbsp;&nbsp;|&nbsp;&nbsp; [2] SNIPER &nbsp;&nbsp;|&nbsp;&nbsp; [SCROLL] Switch
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="menu-footer">v1.0 // CONTAINMENT FACILITY</div>
+</div>
+
+<!-- Legacy blocker (hidden, kept for pointer lock) -->
+<div id="blocker" style="display: none;">
+    <h1>BRASSFALL</h1>
+    <p>Click to continue</p>
+</div>
+
+<div id="game-over" style="display: none;">
+    <div style="font-size: 12px; letter-spacing: 6px; color: #f00; margin-bottom: 10px; opacity: 0.8;">/// CONTAINMENT FAILURE ///</div>
+    <h1 style="color: #f00; text-shadow: 0 0 20px #f00, 0 0 40px #f00; font-size: 80px; letter-spacing: 10px; margin: 0;">TERMINATED</h1>
+    <div style="font-size: 14px; color: #666; letter-spacing: 4px; margin-top: 10px;">OPERATIVE STATUS: DECEASED</div>
+    <p style="font-size: 28px; color: #ff0; text-shadow: 0 0 10px #ff0; margin-top: 30px;">SCORE: <span id="final-score">0</span></p>
+    <p style="font-size: 16px; color: #888;">Survived to Wave <span id="final-wave" style="color: #f00;">1</span></p>
+    <button id="restart-btn" style="margin-top: 30px; padding: 18px 60px; font-size: 20px; background: transparent; color: #f00; border: 2px solid rgba(255,0,0,0.6); cursor: pointer; font-family: inherit; letter-spacing: 6px; transition: all 0.3s ease;">REINITIALIZE</button>
+</div>
+
+<div id="crosshair"></div>
+<div id="hitmarker">
+    <div class="hm-line"></div>
+    <div class="hm-line"></div>
+</div>
+
+<div id="damage-flash"></div>
+
+<!-- Slow-Motion Effect Overlay -->
+<div id="slowmo-overlay"></div>
+
+<!-- Pause Menu -->
+<div id="pause-overlay">
+    <div id="pause-title">PAUSED</div>
+    <button class="pause-menu-btn" id="resume-btn">Resume</button>
+    <button class="pause-menu-btn" id="restart-btn-pause">Restart</button>
+    <div id="pause-hint">Press ESC to resume</div>
+</div>
+<div id="slowmo-text">BREACH CLEARED</div>
+
+<!-- Damage Direction Indicator -->
+<div id="damage-direction">
+    <div class="damage-arrow top"></div>
+    <div class="damage-arrow bottom"></div>
+    <div class="damage-arrow left"></div>
+    <div class="damage-arrow right"></div>
+    <div class="damage-arrow top-left"></div>
+    <div class="damage-arrow top-right"></div>
+    <div class="damage-arrow bottom-left"></div>
+    <div class="damage-arrow bottom-right"></div>
+</div>
+
+<!-- Low Health Vignette -->
+<div id="low-health-vignette"></div>
+
+<!-- Top HUD - Wave and Score -->
+<div id="top-hud">
+    <div id="wave-display">INITIALIZING...</div>
+    <div id="zombie-count">0 HOSTILES</div>
+    <div id="score-display">00000000</div>
+</div>
+
+<!-- Kill Multiplier Display -->
+<div id="multiplier-container" data-tier="1">
+    <div id="multiplier-value">1x</div>
+    <div id="multiplier-label">COMBO</div>
+    <div id="multiplier-timer">
+        <div id="multiplier-timer-fill"></div>
+    </div>
+</div>
+
+<!-- In-Game Audio Toggle -->
+<div id="audio-toggle">
+    <button class="audio-btn" id="toggle-music" title="Toggle Music">&#9835;</button>
+    <button class="audio-btn" id="toggle-sfx" title="Toggle SFX">&#128266;</button>
+</div>
+
+<!-- Bottom Left - Health -->
+<div id="regen-indicator">+ REGENERATING</div>
+<div id="health-container">
+    <div id="health-bar">
+        <div id="health-fill"></div>
+    </div>
+    <div id="health-text">100</div>
+</div>
+
+<!-- Bottom Right - Ammo -->
+<div id="ammo-display">30 / 90</div>
+
+<!-- Weapon Indicator -->
+<div id="weapon-indicator">
+    <div class="weapon-slot active" data-weapon="ak">1: AK-47</div>
+    <div class="weapon-slot" data-weapon="sniper">2: SNIPER</div>
+    <div class="weapon-slot" data-weapon="shotgun">3: SHOTGUN</div>
+</div>
+
+<!-- Scope Overlay (for sniper ADS) -->
+<div id="scope-overlay">
+    <div class="scope-vignette"></div>
+    <div class="scope-reticle">
+        <div class="reticle-cross-h"></div>
+        <div class="reticle-cross-v"></div>
+        <div class="reticle-dot"></div>
+        <div class="reticle-mil mil-1"></div>
+        <div class="reticle-mil mil-2"></div>
+        <div class="reticle-mil mil-3"></div>
+        <div class="reticle-mil mil-4"></div>
+    </div>
+</div>
+
+<!-- Bolt Action Indicator -->
+<div id="bolt-indicator">CYCLE BOLT [LMB]</div>
+<!-- Pump Action Indicator -->
+<div id="pump-indicator">PUMP [R]</div>
+
+<!-- Import Map for ES Module Resolution -->
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+    }
+}
+</script>
+
+<!-- External Dependencies -->
+<!-- TWEEN.js loaded as global for compatibility -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+<!-- Main Game Entry Point -->
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
+
