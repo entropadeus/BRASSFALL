@@ -10,6 +10,8 @@ Example: To edit `shoot()`, check CODE_MAP.md → `shoot` is at lines 10522-1097
 
 Regenerate after major changes: `node scripts/generate-code-map.js`
 
+**OVERRIDE: Always use AST grep (`ast-grep`) for code search and refactoring.** Do NOT use regex-based grep - use AST-aware pattern matching for accurate structural code matching.
+
 ## Project Overview
 
 **BRASSFALL** - a browser-based AK-47 shooting simulation built as a single-file HTML application. It uses Three.js (r128) for 3D rendering and TWEEN.js for animations, both loaded from CDN.

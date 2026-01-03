@@ -3785,6 +3785,43 @@ function playSound(type) {
         });
         return;
 
+    } else if (type === 'doubleJump') {
+        // Whooshy air burst for double jump
+        const whooshBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
+        const whooshData = whooshBuf.getChannelData(0);
+        for (let i = 0; i < whooshBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            whooshData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 20) * 0.4;
+        }
+        const whooshSrc = actx.createBufferSource();
+        whooshSrc.buffer = whooshBuf;
+        const whooshFilter = actx.createBiquadFilter();
+        whooshFilter.type = 'bandpass';
+        whooshFilter.frequency.setValueAtTime(400, now);
+        whooshFilter.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+        whooshFilter.Q.value = 1.0;
+        const whooshGain = actx.createGain();
+        whooshGain.gain.setValueAtTime(0.5, now);
+        whooshGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        whooshSrc.connect(whooshFilter);
+        whooshFilter.connect(whooshGain);
+        whooshGain.connect(dryGain);
+        whooshSrc.start(now);
+
+        // Quick upward tone for lift feel
+        const liftOsc = actx.createOscillator();
+        const liftGain = actx.createGain();
+        liftOsc.connect(liftGain);
+        liftGain.connect(dryGain);
+        liftOsc.type = 'sine';
+        liftOsc.frequency.setValueAtTime(200, now);
+        liftOsc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+        liftGain.gain.setValueAtTime(0.15, now);
+        liftGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        liftOsc.start(now);
+        liftOsc.stop(now + 0.12);
+        return;
+
     } else if (type === 'nuke') {
         // Massive explosion
         osc.type = 'sawtooth';
@@ -6894,20 +6931,21 @@ function updateWaveSystem(dt) {
         addScore(currentWave * 500);
         playSound('waveComplete');
 
-        // Spawn guaranteed pickup on wave clear as reward
-        if (currentWave >= 2) {
-            const type = getRandomPickupType();
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 8 + Math.random() * 15;
-            spawnPickup(type, camera.position.x + Math.cos(angle) * dist, camera.position.z + Math.sin(angle) * dist);
-        }
+        // Spawn guaranteed pickup on wave clear as reward - DISABLED
+        // if (currentWave >= 2) {
+        //     const type = getRandomPickupType();
+        //     const angle = Math.random() * Math.PI * 2;
+        //     const dist = 8 + Math.random() * 15;
+        //     spawnPickup(type, camera.position.x + Math.cos(angle) * dist, camera.position.z + Math.sin(angle) * dist);
+        // }
     }
 }
 
-// PICKUP SYSTEM
-const pickups = [];
+// PICKUP SYSTEM - DISABLED FOR PERFORMANCE
+// const pickups = [];
+const pickups = []; // Keep empty array to prevent errors
 
-// Power-up state
+// Power-up state - DISABLED
 let speedBoostTimer = 0;
 let damageBoostTimer = 0;
 let rapidFireTimer = 0;
@@ -6918,9 +6956,10 @@ let shieldTimer = 0;
 
 const speedBoostMultiplier = 1.8;
 const damageBoostMultiplier = 2;
-const rapidFireMultiplier = 2.5; // 2.5x faster fire rate
-const shieldDamageReduction = 0.25; // Take only 25% damage
+const rapidFireMultiplier = 2.5;
+const shieldDamageReduction = 0.25;
 
+/* === POWER-UPS DISABLED FOR PERFORMANCE ===
 // Pickup types configuration
 const PICKUP_TYPES = {
     ammo: { color: 0xffaa00, glowColor: 0xffcc00, height: 0.4, label: 'AMMO', rarity: 1 },
@@ -7527,6 +7566,7 @@ function showPickupText(text, color) {
         textEl.style.top = '35%';
     }, 1000);
 }
+=== END POWER-UPS DISABLED === */
 
 // BLOOD & GORE SYSTEM
 const bloodParticles = [];
@@ -9366,6 +9406,89 @@ function kick() {
     Springs.recoilY.impulse(-3);
 }
 
+// === SLIDE FUNCTION ===
+function startSlide() {
+    isSliding = true;
+    slideTimer = slideDuration;
+
+    // Capture current ACTUAL movement direction (velocity-based, not just camera)
+    // This preserves momentum from sprinting
+    const fwd = new THREE.Vector3();
+    camera.getWorldDirection(fwd);
+    fwd.y = 0;
+    fwd.normalize();
+
+    const rgt = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+
+    // Calculate world velocity direction from current velocity
+    const worldVelX = rgt.x * velocity.x + fwd.x * velocity.z;
+    const worldVelZ = rgt.z * velocity.x + fwd.z * velocity.z;
+    const currentVelMag = Math.sqrt(worldVelX * worldVelX + worldVelZ * worldVelZ);
+
+    // If we have velocity, use that direction; otherwise use camera forward
+    if (currentVelMag > 1) {
+        slideDirection.set(worldVelX / currentVelMag, 0, worldVelZ / currentVelMag);
+    } else {
+        slideDirection.copy(fwd);
+    }
+
+    // Calculate initial slide speed based on current velocity + boost
+    const sprintSpeed = baseSpeed * sprintMultiplier * (speedBoostTimer > 0 ? speedBoostMultiplier : 1);
+    // Carry forward current momentum and add boost
+    slideSpeed = Math.max(currentVelMag, sprintSpeed) * slideSpeedBoost;
+
+    // Play slide sound (using existing sound system)
+    playSlideSound();
+
+    // Initial spring impulses for juicy feedback
+    Springs.slideY.impulse(slideCameraDropMax * 2);           // Quick camera drop
+    Springs.slideTilt.impulse(0.35);                          // Forward lean
+    Springs.slideRoll.impulse((Math.random() - 0.5) * 0.15);  // Slight random roll
+    Springs.slideFOV.impulse(8);                              // FOV punch
+
+    // Weapon drops and tilts forward during slide
+    Springs.bobY.impulse(-2.5);
+    Springs.tilt.impulse(0.2);
+    Springs.momentumZ.impulse(4);
+
+    // Screen shake for slide initiation
+    Springs.shakeY.impulse(-1.5);
+    Springs.shakeX.impulse((Math.random() - 0.5) * 0.8);
+}
+
+function playSlideSound() {
+    if (!actx) return;
+
+    // Create a sliding/scraping sound
+    const now = actx.currentTime;
+
+    // Whoosh sound
+    const noise = actx.createBufferSource();
+    const bufferSize = actx.sampleRate * 0.3;
+    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.3;
+    }
+    noise.buffer = buffer;
+
+    // Bandpass filter for swoosh character
+    const filter = actx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.linearRampToValueAtTime(300, now + 0.3);
+    filter.Q.value = 1.5;
+
+    const gain = actx.createGain();
+    gain.gain.setValueAtTime(0.4 * masterVolume * sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(actx.destination);
+    noise.start(now);
+}
+
 function performKickHit() {
     const playerPos = camera.position.clone();
     const playerDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -9400,8 +9523,8 @@ function performKickHit() {
             knockDir.y = 0.3; // Slight upward
             knockDir.normalize();
 
-            // Apply knockback velocity
-            zombie.knockbackVel = knockDir.multiplyScalar(KICK_KNOCKBACK);
+            // Apply knockback velocity (clone so knockDir stays normalized for gore)
+            zombie.knockbackVel = knockDir.clone().multiplyScalar(KICK_KNOCKBACK);
             zombie.isKnockedBack = true;
             zombie.knockbackTime = 0.4;
 
@@ -9411,35 +9534,9 @@ function performKickHit() {
             // Hit feedback
             if (typeof showHitmarker === 'function') showHitmarker(false);
 
-            // Check for kill
+            // Check for kill - use proper die() for ragdoll physics
             if (zombie.health <= 0 && !zombie.isDead) {
-                zombie.isDead = true;
-                zombie.deathTime = 0;
-                if (typeof addKillScore === 'function') addKillScore(50, false); // Kick kill bonus (higher!)
-                if (typeof zombiesKilledThisWave !== 'undefined') zombiesKilledThisWave++;
-
-                // EXPLODE ON KICK KILL - maximum violence
-                const zombiePos = zombie.mesh.position.clone();
-                zombiePos.y += 1; // Center mass
-
-                // Gore chunks flying everywhere
-                if (typeof spawnGoreChunks === 'function') {
-                    spawnGoreChunks(zombiePos, knockDir.clone());
-                    spawnGoreChunks(zombiePos.clone().add(new THREE.Vector3(0, 0.5, 0)), knockDir.clone());
-                }
-
-                // Blood spray
-                if (typeof spawnBloodSpray === 'function') {
-                    spawnBloodSpray(zombiePos, knockDir.clone(), 2.0);
-                }
-
-                // Blood pool
-                if (typeof spawnBloodPool === 'function') {
-                    spawnBloodPool(zombie.mesh.position);
-                }
-
-                // Hide the zombie mesh immediately (gibbed)
-                zombie.mesh.visible = false;
+                zombie.die();
             }
         }
     }
@@ -10049,6 +10146,7 @@ let scoreAnimationTarget = 0;
 
 function damagePlayer(amount, attackerPos = null) {
     if (isGameOver) return;
+    if (isSliding) return; // Immune while sliding
 
     // Apply shield damage reduction
     const actualDamage = shieldTimer > 0 ? amount * shieldDamageReduction : amount;
@@ -10555,20 +10653,20 @@ function restartGame() {
     }
     zombies.length = 0;
 
-    // Clear all pickups
-    for (const pickup of pickups) {
-        pickup.remove();
-    }
-    pickups.length = 0;
+    // Clear all pickups - DISABLED
+    // for (const pickup of pickups) {
+    //     pickup.remove();
+    // }
+    // pickups.length = 0;
 
-    // Reset power-up timers
-    speedBoostTimer = 0;
-    damageBoostTimer = 0;
-    rapidFireTimer = 0;
-    infiniteAmmoTimer = 0;
-    explosiveRoundsTimer = 0;
-    penetratingRoundsTimer = 0;
-    shieldTimer = 0;
+    // Reset power-up timers - DISABLED
+    // speedBoostTimer = 0;
+    // damageBoostTimer = 0;
+    // rapidFireTimer = 0;
+    // infiniteAmmoTimer = 0;
+    // explosiveRoundsTimer = 0;
+    // penetratingRoundsTimer = 0;
+    // shieldTimer = 0;
 
     // Reset player position
     camera.position.set(0, 0, 0);
@@ -10597,6 +10695,33 @@ const gravity = 35;
 const jumpForce = 12;
 let isGrounded = true;
 let canJump = true;
+
+// === DOUBLE JUMP ===
+let hasDoubleJump = true;          // Reset on landing
+const doubleJumpForce = 10;        // Slightly weaker than first jump
+
+// === SLIDE SYSTEM ===
+let isSliding = false;
+let slideTimer = 0;
+const slideDuration = 0.8;           // How long the slide lasts
+const slideSpeedBoost = 1.4;         // Initial speed multiplier (on top of sprint)
+const slideDeceleration = 1.2;       // How fast the slide slows down (lower = more momentum)
+const slideCameraDropMax = 1.6;      // How low camera drops during slide
+let slideCooldown = 0;
+const slideCooldownTime = 0.3;       // Cooldown between slides
+let slideDirection = new THREE.Vector3(); // Direction player slides in
+let slideSpeed = 0;                  // Current slide speed
+
+// Slide push - bulldoze zombies out of the way
+const SLIDE_PUSH_RANGE = 3.5;        // How close zombies need to be to get pushed
+const SLIDE_PUSH_KNOCKBACK = 18;     // Knockback force (stronger than kick)
+const SLIDE_PUSH_DAMAGE = 1;         // Light damage when pushed
+
+// Slide springs for smooth weapon animation
+Springs.slideY = new Spring(180, 18, 1);      // Camera drop
+Springs.slideTilt = new Spring(100, 12, 1);   // Forward lean
+Springs.slideRoll = new Spring(80, 10, 1);    // Side roll
+Springs.slideFOV = new Spring(60, 8, 1);      // FOV punch
 
 // Smooth landing spring
 Springs.landing = new Spring(200, 15, 1);
@@ -12300,12 +12425,23 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyA') moveState.l = true;
     if (e.code === 'KeyD') moveState.r = true;
     if (e.code === 'ShiftLeft') moveState.sprint = true;
-    if (e.code === 'Space' && isGrounded && canJump) {
-        verticalVelocity = jumpForce;
-        isGrounded = false;
-        canJump = false;
-        // Slight upward weapon motion on jump
-        Springs.bobY.impulse(-1.5);
+    if (e.code === 'Space') {
+        if (isGrounded && canJump) {
+            // First jump
+            verticalVelocity = jumpForce;
+            isGrounded = false;
+            canJump = false;
+            // Slight upward weapon motion on jump
+            Springs.bobY.impulse(-1.5);
+        } else if (!isGrounded && hasDoubleJump) {
+            // Double jump - can override downward velocity
+            verticalVelocity = doubleJumpForce;
+            hasDoubleJump = false;
+            // More dramatic feedback for double jump
+            Springs.bobY.impulse(-2.0);
+            Springs.roll.impulse((Math.random() - 0.5) * 0.1);
+            playSound('doubleJump');
+        }
     }
     // Weapon switching
     if (e.code === 'Digit1') switchWeapon('ak');
@@ -12313,6 +12449,14 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Digit3') switchWeapon('shotgun');
     // Kick
     if (e.code === 'KeyV') kick();
+
+    // Slide - press C while sprinting
+    if (e.code === 'KeyC') {
+        const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
+        if (isSprinting && !isSliding && slideCooldown <= 0) {
+            startSlide();
+        }
+    }
 });
 
 // Pause menu button handlers
@@ -12460,15 +12604,17 @@ function animate(time) {
     const activeHipPos = isSniper ? sniperHipPos : (isShotgun ? shotgunHipPos : hipPos);
     const activeAimPos = isSniper ? sniperAimPos : (isShotgun ? shotgunAimPos : aimPos);
     const targetPos = isAiming ? activeAimPos : activeHipPos;
-    const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
+    const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded && !isSliding;
 
     // Weapon-specific FOV when scoped/aimed
     const baseFOV = 90;
     const sprintFOV = 100;
+    const slideFOV = 105; // Even wider FOV during slide for speed feel
     const akAimFOV = 55;
     const sniperAimFOV = baseFOV / scopeZoomLevel; // 4x zoom = 22.5 FOV
     const shotgunAimFOV = 65; // Shotgun has less zoom - more situational awareness
-    const targetFOV = isAiming ? (isSniper ? sniperAimFOV : (isShotgun ? shotgunAimFOV : akAimFOV)) : (isSprinting ? sprintFOV : baseFOV);
+    const targetFOV = isAiming ? (isSniper ? sniperAimFOV : (isShotgun ? shotgunAimFOV : akAimFOV)) :
+                      (isSliding ? slideFOV : (isSprinting ? sprintFOV : baseFOV));
 
     // === NEW: ULTRA-FLUID TRANSITION EFFECTS ===
     if (isAiming && !lastIsAiming) {
@@ -12621,6 +12767,12 @@ function animate(time) {
     const shotgunBarrelDroop = ShotgunSprings.barrelDroop.update(dt);
     const shotgunForeEndZ = ShotgunSprings.foreEndZ.update(dt);
     const shotgunForeEndRotate = ShotgunSprings.foreEndRotate.update(dt);
+
+    // === SLIDE SPRING UPDATES ===
+    const slideY = Springs.slideY.update(dt);
+    const slideTilt = Springs.slideTilt.update(dt);
+    const slideRoll = Springs.slideRoll.update(dt);
+    Springs.slideFOV.update(dt); // Update but don't store - FOV handled separately
 
     // Organic idle animations using layered noise
     const idleAnimTime = time * 0.001;
@@ -12933,58 +13085,182 @@ function animate(time) {
     Springs.sprintTilt.target = 0;
     Springs.sprintRoll.target = 0;
     Springs.landingTilt.target = 0;
+    Springs.slideY.target = 0;
+    Springs.slideTilt.target = 0;
+    Springs.slideRoll.target = 0;
+    Springs.slideFOV.target = 0;
 
-    // Camera Recoil Recovery + Screen Shake - more organic + strafe lean
+    // Camera Recoil Recovery + Screen Shake - more organic + strafe lean + slide tilt
     cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.08); // Slower recovery
     camera.rotation.set(
-        cameraPitch + cameraRecoil + shakeY * 0.018 + breathe * 0.1,
+        cameraPitch + cameraRecoil + shakeY * 0.018 + breathe * 0.1 + slideTilt * 0.5, // Add slide forward tilt
         cameraYaw + shakeX * 0.018,
-        (roll + shakeRoll) * 0.08 + strafeTilt * 0.5, // Camera also leans into strafe
+        (roll + shakeRoll) * 0.08 + strafeTilt * 0.5 + slideRoll * 0.3, // Add slide roll wobble
         'YXZ'
     );
 
     // FLUID Movement (disabled during game over)
     if (document.pointerLockElement === document.body && !isGameOver) {
-        // Smoother deceleration for fluid feel
-        const friction = isGrounded ? 8.0 : 3.0;
-        velocity.x -= velocity.x * friction * dt;
-        velocity.z -= velocity.z * friction * dt;
+        // Update slide cooldown
+        if (slideCooldown > 0) {
+            slideCooldown -= dt;
+        }
 
-        const fIn = Number(moveState.f) - Number(moveState.b);
-        const rIn = Number(moveState.r) - Number(moveState.l);
+        // === SLIDE SYSTEM UPDATE ===
+        if (isSliding) {
+            slideTimer -= dt;
 
-        // Sprinting logic - only when moving forward and not aiming
-        const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
-        const speedMultiplier = speedBoostTimer > 0 ? speedBoostMultiplier : 1;
-        const currentSpeed = (isAiming ? baseSpeed * 0.5 : (isSprinting ? baseSpeed * sprintMultiplier : baseSpeed)) * speedMultiplier;
+            // Smooth deceleration - starts fast, gently slows (keeps momentum feel)
+            const slideProgress = 1 - (slideTimer / slideDuration);
+            // Use smoothstep for natural deceleration curve
+            const smoothProgress = slideProgress * slideProgress * (3 - 2 * slideProgress);
+            const currentSlideSpeed = slideSpeed * (1 - smoothProgress * slideDeceleration / 2);
 
-        // Smoother acceleration
-        const accel = isGrounded ? 12.0 : 4.0;
-        if (moveState.f || moveState.b) velocity.z += fIn * currentSpeed * accel * dt;
-        if (moveState.l || moveState.r) velocity.x += rIn * currentSpeed * accel * dt;
+            // Update spring targets for active slide
+            const cameraDropProgress = Math.sin(slideProgress * Math.PI); // Smooth rise and fall
+            Springs.slideY.target = slideCameraDropMax * cameraDropProgress;
+            Springs.slideTilt.target = 0.2 * (1 - smoothProgress); // Lean forward, ease out
+            Springs.slideFOV.target = 5 * (1 - smoothProgress); // FOV boost
 
-        const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
-        const rgt = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
-        
-        // Store old position for collision resolution
-        const oldX = camera.position.x;
-        const oldZ = camera.position.z;
-        
-        // Calculate new position
-        const newX = oldX + rgt.x * velocity.x * dt;
-        const newZ = oldZ + rgt.z * velocity.x * dt;
-        const finalX = newX + fwd.x * velocity.z * dt;
-        const finalZ = newZ + fwd.z * velocity.z * dt;
-        
-        // Apply collision detection and resolution (player radius ~0.5)
-        const playerRadius = 0.5;
-        const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius);
-        camera.position.x = resolved.x;
-        camera.position.z = resolved.z;
+            // Subtle oscillation for ground scraping feel
+            const slideWobble = Math.sin(slideTimer * 20) * 0.015 * (1 - smoothProgress);
+            Springs.slideRoll.target = slideWobble;
+
+            // Weapon animation during slide
+            Springs.bobY.target = -1.2 * cameraDropProgress;
+            Springs.tilt.target = 0.12 * (1 - smoothProgress);
+            Springs.momentumZ.target = 1.5 * (1 - smoothProgress);
+
+            // Apply slide movement (overrides normal movement)
+            const oldX = camera.position.x;
+            const oldZ = camera.position.z;
+            const slideX = slideDirection.x * currentSlideSpeed * dt;
+            const slideZ = slideDirection.z * currentSlideSpeed * dt;
+
+            // Allow slight steering during slide (25% control)
+            const rIn = Number(moveState.r) - Number(moveState.l);
+            const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+            const rgt = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
+            const steerX = rgt.x * rIn * currentSlideSpeed * 0.25 * dt;
+            const steerZ = rgt.z * rIn * currentSlideSpeed * 0.25 * dt;
+
+            const finalX = oldX + slideX + steerX;
+            const finalZ = oldZ + slideZ + steerZ;
+
+            // Collision detection during slide
+            const playerRadius = 0.5;
+            const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius);
+            camera.position.x = resolved.x;
+            camera.position.z = resolved.z;
+
+            // Push zombies out of the way while sliding
+            for (const zombie of zombies) {
+                if (zombie.isDead || zombie.isKnockedBack) continue;
+
+                const zombiePos = zombie.mesh.position;
+                const dx = zombiePos.x - camera.position.x;
+                const dz = zombiePos.z - camera.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                if (dist < SLIDE_PUSH_RANGE && dist > 0.1) {
+                    // Push direction - away from player along slide direction + outward
+                    const pushX = dx / dist;
+                    const pushZ = dz / dist;
+
+                    // Blend slide direction with outward push for satisfying scatter
+                    const blendedX = slideDirection.x * 0.6 + pushX * 0.4;
+                    const blendedZ = slideDirection.z * 0.6 + pushZ * 0.4;
+                    const blendMag = Math.sqrt(blendedX * blendedX + blendedZ * blendedZ);
+
+                    const knockDir = new THREE.Vector3(
+                        blendedX / blendMag,
+                        0.25, // Slight upward pop
+                        blendedZ / blendMag
+                    ).normalize();
+
+                    // Apply knockback (clone so knockDir stays normalized for gore)
+                    zombie.knockbackVel = knockDir.clone().multiplyScalar(SLIDE_PUSH_KNOCKBACK);
+                    zombie.isKnockedBack = true;
+                    zombie.knockbackTime = 0.5;
+
+                    // Light damage
+                    zombie.health -= SLIDE_PUSH_DAMAGE;
+
+                    // Stagger animation
+                    zombie.mesh.rotation.x = -0.3;
+
+                    // Hit feedback
+                    if (typeof showHitmarker === 'function') showHitmarker(false);
+
+                    // Check for kill - use proper die() for ragdoll physics
+                    if (zombie.health <= 0 && !zombie.isDead) {
+                        zombie.die();
+                    }
+                }
+            }
+
+            // End slide
+            if (slideTimer <= 0) {
+                isSliding = false;
+                slideCooldown = slideCooldownTime;
+
+                // Recovery spring impulses - snap back up
+                Springs.slideY.impulse(-slideCameraDropMax * 1.2);
+                Springs.slideTilt.impulse(-0.1);
+                Springs.bobY.impulse(1.0);
+                Springs.landingTilt.impulse(0.05);
+
+                // Transfer remaining momentum to normal velocity (high transfer for smooth exit)
+                const exitSpeed = currentSlideSpeed * 0.7; // Keep 70% of slide speed
+                velocity.z = slideDirection.dot(fwd) * exitSpeed;
+                velocity.x = slideDirection.dot(rgt) * exitSpeed;
+            }
+        } else {
+            // === NORMAL MOVEMENT ===
+            // Smoother deceleration for fluid feel
+            const friction = isGrounded ? 8.0 : 3.0;
+            velocity.x -= velocity.x * friction * dt;
+            velocity.z -= velocity.z * friction * dt;
+
+            const fIn = Number(moveState.f) - Number(moveState.b);
+            const rIn = Number(moveState.r) - Number(moveState.l);
+
+            // Sprinting logic - only when moving forward and not aiming
+            const isSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded;
+            const speedMultiplier = speedBoostTimer > 0 ? speedBoostMultiplier : 1;
+            const currentSpeed = (isAiming ? baseSpeed * 0.5 : (isSprinting ? baseSpeed * sprintMultiplier : baseSpeed)) * speedMultiplier;
+
+            // Smoother acceleration
+            const accel = isGrounded ? 12.0 : 4.0;
+            if (moveState.f || moveState.b) velocity.z += fIn * currentSpeed * accel * dt;
+            if (moveState.l || moveState.r) velocity.x += rIn * currentSpeed * accel * dt;
+
+            const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+            const rgt = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0,1,0)).normalize();
+
+            // Store old position for collision resolution
+            const oldX = camera.position.x;
+            const oldZ = camera.position.z;
+
+            // Calculate new position
+            const newX = oldX + rgt.x * velocity.x * dt;
+            const newZ = oldZ + rgt.z * velocity.x * dt;
+            const finalX = newX + fwd.x * velocity.z * dt;
+            const finalZ = newZ + fwd.z * velocity.z * dt;
+
+            // Apply collision detection and resolution (player radius ~0.5)
+            const playerRadius = 0.5;
+            const resolved = resolveCollision(oldX, oldZ, finalX, finalZ, playerRadius);
+            camera.position.x = resolved.x;
+            camera.position.z = resolved.z;
+        }
 
         // Calculate dynamic ground level based on terrain height at player position
         const terrainY = getTerrainHeight(camera.position.x, camera.position.z);
         currentGroundLevel = terrainY + 5; // Eye level is 5 units above terrain
+
+        // Apply slide camera drop
+        const slideCameraDrop = slideY;
 
         // ULTRA FLUID Jump physics
         if (!isGrounded) {
@@ -13019,6 +13295,7 @@ function animate(time) {
                 const landingImpact = Math.abs(verticalVelocity);
                 verticalVelocity = 0;
                 isGrounded = true;
+                hasDoubleJump = true; // Reset double jump on landing
 
                 // ORGANIC landing effect based on fall speed
                 if (landingImpact > 2) {
@@ -13060,14 +13337,15 @@ function animate(time) {
             playerHeight = THREE.MathUtils.lerp(playerHeight, currentGroundLevel, 0.15);
         }
 
-        // Set camera Y position (base + jump height - landing dip)
-        camera.position.y = playerHeight - landingOffset * 0.1;
+        // Set camera Y position (base + jump height - landing dip - slide drop)
+        camera.position.y = playerHeight - landingOffset * 0.1 - slideCameraDrop;
 
         // ULTRA FLUID Procedural Bobbing (Walking/Sprinting)
         const vLen = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
         moveVelSmooth = THREE.MathUtils.lerp(moveVelSmooth, vLen, 0.08); // Smoother velocity tracking
-        const bobSpeed = isSprinting ? 0.016 : 0.011;
-        const bobIntensity = isSprinting ? 0.1 : 0.06;
+        const currentIsSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded && !isSliding;
+        const bobSpeed = currentIsSprinting ? 0.016 : 0.011;
+        const bobIntensity = currentIsSprinting ? 0.1 : 0.06;
         const velRatio = Math.min(moveVelSmooth / baseSpeed, 1.5);
 
         if(moveVelSmooth > 0.1 && !isReloading && isGrounded) {
@@ -13098,7 +13376,7 @@ function animate(time) {
             Springs.tilt.target = -velRatio * 0.025;
 
             // Extra effects when sprinting - more dramatic
-            if (isSprinting) {
+            if (currentIsSprinting) {
                 // Exaggerated sprint bob
                 Springs.sprintBob.target = Math.sin(phase * 1.2) * 0.08;
                 Springs.bobY.target += Springs.sprintBob.position;
@@ -13312,38 +13590,38 @@ function animate(time) {
     // Update wave system (only if game is active)
     if (!isGameOver) {
         updateWaveSystem(dt);
-        updatePickups(dt, time);
+        // updatePickups(dt, time); // DISABLED - power-ups removed
         updateDoors(dt);
 
-        // Update power-up timers (only when active)
-        if (speedBoostTimer > 0) {
-            speedBoostTimer -= dt;
-            if (speedBoostTimer <= 0) speedBoostTimer = 0;
-        }
-        if (damageBoostTimer > 0) {
-            damageBoostTimer -= dt;
-            if (damageBoostTimer <= 0) damageBoostTimer = 0;
-        }
-        if (rapidFireTimer > 0) {
-            rapidFireTimer -= dt;
-            if (rapidFireTimer <= 0) rapidFireTimer = 0;
-        }
-        if (infiniteAmmoTimer > 0) {
-            infiniteAmmoTimer -= dt;
-            if (infiniteAmmoTimer <= 0) infiniteAmmoTimer = 0;
-        }
-        if (explosiveRoundsTimer > 0) {
-            explosiveRoundsTimer -= dt;
-            if (explosiveRoundsTimer <= 0) explosiveRoundsTimer = 0;
-        }
-        if (penetratingRoundsTimer > 0) {
-            penetratingRoundsTimer -= dt;
-            if (penetratingRoundsTimer <= 0) penetratingRoundsTimer = 0;
-        }
-        if (shieldTimer > 0) {
-            shieldTimer -= dt;
-            if (shieldTimer <= 0) shieldTimer = 0;
-        }
+        // Update power-up timers - DISABLED
+        // if (speedBoostTimer > 0) {
+        //     speedBoostTimer -= dt;
+        //     if (speedBoostTimer <= 0) speedBoostTimer = 0;
+        // }
+        // if (damageBoostTimer > 0) {
+        //     damageBoostTimer -= dt;
+        //     if (damageBoostTimer <= 0) damageBoostTimer = 0;
+        // }
+        // if (rapidFireTimer > 0) {
+        //     rapidFireTimer -= dt;
+        //     if (rapidFireTimer <= 0) rapidFireTimer = 0;
+        // }
+        // if (infiniteAmmoTimer > 0) {
+        //     infiniteAmmoTimer -= dt;
+        //     if (infiniteAmmoTimer <= 0) infiniteAmmoTimer = 0;
+        // }
+        // if (explosiveRoundsTimer > 0) {
+        //     explosiveRoundsTimer -= dt;
+        //     if (explosiveRoundsTimer <= 0) explosiveRoundsTimer = 0;
+        // }
+        // if (penetratingRoundsTimer > 0) {
+        //     penetratingRoundsTimer -= dt;
+        //     if (penetratingRoundsTimer <= 0) penetratingRoundsTimer = 0;
+        // }
+        // if (shieldTimer > 0) {
+        //     shieldTimer -= dt;
+        //     if (shieldTimer <= 0) shieldTimer = 0;
+        // }
 
         // Throttled HUD update (increased interval for performance)
         if (frameCount % (HUD_UPDATE_INTERVAL * 2) === 0) {
@@ -13455,8 +13733,8 @@ window.addEventListener('resize', () => {
     fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
 });
 
-// Pre-cache all pickup meshes (eliminates spawn lag)
-initPickupCache();
+// Pre-cache all pickup meshes - DISABLED
+// initPickupCache();
 
 // Initialize HUD (force update all values)
 updateHUD(true);
