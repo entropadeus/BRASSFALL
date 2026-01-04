@@ -2,12 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#020305">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>BRASSFALL</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
     <style>
         /* ============ NASA HARDWARE CONSOLE THEME ============ */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
 
         :root {
             --shuttle-white: #e8e8ed;
@@ -1823,18 +1828,20 @@
 <!-- Pump Action Indicator -->
 <div id="pump-indicator">PUMP [R]</div>
 
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" as="script">
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" as="script">
 <!-- Three.js from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <!-- Post-processing -->
-<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/EffectComposer.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/RenderPass.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/ShaderPass.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/CopyShader.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/FXAAShader.js" crossorigin="anonymous"></script>
 <!-- TWEEN.js for complex curves -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" crossorigin="anonymous"></script>
 
 <script>
 /**
@@ -4674,10 +4681,84 @@ function playSound(type) {
         tailGain.connect(convolver);
         tailSrc.start(now);
 
+        // LAYER 8: MUZZLE FLASH CRACK - Bright, sharp high-frequency flash
+        const flashBuf = actx.createBuffer(1, actx.sampleRate * 0.02, actx.sampleRate);
+        const flashData = flashBuf.getChannelData(0);
+        for (let i = 0; i < flashBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            flashData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 200) * 1.5;
+        }
+        const flashSrc = actx.createBufferSource();
+        flashSrc.buffer = flashBuf;
+        const flashFilter = actx.createBiquadFilter();
+        flashFilter.type = 'highpass';
+        flashFilter.frequency.value = 8000;
+        const flashGain = actx.createGain();
+        flashGain.gain.value = 0.8;
+        flashSrc.connect(flashFilter);
+        flashFilter.connect(flashGain);
+        flashGain.connect(dryGain);
+        flashSrc.start(now);
+
+        // LAYER 9: SHELL CASING EJECT - Metallic ping during shot
+        const ejectOsc = actx.createOscillator();
+        const ejectGain = actx.createGain();
+        ejectOsc.connect(ejectGain);
+        ejectGain.connect(dryGain);
+        ejectOsc.type = 'sine';
+        ejectOsc.frequency.setValueAtTime(1800, now + 0.02);
+        ejectOsc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+        ejectGain.gain.setValueAtTime(0.2, now + 0.02);
+        ejectGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        ejectOsc.start(now + 0.02); ejectOsc.stop(now + 0.12);
+
+        // LAYER 10: SUBSONIC RUMBLE - Ultra-low frequency chest vibration
+        const rumbleOsc = actx.createOscillator();
+        const rumbleGain = actx.createGain();
+        const rumbleFilter = actx.createBiquadFilter();
+        rumbleOsc.connect(rumbleFilter);
+        rumbleFilter.connect(rumbleGain);
+        rumbleGain.connect(dryGain);
+        rumbleOsc.type = 'sine';
+        rumbleOsc.frequency.setValueAtTime(18, now);
+        rumbleOsc.frequency.exponentialRampToValueAtTime(12, now + 0.4);
+        rumbleFilter.type = 'lowpass';
+        rumbleFilter.frequency.value = 30;
+        rumbleGain.gain.setValueAtTime(1.8, now);
+        rumbleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        rumbleOsc.start(now); rumbleOsc.stop(now + 0.6);
+
+        // LAYER 11: ENHANCED REVERB - Multi-stage room acoustics
+        const roomBuf = actx.createBuffer(1, actx.sampleRate * 0.8, actx.sampleRate);
+        const roomData = roomBuf.getChannelData(0);
+        for (let i = 0; i < roomBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            // Multiple decay stages for realistic room reverb
+            const decay1 = Math.exp(-t * 3);
+            const decay2 = Math.exp(-t * 1.5) * 0.3;
+            const decay3 = Math.exp(-t * 0.8) * 0.1;
+            roomData[i] = (Math.random() * 2 - 1) * (decay1 + decay2 + decay3) * 0.6;
+        }
+        const roomSrc = actx.createBufferSource();
+        roomSrc.buffer = roomBuf;
+        const roomFilter = actx.createBiquadFilter();
+        roomFilter.type = 'lowpass';
+        roomFilter.frequency.setValueAtTime(1500, now);
+        roomFilter.frequency.exponentialRampToValueAtTime(400, now + 0.7);
+        const roomGain = actx.createGain();
+        roomGain.gain.setValueAtTime(0.4, now);
+        roomGain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+        roomSrc.connect(roomFilter);
+        roomFilter.connect(roomGain);
+        roomGain.connect(convolver);
+        roomSrc.start(now);
+
         return;
 
     } else if (type === 'pumpPull') {
-        // Pump pull back - distinctive "chk" sound
+        // ENHANCED PUMP PULL BACK - Heavy mechanical action with multiple layers
+
+        // LAYER 1: Initial handle grab and mechanical "chk"
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(400, now);
         osc.frequency.linearRampToValueAtTime(800, now + 0.1);
@@ -4688,7 +4769,7 @@ function playSound(type) {
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         osc.start(now); osc.stop(now + 0.15);
 
-        // Metal slide scrape
+        // LAYER 2: Heavy metal slide scrape with texture
         const scrapeBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
         const scrapeOut = scrapeBuf.getChannelData(0);
         for (let i = 0; i < scrapeBuf.length; i++) {
@@ -4704,7 +4785,7 @@ function playSound(type) {
         scrapeG.connect(dryGain);
         scrapeN.start(now);
 
-        // Shell eject clatter
+        // LAYER 3: Shell eject clatter with bounce
         const shellOsc = actx.createOscillator();
         const shellGain = actx.createGain();
         shellOsc.connect(shellGain); shellGain.connect(dryGain);
@@ -4715,8 +4796,54 @@ function playSound(type) {
         shellGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         shellOsc.start(now + 0.05); shellOsc.stop(now + 0.15);
 
+        // LAYER 4: Spring tension release - twang as mechanism unlocks
+        const springBuf = actx.createBuffer(1, actx.sampleRate * 0.08, actx.sampleRate);
+        const springOut = springBuf.getChannelData(0);
+        for (let i = 0; i < springBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            springOut[i] = Math.sin(i * 0.2) * Math.exp(-t * 25) * 0.3;
+        }
+        const springN = actx.createBufferSource(); springN.buffer = springBuf;
+        const springFilter = actx.createBiquadFilter();
+        springFilter.type = 'highpass'; springFilter.frequency.value = 1000;
+        const springG = actx.createGain();
+        springG.gain.setValueAtTime(0.2, now + 0.03);
+        springG.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        springN.connect(springFilter); springFilter.connect(springG);
+        springG.connect(dryGain);
+        springN.start(now + 0.03);
+
+        // LAYER 5: Heavy thunk as pump reaches full extension
+        const thunkOsc = actx.createOscillator();
+        const thunkGain = actx.createGain();
+        thunkOsc.connect(thunkGain); thunkGain.connect(dryGain); thunkGain.connect(convolver);
+        thunkOsc.type = 'sine';
+        thunkOsc.frequency.setValueAtTime(120, now + 0.08);
+        thunkOsc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+        thunkGain.gain.setValueAtTime(0.4, now + 0.08);
+        thunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        thunkOsc.start(now + 0.08); thunkOsc.stop(now + 0.2);
+
+        // LAYER 6: Rattling internals - subtle gear and mechanism sounds
+        const rattleBuf = actx.createBuffer(1, actx.sampleRate * 0.06, actx.sampleRate);
+        const rattleOut = rattleBuf.getChannelData(0);
+        for (let i = 0; i < rattleBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            rattleOut[i] = (Math.random() * 2 - 1) * Math.exp(-t * 15) * Math.sin(i * 0.5) * 0.15;
+        }
+        const rattleN = actx.createBufferSource(); rattleN.buffer = rattleBuf;
+        const rattleFilter = actx.createBiquadFilter();
+        rattleFilter.type = 'bandpass'; rattleFilter.frequency.value = 4000; rattleFilter.Q.value = 0.8;
+        const rattleG = actx.createGain();
+        rattleG.gain.value = 0.25;
+        rattleN.connect(rattleFilter); rattleFilter.connect(rattleG);
+        rattleG.connect(dryGain);
+        rattleN.start(now + 0.04);
+
     } else if (type === 'pumpPush') {
-        // Pump push forward - "chak" chambering sound
+        // ENHANCED PUMP PUSH FORWARD - Precise chambering with mechanical detail
+
+        // LAYER 1: Initial slide forward with resistance
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.linearRampToValueAtTime(300, now + 0.08);
@@ -4727,7 +4854,7 @@ function playSound(type) {
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         osc.start(now); osc.stop(now + 0.12);
 
-        // Heavy slam at end - shell locks in
+        // LAYER 2: Heavy slam at end - shell locks in
         const slamOsc = actx.createOscillator();
         const slamGain = actx.createGain();
         slamOsc.connect(slamGain); slamGain.connect(dryGain); slamGain.connect(convolver);
@@ -4738,7 +4865,7 @@ function playSound(type) {
         slamGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
         slamOsc.start(now + 0.06); slamOsc.stop(now + 0.18);
 
-        // Metallic click lock
+        // LAYER 3: Metallic click lock - satisfying final engagement
         const lockOsc = actx.createOscillator();
         const lockGain = actx.createGain();
         lockOsc.connect(lockGain); lockGain.connect(dryGain);
@@ -4749,8 +4876,54 @@ function playSound(type) {
         lockGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         lockOsc.start(now + 0.08); lockOsc.stop(now + 0.14);
 
+        // LAYER 4: Friction scrape as new shell feeds
+        const feedBuf = actx.createBuffer(1, actx.sampleRate * 0.04, actx.sampleRate);
+        const feedOut = feedBuf.getChannelData(0);
+        for (let i = 0; i < feedBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            feedOut[i] = (Math.random() * 2 - 1) * Math.exp(-t * 30) * Math.sin(i * 0.4) * 0.2;
+        }
+        const feedN = actx.createBufferSource(); feedN.buffer = feedBuf;
+        const feedFilter = actx.createBiquadFilter();
+        feedFilter.type = 'bandpass'; feedFilter.frequency.value = 2500; feedFilter.Q.value = 1.2;
+        const feedG = actx.createGain();
+        feedG.gain.setValueAtTime(0.15, now + 0.02);
+        feedG.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        feedN.connect(feedFilter); feedFilter.connect(feedG);
+        feedG.connect(dryGain);
+        feedN.start(now + 0.02);
+
+        // LAYER 5: Secondary click - extractor engages
+        const extractOsc = actx.createOscillator();
+        const extractGain = actx.createGain();
+        extractOsc.connect(extractGain); extractGain.connect(dryGain);
+        extractOsc.type = 'triangle';
+        extractOsc.frequency.setValueAtTime(2800, now + 0.09);
+        extractOsc.frequency.exponentialRampToValueAtTime(2000, now + 0.11);
+        extractGain.gain.setValueAtTime(0.2, now + 0.09);
+        extractGain.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
+        extractOsc.start(now + 0.09); extractOsc.stop(now + 0.14);
+
+        // LAYER 6: Subtle spring compression sound
+        const compressBuf = actx.createBuffer(1, actx.sampleRate * 0.03, actx.sampleRate);
+        const compressOut = compressBuf.getChannelData(0);
+        for (let i = 0; i < compressBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            compressOut[i] = Math.sin(i * 0.3) * Math.exp(-t * 40) * 0.1;
+        }
+        const compressN = actx.createBufferSource(); compressN.buffer = compressBuf;
+        const compressFilter = actx.createBiquadFilter();
+        compressFilter.type = 'highpass'; compressFilter.frequency.value = 1500;
+        const compressG = actx.createGain();
+        compressG.gain.value = 0.12;
+        compressN.connect(compressFilter); compressFilter.connect(compressG);
+        compressG.connect(dryGain);
+        compressN.start(now + 0.04);
+
     } else if (type === 'shellLoad') {
-        // Single shell being loaded into tube
+        // ENHANCED SHELL LOADING - Multi-stage loading process
+
+        // LAYER 1: Shell insertion into magazine tube
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
         osc.frequency.exponentialRampToValueAtTime(1200, now + 0.04);
@@ -4761,7 +4934,7 @@ function playSound(type) {
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
         osc.start(now); osc.stop(now + 0.1);
 
-        // Click of shell seating
+        // LAYER 2: Click of shell seating with echo
         const clickOsc = actx.createOscillator();
         const clickGain = actx.createGain();
         clickOsc.connect(clickGain); clickGain.connect(dryGain);
@@ -4771,6 +4944,188 @@ function playSound(type) {
         clickGain.gain.setValueAtTime(0.3, now + 0.03);
         clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
         clickOsc.start(now + 0.03); clickOsc.stop(now + 0.1);
+
+        // LAYER 3: Plastic/brass shell sliding friction
+        const slideBuf = actx.createBuffer(1, actx.sampleRate * 0.03, actx.sampleRate);
+        const slideOut = slideBuf.getChannelData(0);
+        for (let i = 0; i < slideBuf.length; i++) {
+            const t = i / actx.sampleRate;
+            slideOut[i] = (Math.random() * 2 - 1) * Math.exp(-t * 35) * Math.sin(i * 0.6) * 0.15;
+        }
+        const slideN = actx.createBufferSource(); slideN.buffer = slideBuf;
+        const slideFilter = actx.createBiquadFilter();
+        slideFilter.type = 'bandpass'; slideFilter.frequency.value = 1800; slideFilter.Q.value = 1.0;
+        const slideG = actx.createGain();
+        slideG.gain.setValueAtTime(0.1, now);
+        slideG.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        slideN.connect(slideFilter); slideFilter.connect(slideG);
+        slideG.connect(dryGain);
+        slideN.start(now);
+
+        // LAYER 4: Follower spring compression
+        const springOsc = actx.createOscillator();
+        const springGain = actx.createGain();
+        springOsc.connect(springGain); springGain.connect(dryGain);
+        springOsc.type = 'sine';
+        springOsc.frequency.setValueAtTime(400, now + 0.02);
+        springOsc.frequency.exponentialRampToValueAtTime(800, now + 0.06);
+        springGain.gain.setValueAtTime(0.08, now + 0.02);
+        springGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        springOsc.start(now + 0.02); springOsc.stop(now + 0.1);
+
+        // LAYER 5: Satisfying final lock-in click
+        const lockClickOsc = actx.createOscillator();
+        const lockClickGain = actx.createGain();
+        lockClickOsc.connect(lockClickGain); lockClickGain.connect(dryGain);
+        lockClickOsc.type = 'triangle';
+        lockClickOsc.frequency.setValueAtTime(2200, now + 0.05);
+        lockClickOsc.frequency.exponentialRampToValueAtTime(1600, now + 0.07);
+        lockClickGain.gain.setValueAtTime(0.25, now + 0.05);
+        lockClickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        lockClickOsc.start(now + 0.05); lockClickOsc.stop(now + 0.11);
+
+    } else if (type === 'shotgunReload') {
+        // COMPLETE SHOTGUN RELOAD SEQUENCE - Loading 5 shells with pump actions
+        // This creates a satisfying reload rhythm: load-pump-load-pump-load-pump-load-pump-load-pump
+
+        // Shell 1: Load first shell
+        setTimeout(() => {
+            // Quick shell insert
+            const shell1Osc = actx.createOscillator();
+            const shell1Gain = actx.createGain();
+            shell1Osc.connect(shell1Gain); shell1Gain.connect(dryGain);
+            shell1Osc.type = 'sine';
+            shell1Osc.frequency.setValueAtTime(600, now);
+            shell1Osc.frequency.exponentialRampToValueAtTime(1200, now + 0.04);
+            const shell1Filter = actx.createBiquadFilter();
+            shell1Filter.type = 'bandpass'; shell1Filter.frequency.value = 2000; shell1Filter.Q.value = 2;
+            shell1Osc.connect(shell1Filter); shell1Filter.connect(shell1Gain);
+            shell1Gain.gain.setValueAtTime(0.25, now);
+            shell1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            shell1Osc.start(now); shell1Osc.stop(now + 0.1);
+
+            // Click
+            const click1Osc = actx.createOscillator();
+            const click1Gain = actx.createGain();
+            click1Osc.connect(click1Gain); click1Gain.connect(dryGain);
+            click1Osc.type = 'square';
+            click1Osc.frequency.setValueAtTime(1800, now + 0.03);
+            click1Osc.frequency.exponentialRampToValueAtTime(1200, now + 0.06);
+            click1Gain.gain.setValueAtTime(0.2, now + 0.03);
+            click1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            click1Osc.start(now + 0.03); click1Osc.stop(now + 0.1);
+        }, 0);
+
+        // Pump action 1 (0.15s delay)
+        setTimeout(() => {
+            // Quick pump pull-push
+            const pump1Osc = actx.createOscillator();
+            const pump1Gain = actx.createGain();
+            pump1Osc.connect(pump1Gain); pump1Gain.connect(dryGain);
+            pump1Osc.type = 'sawtooth';
+            pump1Osc.frequency.setValueAtTime(400, now + 0.15);
+            pump1Osc.frequency.linearRampToValueAtTime(800, now + 0.22);
+            const pump1Filter = actx.createBiquadFilter();
+            pump1Filter.type = 'bandpass'; pump1Filter.frequency.value = 1500; pump1Filter.Q.value = 2;
+            pump1Osc.connect(pump1Filter); pump1Filter.connect(pump1Gain);
+            pump1Gain.gain.setValueAtTime(0.3, now + 0.15);
+            pump1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            pump1Osc.start(now + 0.15); pump1Osc.stop(now + 0.27);
+
+            // Slam
+            const slam1Osc = actx.createOscillator();
+            const slam1Gain = actx.createGain();
+            slam1Osc.connect(slam1Gain); slam1Gain.connect(dryGain);
+            slam1Osc.type = 'sine';
+            slam1Osc.frequency.setValueAtTime(150, now + 0.21);
+            slam1Osc.frequency.exponentialRampToValueAtTime(60, now + 0.27);
+            slam1Gain.gain.setValueAtTime(0.4, now + 0.21);
+            slam1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            slam1Osc.start(now + 0.21); slam1Osc.stop(now + 0.33);
+        }, 150);
+
+        // Shell 2 (0.4s delay)
+        setTimeout(() => {
+            const shell2Osc = actx.createOscillator();
+            const shell2Gain = actx.createGain();
+            shell2Osc.connect(shell2Gain); shell2Gain.connect(dryGain);
+            shell2Osc.type = 'sine';
+            shell2Osc.frequency.setValueAtTime(650, now + 0.4);
+            shell2Osc.frequency.exponentialRampToValueAtTime(1250, now + 0.44);
+            const shell2Filter = actx.createBiquadFilter();
+            shell2Filter.type = 'bandpass'; shell2Filter.frequency.value = 2100; shell2Filter.Q.value = 2;
+            shell2Osc.connect(shell2Filter); shell2Filter.connect(shell2Gain);
+            shell2Gain.gain.setValueAtTime(0.25, now + 0.4);
+            shell2Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
+            shell2Osc.start(now + 0.4); shell2Osc.stop(now + 0.5);
+
+            const click2Osc = actx.createOscillator();
+            const click2Gain = actx.createGain();
+            click2Osc.connect(click2Gain); click2Gain.connect(dryGain);
+            click2Osc.type = 'square';
+            click2Osc.frequency.setValueAtTime(1850, now + 0.43);
+            click2Osc.frequency.exponentialRampToValueAtTime(1250, now + 0.46);
+            click2Gain.gain.setValueAtTime(0.2, now + 0.43);
+            click2Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
+            click2Osc.start(now + 0.43); click2Osc.stop(now + 0.5);
+        }, 400);
+
+        // Continue pattern for remaining shells (3, 4, 5) with accelerating pace
+        [650, 900, 1200].forEach((delay, index) => {
+            const shellNum = index + 3;
+            setTimeout(() => {
+                const shellOsc = actx.createOscillator();
+                const shellGain = actx.createGain();
+                shellOsc.connect(shellGain); shellGain.connect(dryGain);
+                shellOsc.type = 'sine';
+                shellOsc.frequency.setValueAtTime(700 + index * 50, now + delay/1000);
+                shellOsc.frequency.exponentialRampToValueAtTime(1300 + index * 50, now + delay/1000 + 0.04);
+                const shellFilter = actx.createBiquadFilter();
+                shellFilter.type = 'bandpass'; shellFilter.frequency.value = 2200 + index * 100; shellFilter.Q.value = 2;
+                shellOsc.connect(shellFilter); shellFilter.connect(shellGain);
+                shellGain.gain.setValueAtTime(0.22 - index * 0.02, now + delay/1000);
+                shellGain.gain.exponentialRampToValueAtTime(0.01, now + delay/1000 + 0.08);
+                shellOsc.start(now + delay/1000); shellOsc.stop(now + delay/1000 + 0.1);
+
+                const clickOsc = actx.createOscillator();
+                const clickGain = actx.createGain();
+                clickOsc.connect(clickGain); clickGain.connect(dryGain);
+                clickOsc.type = 'square';
+                clickOsc.frequency.setValueAtTime(1900 + index * 50, now + delay/1000 + 0.03);
+                clickOsc.frequency.exponentialRampToValueAtTime(1300 + index * 50, now + delay/1000 + 0.06);
+                clickGain.gain.setValueAtTime(0.18 - index * 0.02, now + delay/1000 + 0.03);
+                clickGain.gain.exponentialRampToValueAtTime(0.01, now + delay/1000 + 0.08);
+                clickOsc.start(now + delay/1000 + 0.03); clickOsc.stop(now + delay/1000 + 0.1);
+            }, delay);
+
+            // Pump actions for shells 3, 4, 5
+            setTimeout(() => {
+                const pumpOsc = actx.createOscillator();
+                const pumpGain = actx.createGain();
+                pumpOsc.connect(pumpGain); pumpGain.connect(dryGain);
+                pumpOsc.type = 'sawtooth';
+                pumpOsc.frequency.setValueAtTime(450 + index * 50, now + (delay + 150)/1000);
+                pumpOsc.frequency.linearRampToValueAtTime(850 + index * 50, now + (delay + 220)/1000);
+                const pumpFilter = actx.createBiquadFilter();
+                pumpFilter.type = 'bandpass'; pumpFilter.frequency.value = 1600 + index * 100; pumpFilter.Q.value = 2;
+                pumpOsc.connect(pumpFilter); pumpFilter.connect(pumpGain);
+                pumpGain.gain.setValueAtTime(0.25 - index * 0.03, now + (delay + 150)/1000);
+                pumpGain.gain.exponentialRampToValueAtTime(0.01, now + (delay + 270)/1000);
+                pumpOsc.start(now + (delay + 150)/1000); pumpOsc.stop(now + (delay + 290)/1000);
+
+                const slamOsc = actx.createOscillator();
+                const slamGain = actx.createGain();
+                slamOsc.connect(slamGain); slamGain.connect(dryGain);
+                slamOsc.type = 'sine';
+                slamOsc.frequency.setValueAtTime(160 + index * 10, now + (delay + 260)/1000);
+                slamOsc.frequency.exponentialRampToValueAtTime(65 + index * 5, now + (delay + 320)/1000);
+                slamGain.gain.setValueAtTime(0.35 - index * 0.04, now + (delay + 260)/1000);
+                slamGain.gain.exponentialRampToValueAtTime(0.01, now + (delay + 350)/1000);
+                slamOsc.start(now + (delay + 260)/1000); slamOsc.stop(now + (delay + 380)/1000);
+            }, delay + 150);
+        });
+
+        return;
 
     } else if (type === 'boltLift') {
         // Bolt handle lift - metallic click up
