@@ -35,7 +35,7 @@ export const Constants = {
     BASE_SPEED: 9.0,
     SPRINT_MULTIPLIER: 1.8,
     SPEED_BOOST_MULTIPLIER: 1.5,
-    GRAVITY: 35,
+    GRAVITY: 10,
     JUMP_FORCE: 12,
     PLAYER_RADIUS: 0.5,
     EYE_HEIGHT: 5,

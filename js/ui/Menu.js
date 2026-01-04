@@ -96,16 +96,49 @@ export class Menu {
             });
         }
 
-        // Spawn floating particles
-        const particleContainer = document.getElementById('menu-particles');
-        if (particleContainer) {
-            for (let i = 0; i < 30; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 8 + 's';
-                particle.style.animationDuration = (6 + Math.random() * 4) + 's';
-                particleContainer.appendChild(particle);
+        // Spawn floating debris (Moon Gravity)
+        const debrisContainer = document.getElementById('menu-debris');
+        if (debrisContainer) {
+            // Spawn standard debris (dust/rocks)
+            for (let i = 0; i < 40; i++) {
+                const debris = document.createElement('div');
+                const isRock = Math.random() > 0.8;
+                debris.className = isRock ? 'debris rock' : 'debris';
+                
+                // Random properties
+                const size = isRock ? (Math.random() * 10 + 4) + 'px' : (Math.random() * 3 + 1) + 'px';
+                debris.style.width = size;
+                debris.style.height = size;
+                debris.style.left = Math.random() * 100 + '%';
+                
+                // Randomize animation
+                const duration = (isRock ? 20 : 10) + Math.random() * 15 + 's';
+                const delay = Math.random() * -20 + 's'; // Start at random times
+                debris.style.animationDuration = duration;
+                debris.style.animationDelay = delay;
+                
+                if (isRock) {
+                    debris.style.borderRadius = Math.random() * 50 + '%';
+                    debris.style.opacity = Math.random() * 0.5 + 0.3;
+                }
+
+                debrisContainer.appendChild(debris);
+            }
+
+            // Spawn floating zombies
+            for (let i = 0; i < 3; i++) {
+                const zombie = document.createElement('div');
+                zombie.className = 'zombie-floater';
+                // Use a simple shape or text for now, could be an SVG or image
+                zombie.style.width = '50px';
+                zombie.style.height = '80px';
+                zombie.style.background = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 50 100\'><rect x=\'15\' y=\'0\' width=\'20\' height=\'20\' fill=\'%23555\'/><rect x=\'10\' y=\'25\' width=\'30\' height=\'40\' fill=\'%23444\'/><rect x=\'5\' y=\'25\' width=\'10\' height=\'30\' fill=\'%23444\' transform=\'rotate(20 5 25)\'/><rect x=\'35\' y=\'25\' width=\'10\' height=\'30\' fill=\'%23444\' transform=\'rotate(-20 35 25)\'/><rect x=\'12\' y=\'70\' width=\'10\' height=\'30\' fill=\'%23333\'/><rect x=\'28\' y=\'70\' width=\'10\' height=\'30\' fill=\'%23333\'/></svg>") no-repeat center center';
+                zombie.style.opacity = '0.3';
+                zombie.style.left = (Math.random() * 80 + 10) + '%';
+                zombie.style.animationDuration = (25 + Math.random() * 10) + 's';
+                zombie.style.animationDelay = (Math.random() * -30) + 's';
+                
+                debrisContainer.appendChild(zombie);
             }
         }
 
@@ -120,10 +153,17 @@ export class Menu {
         // Also start on any click when menu is visible (but not on controls)
         if (mainMenu) {
             mainMenu.addEventListener('click', (e) => {
-                // Don't start if clicking audio controls
+                // Don't start if clicking interactions
                 if (e.target.closest('.audio-settings')) return;
                 if (e.target.closest('.menu-btn')) return;
-                if (e.target === mainMenu || e.target.closest('.menu-vignette') || e.target.closest('.menu-grid')) {
+                if (e.target.closest('.ui-panel')) return; // Don't start when clicking the panel background
+                
+                // Start if clicking the general background layers
+                if (e.target === mainMenu || 
+                    e.target.closest('.menu-vignette') || 
+                    e.target.closest('.lab-grid') || 
+                    e.target.closest('.moon-surface') ||
+                    e.target.closest('.menu-debris-container')) {
                     this.startGame();
                 }
             });
