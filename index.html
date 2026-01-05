@@ -1340,14 +1340,14 @@
             transform: scale(0.98);
         }
 
-        /* === SCOPE OVERLAY === */
+        /* === SCOPE OVERLAY === MW2 QUICKSCOPE FEEL */
         #scope-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             opacity: 0;
-            transform: scale(1.1);
-            transition: opacity 0.2s ease-out, transform 0.25s cubic-bezier(0.15, 0.85, 0.35, 1.2);
+            transform: scale(1.15);
+            transition: opacity 0.08s ease-out, transform 0.1s cubic-bezier(0.2, 1.0, 0.3, 1.0);
             z-index: 60;
         }
         #scope-overlay.active {
@@ -2269,85 +2269,85 @@ const GRAVITY = 10; // Moon gravity (~1/6th Earth, was 35)
 
 // Separate springs for different axes - ULTRA FLUID & ORGANIC feel
 const Springs = {
-    // Gun sway - multi-layered for organic feel
-    swayX: new Spring(65, 5, 1.4),       // Softer, more floaty
-    swayY: new Spring(65, 5, 1.4),
-    swayLagX: new Spring(30, 3.5, 1.8),  // More lag for fluidity
-    swayLagY: new Spring(30, 3.5, 1.8),
-    swayLag2X: new Spring(18, 2.5, 2.2), // Third layer of lag
-    swayLag2Y: new Spring(18, 2.5, 2.2),
+    // Gun sway - ultra-smooth multi-layered organic feel
+    swayX: new Spring(45, 6, 1.6),       // Softer, more floaty, higher damping
+    swayY: new Spring(45, 6, 1.6),
+    swayLagX: new Spring(22, 4.5, 2.0),  // More lag for buttery fluidity
+    swayLagY: new Spring(22, 4.5, 2.0),
+    swayLag2X: new Spring(12, 3.5, 2.5), // Third layer - very smooth trailing
+    swayLag2Y: new Spring(12, 3.5, 2.5),
 
-    // Recoil - snappy initial kick with soft follow-through
-    recoilZ: new Spring(280, 14, 0.9),   // Quick snap back
-    recoilX: new Spring(180, 9, 1.1),    // Muzzle climb - softer
-    recoilY: new Spring(140, 8, 1.2),    // Vertical rise
-    recoilRoll: new Spring(200, 12, 1),  // Rotational recoil
+    // Recoil - punchy kick with silky follow-through
+    recoilZ: new Spring(220, 16, 1.0),   // Slightly softer, better damped
+    recoilX: new Spring(140, 12, 1.2),   // Muzzle climb - smoother settle
+    recoilY: new Spring(110, 10, 1.3),   // Vertical rise - more weight
+    recoilRoll: new Spring(160, 14, 1.1),// Rotational recoil - refined
 
-    // Recoil recovery (slower return to neutral)
-    recoilRecoverZ: new Spring(40, 4, 2),
-    recoilRecoverX: new Spring(35, 3.5, 2),
+    // Recoil recovery (buttery return to neutral)
+    recoilRecoverZ: new Spring(30, 5, 2.2),
+    recoilRecoverX: new Spring(28, 4.5, 2.2),
 
-    // Movement feel - very organic
-    bobY: new Spring(50, 4, 1.4),        // Floatier vertical bob
-    bobX: new Spring(40, 3.5, 1.5),      // Side-to-side sway
-    bobZ: new Spring(35, 3, 1.6),        // Forward/back bob (new)
-    roll: new Spring(45, 4, 1.3),        // Hip roll
-    tilt: new Spring(30, 3, 1.5),        // Forward lean
+    // Movement feel - ultra organic and fluid
+    bobY: new Spring(38, 5, 1.6),        // Floatier vertical bob
+    bobX: new Spring(32, 4.5, 1.7),      // Side-to-side sway - smoother
+    bobZ: new Spring(28, 4, 1.8),        // Forward/back bob - weighted
+    roll: new Spring(35, 5, 1.5),        // Hip roll - silky
+    tilt: new Spring(24, 4, 1.7),        // Forward lean - gradual
 
-    // Momentum/inertia
-    momentumX: new Spring(25, 2.5, 2),   // Weapon trails behind movement
-    momentumZ: new Spring(25, 2.5, 2),
+    // Momentum/inertia - increased weight for premium feel
+    momentumX: new Spring(18, 3.5, 2.3), // Weapon trails behind movement
+    momentumZ: new Spring(18, 3.5, 2.3),
 
     // Breathing/idle - very subtle organic motion
-    breathe: new Spring(15, 1.5, 2.5),   // Slow breathing
-    idleSway: new Spring(8, 1, 3),       // Ultra slow idle drift
-    heartbeat: new Spring(100, 8, 0.5),  // Subtle pulse
+    breathe: new Spring(12, 2, 2.8),     // Slow breathing - smoother
+    idleSway: new Spring(6, 1.5, 3.5),   // Ultra slow idle drift
+    heartbeat: new Spring(80, 10, 0.6),  // Subtle pulse - refined
 
-    // Screen shake - responsive but not jarring
-    shakeX: new Spring(250, 16, 1),
-    shakeY: new Spring(250, 16, 1),
-    shakeRoll: new Spring(200, 14, 1),   // Rotational shake
+    // Screen shake - punchy but smooth recovery
+    shakeX: new Spring(200, 18, 1.1),
+    shakeY: new Spring(200, 18, 1.1),
+    shakeRoll: new Spring(160, 16, 1.1), // Rotational shake - better damped
 
-    // Camera smoothing - cinematic lag
-    camLagX: new Spring(80, 6, 1.2),
-    camLagY: new Spring(80, 6, 1.2),
+    // Camera smoothing - cinematic buttery lag
+    camLagX: new Spring(60, 8, 1.4),
+    camLagY: new Spring(60, 8, 1.4),
 
-    // ADS transition smoothing
-    adsTransition: new Spring(120, 10, 1),
-    adsFov: new Spring(120, 22, 1.0), // Dedicated spring for FOV transitions - Damped for smoothness
+    // ADS transition smoothing - MW2 quickscope fast
+    adsTransition: new Spring(180, 20, 0.9),  // Faster weapon raise
+    adsFov: new Spring(320, 35, 0.6),    // MW2 QUICKSCOPE: Very high stiffness, high damping, low mass = INSTANT SNAP
 
-    // Landing impact
-    landing: new Spring(200, 15, 1),
-    landingTilt: new Spring(150, 12, 1),
+    // Landing impact - punchy but controlled
+    landing: new Spring(160, 18, 1.1),
+    landingTilt: new Spring(120, 14, 1.1),
 
-    // Sprinting effects
-    sprintBob: new Spring(70, 5, 1.2),
-    sprintTilt: new Spring(50, 4, 1.3),
-    sprintRoll: new Spring(60, 4.5, 1.2),
+    // Sprinting effects - fluid motion
+    sprintBob: new Spring(55, 6, 1.4),
+    sprintTilt: new Spring(40, 5, 1.5),
+    sprintRoll: new Spring(48, 5.5, 1.4),
 
-    // === NEW: Attention to Detail Springs ===
+    // === Attention to Detail Springs - Enhanced fluidity ===
     // Strafe lean - weapon and camera tilt when strafing
-    strafeTilt: new Spring(80, 6, 1.2),
-    strafeRoll: new Spring(60, 5, 1.3),
+    strafeTilt: new Spring(60, 8, 1.4),
+    strafeRoll: new Spring(48, 6.5, 1.5),
 
-    // Velocity-based weapon drag (trails behind fast movements)
-    velocityDragX: new Spring(40, 4, 1.5),
-    velocityDragY: new Spring(40, 4, 1.5),
+    // Velocity-based weapon drag (silky trailing)
+    velocityDragX: new Spring(30, 5, 1.8),
+    velocityDragY: new Spring(30, 5, 1.8),
 
-    // Turn inertia - weapon lags when spinning camera fast
-    turnLagX: new Spring(50, 4.5, 1.4),
-    turnLagY: new Spring(50, 4.5, 1.4),
+    // Turn inertia - smooth weapon lag when spinning camera
+    turnLagX: new Spring(38, 6, 1.6),
+    turnLagY: new Spring(38, 6, 1.6),
 
-    // Weapon inspection sway
-    inspectRotX: new Spring(25, 3, 2),
-    inspectRotY: new Spring(25, 3, 2),
-    inspectRotZ: new Spring(20, 2.5, 2),
+    // Weapon inspection sway - gentle and smooth
+    inspectRotX: new Spring(20, 4, 2.3),
+    inspectRotY: new Spring(20, 4, 2.3),
+    inspectRotZ: new Spring(16, 3.5, 2.3),
 
-    // Bolt carrier
-    boltZ: new Spring(400, 18, 0.8),
+    // Bolt carrier - snappy but smooth
+    boltZ: new Spring(320, 22, 0.9),
 
-    // Dynamic crosshair
-    crosshairSpread: new Spring(120, 10, 1)
+    // Dynamic crosshair - responsive
+    crosshairSpread: new Spring(100, 12, 1.1)
 };
 
 // Velocity tracking for inertia effects
@@ -3183,7 +3183,7 @@ const OutlineShader = {
 };
 
 // Dynamic post-processing values
-let bloomIntensity = 0.15; // Warm sunset glow
+let bloomIntensity = 0.15; // Cool lab glow
 let chromaticAmount = 0.0005;
 let motionBlurX = 0.0;
 let motionBlurY = 0.0;
@@ -5515,8 +5515,8 @@ const sunGlow2 = new THREE.Mesh(sunGlow2Geo, sunGlow2Mat);
 sunGlow2.position.copy(sun.position);
 // scene.add(sunGlow2); // Disabled - indoor arena
 
-// Indoor haze/dust fog (subtle)
-scene.fog = new THREE.FogExp2(0x222225, 0.006);
+// Indoor haze/dust fog (subtle, cool)
+scene.fog = new THREE.FogExp2(0x131c28, 0.003);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500); // Reduced FOV and far plane for performance
 const renderer = new THREE.WebGLRenderer({
@@ -5531,7 +5531,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft realistic shadows
 renderer.shadowMap.autoUpdate = false; // Manual shadow update
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; // Cinematic tone mapping
-renderer.toneMappingExposure = 1.1; // Slightly brighter
+renderer.toneMappingExposure = 1.65; // Brighter lab exposure
 renderer.physicallyCorrectLights = true; // PBR lighting
 document.body.appendChild(renderer.domElement);
 
@@ -5604,31 +5604,91 @@ composer.addPass(fxaaPass);
 let sunScreenPos = new THREE.Vector2(0.3, 0.7);
 let sunVisible = 1.0;
 
-// Create sunset environment map for reflections
+// Create space environment map for reflections
 const envMapSize = 256;
 const envMapCanvas = document.createElement('canvas');
 envMapCanvas.width = envMapCanvas.height = envMapSize;
 const envCtx = envMapCanvas.getContext('2d');
 const envGrad = envCtx.createLinearGradient(0, 0, 0, envMapSize);
-envGrad.addColorStop(0, '#2a1030');   // Purple top
-envGrad.addColorStop(0.4, '#ff6040'); // Orange mid
-envGrad.addColorStop(1, '#ffaa60');   // Warm bottom
+envGrad.addColorStop(0, '#070a12');   // Deep space
+envGrad.addColorStop(0.45, '#0b1320'); // Blue-black mid
+envGrad.addColorStop(1, '#0f1c2c');   // Cool horizon glow
 envCtx.fillStyle = envGrad;
 envCtx.fillRect(0, 0, envMapSize, envMapSize);
+
+// Nebula glow
+envCtx.globalAlpha = 0.35;
+const nebulaGrad = envCtx.createRadialGradient(envMapSize * 0.7, envMapSize * 0.35, 10, envMapSize * 0.7, envMapSize * 0.35, envMapSize * 0.6);
+nebulaGrad.addColorStop(0, '#1b3a52');
+nebulaGrad.addColorStop(1, 'rgba(7, 10, 18, 0)');
+envCtx.fillStyle = nebulaGrad;
+envCtx.fillRect(0, 0, envMapSize, envMapSize);
+
+// Planet glow
+envCtx.globalAlpha = 0.4;
+const planetGrad = envCtx.createRadialGradient(envMapSize * 0.2, envMapSize * 0.75, 0, envMapSize * 0.2, envMapSize * 0.75, envMapSize * 0.25);
+planetGrad.addColorStop(0, '#8fd3ff');
+planetGrad.addColorStop(0.6, '#1b3a55');
+planetGrad.addColorStop(1, 'rgba(7, 10, 18, 0)');
+envCtx.fillStyle = planetGrad;
+envCtx.fillRect(0, 0, envMapSize, envMapSize);
+
+// Stars
+envCtx.globalAlpha = 1;
+for (let i = 0; i < 350; i++) {
+    const x = Math.random() * envMapSize;
+    const y = Math.random() * envMapSize;
+    const r = Math.random() < 0.08 ? 1.5 : 1;
+    const a = 0.5 + Math.random() * 0.5;
+    envCtx.fillStyle = `rgba(210, 230, 255, ${a})`;
+    envCtx.beginPath();
+    envCtx.arc(x, y, r, 0, Math.PI * 2);
+    envCtx.fill();
+}
 const envMapTex = new THREE.CanvasTexture(envMapCanvas);
 envMapTex.mapping = THREE.EquirectangularReflectionMapping;
 
+// Starfield texture for lab viewports
+const spaceVistaSize = 512;
+const spaceVistaCanvas = document.createElement('canvas');
+spaceVistaCanvas.width = spaceVistaCanvas.height = spaceVistaSize;
+const spaceCtx = spaceVistaCanvas.getContext('2d');
+const spaceGrad = spaceCtx.createRadialGradient(spaceVistaSize * 0.4, spaceVistaSize * 0.6, 0, spaceVistaSize * 0.4, spaceVistaSize * 0.6, spaceVistaSize);
+spaceGrad.addColorStop(0, '#0b1422');
+spaceGrad.addColorStop(0.5, '#070c16');
+spaceGrad.addColorStop(1, '#04070c');
+spaceCtx.fillStyle = spaceGrad;
+spaceCtx.fillRect(0, 0, spaceVistaSize, spaceVistaSize);
+spaceCtx.globalAlpha = 0.6;
+const vistaNebula = spaceCtx.createRadialGradient(spaceVistaSize * 0.2, spaceVistaSize * 0.2, 0, spaceVistaSize * 0.2, spaceVistaSize * 0.2, spaceVistaSize * 0.5);
+vistaNebula.addColorStop(0, '#1a3b52');
+vistaNebula.addColorStop(1, 'rgba(4, 7, 12, 0)');
+spaceCtx.fillStyle = vistaNebula;
+spaceCtx.fillRect(0, 0, spaceVistaSize, spaceVistaSize);
+spaceCtx.globalAlpha = 1;
+for (let i = 0; i < 700; i++) {
+    const x = Math.random() * spaceVistaSize;
+    const y = Math.random() * spaceVistaSize;
+    const r = Math.random() < 0.1 ? 1.6 : 1;
+    const a = 0.4 + Math.random() * 0.6;
+    spaceCtx.fillStyle = `rgba(210, 235, 255, ${a})`;
+    spaceCtx.beginPath();
+    spaceCtx.arc(x, y, r, 0, Math.PI * 2);
+    spaceCtx.fill();
+}
+const spaceVistaTex = new THREE.CanvasTexture(spaceVistaCanvas);
+
 // ============ INDOOR FLUORESCENT LIGHTING ============
-// Brighter cool white ambient for indoor feel
-const ambientLight = new THREE.AmbientLight(0xdddde8, 0.6);
+// Cool ambient wash for space lab - boosted for visibility
+const ambientLight = new THREE.AmbientLight(0xc5d8f0, 1.1);
 scene.add(ambientLight);
 
-// Hemisphere light - bright ceiling, lighter floor
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x666677, 0.5);
+// Hemisphere light - crisp ceiling, lifted floor shadows
+const hemiLight = new THREE.HemisphereLight(0xe0f4ff, 0x2a3540, 1.05);
 scene.add(hemiLight);
 
-// Main overhead light (like a big fluorescent panel) - straight down
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+// Main overhead light (lab ceiling panels) - straight down
+const dirLight = new THREE.DirectionalLight(0xf0f8ff, 2.0);
 dirLight.position.set(0, 100, 0); // Straight above
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.width = 2048;
@@ -5656,8 +5716,8 @@ for (let row = 0; row < FLUOR_ROWS; row++) {
         const x = (col - (FLUOR_COLS - 1) / 2) * FLUOR_SPACING;
         const z = (row - (FLUOR_ROWS - 1) / 2) * FLUOR_SPACING;
 
-        // Point light for each fluorescent fixture (brighter)
-        const fluorLight = new THREE.PointLight(0xffffff, 1.0, 50, 2);
+        // Point light for each fluorescent fixture (boosted brightness)
+        const fluorLight = new THREE.PointLight(0xdcf0ff, 1.8, 60, 1.8);
         fluorLight.position.set(x, ROOF_HEIGHT - 2, z);
         scene.add(fluorLight);
         fluorLights.push(fluorLight);
@@ -5665,9 +5725,9 @@ for (let row = 0; row < FLUOR_ROWS; row++) {
         // Visible fluorescent tube (emissive mesh)
         const tubeGeo = new THREE.BoxGeometry(8, 0.3, 1);
         const tubeMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            emissive: 0xeeffff,
-            emissiveIntensity: 2
+            color: 0xf0faff,
+            emissive: 0xd8f4ff,
+            emissiveIntensity: 3.5
         });
         const tube = new THREE.Mesh(tubeGeo, tubeMat);
         tube.position.set(x, ROOF_HEIGHT - 1, z);
@@ -5675,8 +5735,8 @@ for (let row = 0; row < FLUOR_ROWS; row++) {
     }
 }
 
-// Subtle fill light for visibility
-const rimLight = new THREE.DirectionalLight(0xaaaacc, 0.1);
+// Subtle fill light for visibility - boosted
+const rimLight = new THREE.DirectionalLight(0x8ac0e0, 0.55);
 rimLight.position.set(5, 10, 5);
 scene.add(rimLight);
 
@@ -5685,8 +5745,8 @@ const muzzleLight = new THREE.PointLight(0xffaa00, 0, 30);
 muzzleLight.castShadow = false;
 scene.add(muzzleLight);
 
-// Secondary fill light that follows camera for gun visibility (warm tint)
-const gunFillLight = new THREE.PointLight(0xffaa77, 0.4, 15);
+// Secondary fill light that follows camera for gun visibility (brighter, warmer)
+const gunFillLight = new THREE.PointLight(0xc8e8ff, 0.7, 18);
 gunFillLight.position.set(0, -0.3, 0.5);
 camera.add(gunFillLight);
 
@@ -5697,14 +5757,156 @@ const woodTex = TextureFactory.wood();
 const metalTexDark = TextureFactory.metal(true);
 const metalTexLight = TextureFactory.metal(false);
 
-// Concrete Floor (Bright)
+// Lab panel textures
+const labPanelTex = (() => {
+    const size = 512;
+    const { c, ctx } = TextureFactory.createCanvas(size);
+    ctx.fillStyle = '#121821';
+    ctx.fillRect(0, 0, size, size);
+
+    const grad = ctx.createLinearGradient(0, 0, size, size);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.strokeStyle = '#263142';
+    ctx.lineWidth = 2;
+    const step = 64;
+    for (let i = 0; i <= size; i += step) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#1f2733';
+    ctx.lineWidth = 1;
+    const subStep = 32;
+    for (let i = 0; i <= size; i += subStep) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+    }
+
+    ctx.fillStyle = '#0d1118';
+    for (let i = 0; i < 140; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    TextureFactory.noise(ctx, size, size, 0.08);
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(6, 6);
+    return tex;
+})();
+
+const labPanelGlowTex = (() => {
+    const size = 512;
+    const { c, ctx } = TextureFactory.createCanvas(size);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.strokeStyle = 'rgba(120, 220, 255, 0.6)';
+    ctx.lineWidth = 2;
+    const step = 128;
+    for (let i = 0; i <= size; i += step) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(80, 200, 255, 0.3)';
+    ctx.lineWidth = 1;
+    const subStep = 64;
+    for (let i = 0; i <= size; i += subStep) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+    }
+
+    ctx.fillStyle = 'rgba(120, 220, 255, 0.7)';
+    for (let i = 0; i < 40; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        ctx.fillRect(x, y, 3, 3);
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(6, 6);
+    return tex;
+})();
+
+const reactorTex = (() => {
+    const size = 512;
+    const { c, ctx } = TextureFactory.createCanvas(size);
+    ctx.fillStyle = '#0f1520';
+    ctx.fillRect(0, 0, size, size);
+
+    const grad = ctx.createRadialGradient(size / 2, size / 2, 20, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, '#233040');
+    grad.addColorStop(1, '#0b111a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.strokeStyle = '#2b394d';
+    ctx.lineWidth = 4;
+    for (let r = 60; r < size / 2; r += 40) {
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#1d2736';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(size / 2, size / 2);
+        ctx.lineTo(size / 2 + Math.cos(angle) * (size / 2), size / 2 + Math.sin(angle) * (size / 2));
+        ctx.stroke();
+    }
+
+    TextureFactory.noise(ctx, size, size, 0.05);
+    return new THREE.CanvasTexture(c);
+})();
+
+const reactorGlowTex = (() => {
+    const size = 512;
+    const { c, ctx } = TextureFactory.createCanvas(size);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.strokeStyle = 'rgba(110, 230, 255, 0.8)';
+    ctx.lineWidth = 5;
+    for (let r = 80; r < size / 2; r += 80) {
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    const coreGrad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, 90);
+    coreGrad.addColorStop(0, 'rgba(140, 245, 255, 0.9)');
+    coreGrad.addColorStop(1, 'rgba(140, 245, 255, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.fillRect(0, 0, size, size);
+
+    return new THREE.CanvasTexture(c);
+})();
+
+// Lab floor (sealed alloy panels)
 const floorMat = new THREE.MeshStandardMaterial({ 
-    map: concreteTex, 
-    color: 0xdddddd, // Light grey
-    roughness: 0.8, 
-    metalness: 0.1,
-    bumpMap: concreteTex,
-    bumpScale: 0.05
+    map: labPanelTex, 
+    color: 0xb8c4d6,
+    roughness: 0.35, 
+    metalness: 0.6,
+    bumpMap: labPanelTex,
+    bumpScale: 0.08,
+    emissive: 0x0a1b2a,
+    emissiveMap: labPanelGlowTex,
+    emissiveIntensity: 1.0,
+    envMap: envMapTex,
+    envMapIntensity: 0.2
 });
 // Larger arena for zombie swarms
 const MAP_SIZE = 140;
@@ -5715,18 +5917,24 @@ floor.rotation.x = -Math.PI / 2; floor.position.y = -5; floor.receiveShadow = tr
 scene.add(floor);
 
 // ============ ROOF/CEILING ============
-// Create industrial ceiling texture
+// Create space-lab ceiling texture
 const ceilingTexCanvas = document.createElement('canvas');
 ceilingTexCanvas.width = 256;
 ceilingTexCanvas.height = 256;
+const ceilingGlowCanvas = document.createElement('canvas');
+ceilingGlowCanvas.width = 256;
+ceilingGlowCanvas.height = 256;
 const ceilCtx = ceilingTexCanvas.getContext('2d');
+const ceilGlowCtx = ceilingGlowCanvas.getContext('2d');
 
-// Base ceiling color (industrial gray)
-ceilCtx.fillStyle = '#404045';
+// Base ceiling color (cool lab composite)
+ceilCtx.fillStyle = '#1b222e';
 ceilCtx.fillRect(0, 0, 256, 256);
+ceilGlowCtx.fillStyle = '#000000';
+ceilGlowCtx.fillRect(0, 0, 256, 256);
 
-// Add ceiling tile grid pattern
-ceilCtx.strokeStyle = '#353538';
+// Panel grid pattern
+ceilCtx.strokeStyle = '#2a3443';
 ceilCtx.lineWidth = 2;
 const tileSize = 64;
 for (let x = 0; x <= 256; x += tileSize) {
@@ -5742,25 +5950,64 @@ for (let y = 0; y <= 256; y += tileSize) {
     ceilCtx.stroke();
 }
 
-// Add some subtle variation/stains
-for (let i = 0; i < 20; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const radius = 5 + Math.random() * 20;
-    ceilCtx.fillStyle = `rgba(${Math.random() > 0.5 ? 50 : 30}, ${Math.random() > 0.5 ? 50 : 30}, ${Math.random() > 0.5 ? 52 : 32}, 0.3)`;
+// Secondary grid for panel seams
+ceilCtx.strokeStyle = '#1f2731';
+ceilCtx.lineWidth = 1;
+const subTile = 32;
+for (let x = 0; x <= 256; x += subTile) {
     ceilCtx.beginPath();
-    ceilCtx.arc(x, y, radius, 0, Math.PI * 2);
-    ceilCtx.fill();
+    ceilCtx.moveTo(x, 0);
+    ceilCtx.lineTo(x, 256);
+    ceilCtx.stroke();
+}
+for (let y = 0; y <= 256; y += subTile) {
+    ceilCtx.beginPath();
+    ceilCtx.moveTo(0, y);
+    ceilCtx.lineTo(256, y);
+    ceilCtx.stroke();
 }
 
+// Light panels
+for (let y = 0; y < 4; y++) {
+    for (let x = 0; x < 4; x++) {
+        if ((x + y) % 2 === 0) {
+            const px = x * tileSize + 8;
+            const py = y * tileSize + 10;
+            const w = tileSize - 16;
+            const h = 12;
+            ceilCtx.fillStyle = '#3b4658';
+            ceilCtx.fillRect(px, py, w, h);
+            ceilGlowCtx.fillStyle = 'rgba(120, 220, 255, 0.9)';
+            ceilGlowCtx.fillRect(px, py, w, h);
+        }
+    }
+}
+
+// Tiny vents / service ports
+ceilCtx.fillStyle = 'rgba(15, 20, 28, 0.6)';
+for (let i = 0; i < 50; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    ceilCtx.fillRect(x, y, 2, 2);
+}
+
+TextureFactory.noise(ceilCtx, 256, 256, 0.12);
+
 const ceilingTex = new THREE.CanvasTexture(ceilingTexCanvas);
+const ceilingGlowTex = new THREE.CanvasTexture(ceilingGlowCanvas);
 ceilingTex.wrapS = ceilingTex.wrapT = THREE.RepeatWrapping;
+ceilingGlowTex.wrapS = ceilingGlowTex.wrapT = THREE.RepeatWrapping;
 ceilingTex.repeat.set(4, 4);
+ceilingGlowTex.repeat.set(4, 4);
 
 const ceilingMat = new THREE.MeshStandardMaterial({
     map: ceilingTex,
-    color: 0x555560,
-    roughness: 0.9,
+    color: 0x2a3442,
+    roughness: 0.7,
+    metalness: 0.2,
+    emissive: 0x6ac7ff,
+    emissiveMap: ceilingGlowTex,
+    emissiveIntensity: 1.0,
     side: THREE.BackSide // Visible from below
 });
 
@@ -5825,70 +6072,19 @@ hillGeo.setAttribute('uv', new THREE.Float32BufferAttribute(hillUvs, 2));
 hillGeo.setAttribute('normal', new THREE.Float32BufferAttribute(hillNormals, 3));
 hillGeo.setIndex(hillIndices);
 
-// Procedural grass texture for hill
-const grassTexCanvas = document.createElement('canvas');
-grassTexCanvas.width = 256;
-grassTexCanvas.height = 256;
-const grassCtx = grassTexCanvas.getContext('2d');
-
-// Base grass green
-grassCtx.fillStyle = '#3d5c28';
-grassCtx.fillRect(0, 0, 256, 256);
-
-// Add grass blade variations
-for (let i = 0; i < 2000; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const length = 3 + Math.random() * 8;
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
-
-    // Vary green shades
-    const shade = Math.floor(Math.random() * 40);
-    const r = 45 + shade;
-    const g = 80 + Math.floor(Math.random() * 30);
-    const b = 30 + Math.floor(Math.random() * 20);
-
-    grassCtx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-    grassCtx.lineWidth = 1 + Math.random();
-    grassCtx.beginPath();
-    grassCtx.moveTo(x, y);
-    grassCtx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
-    grassCtx.stroke();
-}
-
-// Add some darker patches for depth
-for (let i = 0; i < 30; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const radius = 5 + Math.random() * 15;
-    grassCtx.fillStyle = 'rgba(30, 50, 20, 0.3)';
-    grassCtx.beginPath();
-    grassCtx.arc(x, y, radius, 0, Math.PI * 2);
-    grassCtx.fill();
-}
-
-// Add lighter highlights
-for (let i = 0; i < 20; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const radius = 3 + Math.random() * 10;
-    grassCtx.fillStyle = 'rgba(100, 140, 60, 0.2)';
-    grassCtx.beginPath();
-    grassCtx.arc(x, y, radius, 0, Math.PI * 2);
-    grassCtx.fill();
-}
-
-const grassTex = new THREE.CanvasTexture(grassTexCanvas);
-grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
-grassTex.repeat.set(4, 4);
-
-// Hill material - lush green grass
+// Reactor dome texture for the central hill
 const hillMat = new THREE.MeshStandardMaterial({
-    map: grassTex,
-    color: 0x4a7030,
-    roughness: 0.9,
-    bumpMap: grassTex,
-    bumpScale: 0.15
+    map: reactorTex,
+    color: 0x2a3a4a,
+    roughness: 0.35,
+    metalness: 0.85,
+    bumpMap: metalTexDark,
+    bumpScale: 0.08,
+    emissive: 0x0b3a4a,
+    emissiveMap: reactorGlowTex,
+    emissiveIntensity: 1.3,
+    envMap: envMapTex,
+    envMapIntensity: 0.4
 });
 
 const hill = new THREE.Mesh(hillGeo, hillMat);
@@ -5896,6 +6092,23 @@ hill.position.set(HILL_CENTER_X, -5, HILL_CENTER_Z);
 hill.receiveShadow = true;
 hill.castShadow = true;
 scene.add(hill);
+
+const reactorLight = new THREE.PointLight(0x6bdcff, 1.8, 60, 2);
+reactorLight.position.set(HILL_CENTER_X, -1.5, HILL_CENTER_Z);
+scene.add(reactorLight);
+
+const reactorCore = new THREE.Mesh(
+    new THREE.SphereGeometry(1.2, 24, 24),
+    new THREE.MeshBasicMaterial({
+        color: 0x8feaff,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+    })
+);
+reactorCore.position.set(HILL_CENTER_X, -5 + HILL_HEIGHT + 0.6, HILL_CENTER_Z);
+scene.add(reactorCore);
 
 // Terrain height function - returns Y position at any world X/Z
 function getTerrainHeight(x, z) {
@@ -5921,13 +6134,19 @@ function isOnHill(x, z, margin = 2) {
     return dist < (HILL_RADIUS + margin);
 }
 
-// Walls (Concrete/Light Brick)
+// Walls (lab alloy panels)
 const wallMat = new THREE.MeshStandardMaterial({ 
-    map: concreteTex, // Switched to concrete to match photo style
-    color: 0xbbbbbb,
-    roughness: 0.9, 
-    bumpMap: concreteTex, 
-    bumpScale: 0.1 
+    map: labPanelTex,
+    color: 0x9aa8ba,
+    roughness: 0.45, 
+    metalness: 0.6,
+    bumpMap: labPanelTex, 
+    bumpScale: 0.05,
+    emissive: 0x0a141f,
+    emissiveMap: labPanelGlowTex,
+    emissiveIntensity: 0.35,
+    envMap: envMapTex,
+    envMapIntensity: 0.15
 });
 const wallGeo = new THREE.PlaneGeometry(MAP_SIZE, 50);
 const wall1 = new THREE.Mesh(wallGeo, wallMat); wall1.position.set(0, 20, -MAP_HALF); wall1.receiveShadow = true; scene.add(wall1);
@@ -5941,19 +6160,24 @@ const DOOR_WIDTH = 4;
 const DOOR_HEIGHT = 6;
 const DOOR_DEPTH = 1.5;
 
-// Dark rusty metal door material
+// Clean lab door material
 const doorMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a,
-    roughness: 0.7,
-    metalness: 0.8,
-    emissive: 0x000000
+    color: 0x1d232c,
+    roughness: 0.45,
+    metalness: 0.9,
+    emissive: 0x05080c,
+    emissiveIntensity: 0.45,
+    envMap: envMapTex,
+    envMapIntensity: 0.2
 });
 
 // Door frame material (slightly lighter)
 const doorFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x2a2a2a,
-    roughness: 0.6,
-    metalness: 0.7
+    color: 0x232b36,
+    roughness: 0.4,
+    metalness: 0.9,
+    envMap: envMapTex,
+    envMapIntensity: 0.25
 });
 
 // Create door geometry
@@ -6016,9 +6240,11 @@ function createSpawnDoor(x, z, rotationY, wallSide) {
 
     // Window frame (dark metal)
     const windowFrameMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1a1a,
-        roughness: 0.4,
-        metalness: 0.9
+        color: 0x202a35,
+        roughness: 0.35,
+        metalness: 0.95,
+        envMap: envMapTex,
+        envMapIntensity: 0.3
     });
     const windowFrame = new THREE.Mesh(
         new THREE.BoxGeometry(WINDOW_WIDTH + 0.4, WINDOW_HEIGHT + 0.4, 0.3),
@@ -6030,13 +6256,15 @@ function createSpawnDoor(x, z, rotationY, wallSide) {
 
     // Glass pane (slightly reflective, dark tinted)
     const glassMat = new THREE.MeshStandardMaterial({
-        color: 0x112233,
-        roughness: 0.1,
-        metalness: 0.3,
+        color: 0x0e1a26,
+        roughness: 0.05,
+        metalness: 0.5,
         transparent: true,
-        opacity: 0.7,
-        emissive: 0x0a1520,
-        emissiveIntensity: 0.3
+        opacity: 0.55,
+        emissive: 0x0a1c2b,
+        emissiveIntensity: 0.75,
+        envMap: envMapTex,
+        envMapIntensity: 0.6
     });
     const glass = new THREE.Mesh(
         new THREE.BoxGeometry(WINDOW_WIDTH, WINDOW_HEIGHT, 0.1),
@@ -6045,13 +6273,14 @@ function createSpawnDoor(x, z, rotationY, wallSide) {
     glass.position.set(0, WINDOW_Y, DOOR_DEPTH / 2 + 0.05);
     doorGroup.add(glass);
 
-    // Interior light (warm fluorescent glow behind glass)
+    // Space vista backlight behind glass
     const interiorLight = new THREE.Mesh(
         new THREE.PlaneGeometry(WINDOW_WIDTH - 0.5, WINDOW_HEIGHT - 0.5),
         new THREE.MeshBasicMaterial({
-            color: 0x556677,
+            map: spaceVistaTex,
+            color: 0xbadfff,
             transparent: true,
-            opacity: 0.4
+            opacity: 1.0
         })
     );
     interiorLight.position.set(0, WINDOW_Y, DOOR_DEPTH / 2 - 0.2);
@@ -6059,9 +6288,9 @@ function createSpawnDoor(x, z, rotationY, wallSide) {
 
     // Scientist silhouettes (dark figures watching)
     const silhouetteMat = new THREE.MeshBasicMaterial({
-        color: 0x050505,
+        color: 0x0b111a,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.65
     });
 
     // Create 1-3 scientist silhouettes per window
@@ -6363,10 +6592,20 @@ function resolveCollision(oldX, oldZ, newX, newZ, radius, excludeObj = null, pla
 }
 
 // Better Obstacles
-const barrierMat = new THREE.MeshStandardMaterial({ map: concreteTex, roughness: 0.8, color: 0xaaaaaa });
-const drumMat = new THREE.MeshStandardMaterial({ map: metalTexDark, roughness: 0.4, metalness: 0.8, color: 0x553333 });
-// Wood crates like the photo
-const crateMat = new THREE.MeshStandardMaterial({ map: woodTex, color: 0x886644, roughness: 0.7 });
+const barrierMat = new THREE.MeshStandardMaterial({
+    map: labPanelTex,
+    roughness: 0.45,
+    metalness: 0.6,
+    color: 0x9aa8ba,
+    emissive: 0x0a141f,
+    emissiveMap: labPanelGlowTex,
+    emissiveIntensity: 0.25,
+    envMap: envMapTex,
+    envMapIntensity: 0.15
+});
+const drumMat = new THREE.MeshStandardMaterial({ map: metalTexDark, roughness: 0.35, metalness: 0.9, color: 0x2a3442, envMap: envMapTex, envMapIntensity: 0.25 });
+// Lab equipment crates
+const crateMat = new THREE.MeshStandardMaterial({ map: metalTexLight, color: 0x6f7f92, roughness: 0.5, metalness: 0.7, envMap: envMapTex, envMapIntensity: 0.2 });
 const obstacles = []; // Store obstacle references for target placement
 
 for(let i=0; i<30; i++) {
@@ -9062,10 +9301,10 @@ for(let i = 0; i < dustCount; i++) {
 }
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 const dustMat = new THREE.PointsMaterial({
-    color: 0xeebb88, // Warm dust
-    size: 0.08, // Smaller particles
+    color: 0x9ad2ff, // Cool lab dust
+    size: 0.07, // Smaller particles
     transparent: true,
-    opacity: 0.2, // Less opaque
+    opacity: 0.24, // Less opaque
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     sizeAttenuation: true
@@ -13665,17 +13904,18 @@ function animate(time) {
     const targetFOV = isAiming ? (isSniper ? sniperAimFOV : (isShotgun ? shotgunAimFOV : akAimFOV)) :
                       (isSliding ? slideFOV : (isSprinting ? sprintFOV : baseFOV));
 
-    // === NEW: ULTRA-FLUID TRANSITION EFFECTS ===
+    // === MW2 QUICKSCOPE TRANSITION EFFECTS ===
     if (isAiming && !lastIsAiming) {
         // Entering ADS
         if (isSniper) {
-            // Sniper zoom punch - deliberate and powerful
-            Springs.adsFov.impulse(-25); // STRONGER snap forward for better feel
-            Springs.shakeY.impulse(3.5); // More pronounced jolt
-            Springs.tilt.impulse(2.5); // Bracing for shot - tilt forward
-            Springs.roll.impulse(1.2); // Slight organic roll
-            chromaticAmount = 0.012; // Deeper lens distortion peak
-            motionBlurY = 1.2; // Vertical zoom blur spike
+            // MW2-style quickscope snap - FAST and punchy
+            Springs.adsFov.impulse(-55); // MASSIVE snap for instant zoom feel
+            Springs.shakeY.impulse(2.0); // Quick jolt, not too much
+            Springs.tilt.impulse(1.5); // Slight forward brace
+            Springs.roll.impulse(0.6); // Minimal roll for clean snap
+            Springs.recoilZ.impulse(-0.8); // Weapon punches toward eye
+            chromaticAmount = 0.018; // Sharp lens effect on zoom
+            motionBlurY = 0.6; // Quick blur spike
             playSound('zoomIn');
         } else {
             // General ADS snap
@@ -13683,14 +13923,16 @@ function animate(time) {
             motionBlurY = 0.4;
         }
     } else if (!isAiming && lastIsAiming) {
-        // Exiting ADS
-        Springs.adsFov.impulse(isSniper ? 8 : 3); // Elastic snap back
+        // Exiting ADS - quick snap out
+        Springs.adsFov.impulse(isSniper ? 18 : 3); // Fast elastic snap back
+        if (isSniper) Springs.recoilZ.impulse(0.4); // Weapon drops back
         playSound('zoomOut');
     }
     lastIsAiming = isAiming;
 
-    // Smooth transition for base position (Lerp is fine for macroscopic movements)
-    activeRecoilGroup.position.lerp(targetPos, 15 * dt);
+    // Smooth transition for base position - SNIPER gets faster lerp for quickscope
+    const adsLerpSpeed = (isSniper && isAiming) ? 28 : 12;
+    activeRecoilGroup.position.lerp(targetPos, adsLerpSpeed * dt);
     
     // Spring-driven FOV for ultra-fluid sniper zoom
     Springs.adsFov.target = targetFOV;
@@ -13699,13 +13941,14 @@ function animate(time) {
     camera.fov = currentFOV;
     camera.updateProjectionMatrix();
 
-    // Handle scope overlay for sniper
+    // Handle scope overlay for sniper - MW2 QUICKSCOPE: appears fast
     const scopeOverlay = document.getElementById('scope-overlay');
     if (scopeOverlay) {
-        if (isSniper && isAiming && currentFOV < 40) {
+        // Scope appears earlier (FOV < 55) for that instant quickscope feel
+        if (isSniper && isAiming && currentFOV < 55) {
             scopeOverlay.classList.add('active');
-            // Hide the sniper model when fully scoped
-            sniperGroup.visible = currentFOV > 30;
+            // Hide the sniper model earlier for cleaner scope view
+            sniperGroup.visible = currentFOV > 45;
         } else {
             scopeOverlay.classList.remove('active');
             if (isSniper) sniperGroup.visible = true;
@@ -13841,11 +14084,11 @@ function animate(time) {
     Springs.camLagX.target = -camVelX * 0.00025;
     Springs.camLagY.target = -camVelY * 0.00025;
 
-    // Track movement for momentum-based weapon lag
-    moveVelX = THREE.MathUtils.lerp(moveVelX, velocity.x, 0.08);
-    moveVelZ = THREE.MathUtils.lerp(moveVelZ, velocity.z, 0.08);
-    Springs.momentumX.target = -moveVelX * 0.003;
-    Springs.momentumZ.target = -moveVelZ * 0.002;
+    // Track movement for momentum-based weapon lag - smoother interpolation
+    moveVelX = THREE.MathUtils.lerp(moveVelX, velocity.x, 0.06);
+    moveVelZ = THREE.MathUtils.lerp(moveVelZ, velocity.z, 0.06);
+    Springs.momentumX.target = -moveVelX * 0.0035;
+    Springs.momentumZ.target = -moveVelZ * 0.0025;
 
     // === NEW: Strafe Tilt - Weapon leans into strafe direction ===
     const strafeInput = Number(moveState.r) - Number(moveState.l);
@@ -14139,8 +14382,8 @@ function animate(time) {
     Springs.slideRoll.target = 0;
     Springs.slideFOV.target = 0;
 
-    // Camera Recoil Recovery + Screen Shake - more organic + strafe lean + slide tilt
-    cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.08); // Slower recovery
+    // Camera Recoil Recovery + Screen Shake - ultra smooth + strafe lean + slide tilt
+    cameraRecoil = THREE.MathUtils.lerp(cameraRecoil, 0, 0.06); // Silky recovery
     camera.rotation.set(
         cameraPitch + cameraRecoil + shakeY * 0.018 + breathe * 0.1 + slideTilt * 0.5, // Add slide forward tilt
         cameraYaw + shakeX * 0.018,
@@ -14266,8 +14509,8 @@ function animate(time) {
             }
         } else {
             // === NORMAL MOVEMENT ===
-            // Smoother deceleration for fluid feel
-            const friction = isGrounded ? 8.0 : 3.0;
+            // Ultra-smooth deceleration for buttery fluid feel
+            const friction = isGrounded ? 6.0 : 2.0;
             velocity.x -= velocity.x * friction * dt;
             velocity.z -= velocity.z * friction * dt;
 
@@ -14279,8 +14522,8 @@ function animate(time) {
             const speedMultiplier = speedBoostTimer > 0 ? speedBoostMultiplier : 1;
             const currentSpeed = (isAiming ? baseSpeed * 0.5 : (isSprinting ? baseSpeed * sprintMultiplier : baseSpeed)) * speedMultiplier;
 
-            // Smoother acceleration
-            const accel = isGrounded ? 12.0 : 4.0;
+            // Silky smooth acceleration - lower values = more gradual buildup
+            const accel = isGrounded ? 9.0 : 3.0;
             if (moveState.f || moveState.b) velocity.z += fIn * currentSpeed * accel * dt;
             if (moveState.l || moveState.r) velocity.x += rIn * currentSpeed * accel * dt;
 
@@ -14384,7 +14627,7 @@ function animate(time) {
 
         // When grounded, smoothly follow terrain height (for walking up/down hill)
         if (isGrounded) {
-            playerHeight = THREE.MathUtils.lerp(playerHeight, currentGroundLevel, 0.15);
+            playerHeight = THREE.MathUtils.lerp(playerHeight, currentGroundLevel, 0.12);
         }
 
         // Set camera Y position (base + jump height - landing dip - slide drop)
@@ -14392,7 +14635,7 @@ function animate(time) {
 
         // ULTRA FLUID Procedural Bobbing (Walking/Sprinting)
         const vLen = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
-        moveVelSmooth = THREE.MathUtils.lerp(moveVelSmooth, vLen, 0.08); // Smoother velocity tracking
+        moveVelSmooth = THREE.MathUtils.lerp(moveVelSmooth, vLen, 0.05); // Buttery smooth velocity tracking
         const currentIsSprinting = moveState.sprint && moveState.f && !isAiming && isGrounded && !isSliding;
         const bobSpeed = currentIsSprinting ? 0.016 : 0.011;
         const bobIntensity = currentIsSprinting ? 0.1 : 0.06;
